@@ -116,7 +116,12 @@ Requirements:
   });
 
   const rawText = extractTextResponse(response.content).trim();
-  const parsed = JSON.parse(rawText);
+  const cleaned = rawText
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  const parsed = JSON.parse(cleaned);
 
   return reportSchema.parse(parsed);
 }
