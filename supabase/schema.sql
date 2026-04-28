@@ -11,7 +11,7 @@ create table if not exists public.reports (
   audio_path text,
   meeting_notes text,
   transcript text,
-  report_json jsonb not null,
+  report_text text not null,
   created_at timestamptz not null default timezone('utc', now())
 );
 

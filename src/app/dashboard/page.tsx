@@ -1,18 +1,21 @@
 import { ReportStudio } from "@/components/report-studio";
 import { TopNav } from "@/components/top-nav";
 import { requireUser } from "@/lib/auth";
-import type { StoredReportRecord } from "@/types/report";
+import type { Report } from "@/types/report";
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
   const { data, error } = await supabase
     .from("reports")
-    .select(
-      "id, client_name, client_email, source_type, meeting_date, next_review_date, created_at, audio_path, meeting_notes, transcript, report_json",
-    )
+    .select("id, client_name, created_at, report_text")
     .order("created_at", { ascending: false });
 
-  const reports = (data ?? []) as StoredReportRecord[];
+  const reports: Report[] = (data ?? []).map((report) => ({
+    id: report.id,
+    client_name: report.client_name,
+    created_at: report.created_at,
+    content: report.report_text,
+  }));
 
   return (
     <main className="shell stack">

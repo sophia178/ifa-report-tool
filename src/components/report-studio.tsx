@@ -4,33 +4,24 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import type { StoredReportRecord, SuitabilityReport } from "@/types/report";
+import type { Report } from "@/types/report";
 
 type ReportStudioProps = {
-  reports: StoredReportRecord[];
+  reports: Report[];
 };
 
 type GenerateResponse = {
-  report: SuitabilityReport;
+  report: string;
   reportId: string;
 };
 
 const today = new Date().toISOString().slice(0, 10);
 
-function getReportPreview(report: StoredReportRecord) {
-  const combinedText = [
-    report.report_json.suitabilitySummary,
-    report.report_json.attitudeToRisk.summary,
-    report.report_json.capacityForLoss.summary,
-  ]
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const lines = combinedText
-    .split(/(?<=[.!?])\s+/)
+function getReportPreview(report: Report) {
+  const lines = report.content
+    .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean);
+    .filter((line) => Boolean(line) && !/^SECTION\s+\d+\s*[-—:]/i.test(line));
 
   return lines.slice(0, 2);
 }
@@ -51,9 +42,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [latestReport, setLatestReport] = useState<SuitabilityReport | null>(
-    reports[0]?.report_json ?? null,
-  );
+  const [latestReport, setLatestReport] = useState<string | null>(reports[0]?.content ?? null);
   const [latestReportId, setLatestReportId] = useState<string | null>(
     reports[0]?.id ?? null,
   );
@@ -177,7 +166,6 @@ export function ReportStudio({ reports }: ReportStudioProps) {
           </button>
         </div>
 
-        {error ? <div className="alert alert-error">{error}</div> : null}
         {status ? <div className="alert alert-success">{status}</div> : null}
         {isGeneratingReport ? (
           <div
@@ -234,6 +222,22 @@ export function ReportStudio({ reports }: ReportStudioProps) {
         ) : null}
 
         <form className="stack" onSubmit={handleSubmit}>
+          {error ? (
+            <div
+              role="alert"
+              style={{
+                color: "#b42318",
+                background: "#fef3f2",
+                border: "1px solid #fecdca",
+                borderRadius: 16,
+                padding: 16,
+              }}
+            >
+              <p style={{ margin: 0, fontWeight: 700 }}>Report generation failed</p>
+              <p style={{ margin: "8px 0 0", color: "#b42318" }}>{error}</p>
+            </div>
+          ) : null}
+
           <div className="grid two-col">
             <div className="field">
               <label htmlFor="clientName">Client name</label>
@@ -371,60 +375,15 @@ export function ReportStudio({ reports }: ReportStudioProps) {
               </div>
 
               <div className="stack">
-                <div>
-                  <h2 className="section-title">{latestReport.clientDetails.fullName}</h2>
-                  <p className="muted">{latestReport.suitabilitySummary}</p>
-                </div>
-
-                <div className="grid two-col">
-                  <div className="card stack">
-                    <h3 className="section-title">Attitude to risk</h3>
-                    <p>
-                      <strong>{latestReport.attitudeToRisk.riskLevel}</strong>
-                    </p>
-                    <p className="muted">{latestReport.attitudeToRisk.summary}</p>
-                  </div>
-                  <div className="card stack">
-                    <h3 className="section-title">Capacity for loss</h3>
-                    <p>
-                      <strong>{latestReport.capacityForLoss.capacityLevel}</strong>
-                    </p>
-                    <p className="muted">{latestReport.capacityForLoss.summary}</p>
-                  </div>
-                </div>
-
-                <div className="stack">
-                  <h3 className="section-title">Recommended products</h3>
-                  {latestReport.recommendedProducts.map((product) => (
-                    <div className="product-card stack" key={product.name}>
-                      <div className="meta">
-                        <span className="badge">{product.type}</span>
-                      </div>
-                      <h4 style={{ margin: 0 }}>{product.name}</h4>
-                      <p className="muted" style={{ margin: 0 }}>
-                        {product.justification}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="card stack">
-                  <h3 className="section-title">Charges disclosure</h3>
-                  <p className="muted" style={{ margin: 0 }}>
-                    Initial charges: {latestReport.chargesDisclosure.initialCharges}
-                  </p>
-                  <p className="muted" style={{ margin: 0 }}>
-                    Ongoing charges: {latestReport.chargesDisclosure.ongoingCharges}
-                  </p>
-                  <p className="muted" style={{ margin: 0 }}>
-                    Product charges: {latestReport.chargesDisclosure.productCharges}
-                  </p>
-                  <p className="muted" style={{ margin: 0 }}>
-                    Platform charges: {latestReport.chargesDisclosure.platformCharges}
-                  </p>
-                  <p style={{ margin: 0 }}>
-                    <strong>Next review date:</strong> {latestReport.nextReviewDate}
-                  </p>
+                <div
+                  className="card"
+                  style={{
+                    background: "#ffffff",
+                    whiteSpace: "pre-wrap",
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {latestReport}
                 </div>
               </div>
             </>
@@ -465,7 +424,6 @@ export function ReportStudio({ reports }: ReportStudioProps) {
                     <div>
                       <h3 style={{ marginBottom: 6 }}>{report.client_name}</h3>
                       <div className="meta">
-                        <span className="badge">{report.source_type}</span>
                         <span>
                           Generated{" "}
                           {format(new Date(report.created_at), "dd MMM yyyy, HH:mm")}
@@ -502,11 +460,6 @@ export function ReportStudio({ reports }: ReportStudioProps) {
                         {line}
                       </p>
                     ))}
-                  </div>
-                  <div className="meta">
-                    <span>{report.client_email}</span>
-                    <span>Meeting: {report.meeting_date}</span>
-                    <span>Review: {report.next_review_date}</span>
                   </div>
                   <div className="actions" style={{ marginTop: 14 }}>
                     <a

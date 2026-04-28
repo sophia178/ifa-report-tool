@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { buildSuitabilityReportDocx } from "@/lib/docx";
 import { createClient } from "@/lib/supabase/server";
-import type { SuitabilityReport } from "@/types/report";
 
 export async function GET(request: Request) {
   try {
@@ -24,7 +23,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from("reports")
-      .select("client_name, report_json")
+      .select("client_name, report_text")
       .eq("id", reportId)
       .eq("user_id", user.id)
       .single();
@@ -33,9 +32,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Report not found." }, { status: 404 });
     }
 
-    const buffer = await buildSuitabilityReportDocx(
-      data.report_json as SuitabilityReport,
-    );
+    const buffer = await buildSuitabilityReportDocx(data.report_text);
 
     const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-suitability-report.docx`;
 
