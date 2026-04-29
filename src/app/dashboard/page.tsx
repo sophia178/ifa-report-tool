@@ -18,34 +18,34 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <main className="shell stack">
-      <TopNav email={user.email} />
+    <main className="dashboard-page">
+      <div className="dashboard-shell">
+        <TopNav email={user.email} />
 
-      <section className="hero">
-        <span className="pill">Adviser dashboard</span>
-        <div className="stack">
-          <h1>Generate and manage suitability reports.</h1>
-          <p>
-            Authenticated advisers can transcribe audio, generate FCA-style
-            reports with Claude, and download each result as a Word document.
-          </p>
-          {error ? <div className="alert alert-error">{error.message}</div> : null}
-          <div className="actions">
-            <a
-              href="#new-report"
-              className="btn"
-              style={{
-                background: "#15803d",
-                boxShadow: "0 10px 24px rgba(21, 128, 61, 0.22)",
-              }}
-            >
-              Generate New Report
-            </a>
+        <section className="dashboard-hero fade-in">
+          <span className="section-kicker">Adviser Dashboard</span>
+          <div className="stack">
+            <h1 className="display-title" style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)" }}>
+              Generate premium suitability reports with confidence.
+            </h1>
+            <p>
+              Clearance helps advisers turn meeting notes or recorded advice
+              meetings into clean, structured suitability reports ready for
+              review and Word export.
+            </p>
+            {error ? <div className="alert alert-error">{error.message}</div> : null}
+            <div className="actions">
+              <a href="#new-report" className="btn">
+                Generate New Report
+              </a>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <ReportStudio reports={reports} />
+        <div style={{ marginTop: 28 }}>
+          <ReportStudio reports={reports} />
+        </div>
+      </div>
     </main>
   );
 }

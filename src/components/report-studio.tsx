@@ -26,6 +26,24 @@ function getReportPreview(report: Report) {
   return lines.slice(0, 2);
 }
 
+function renderReportLines(report: string) {
+  return report
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line, index, lines) => line.length > 0 || lines[index - 1] !== "")
+    .map((line, index) =>
+      /^SECTION\s+\d+\s*[-—:]/i.test(line) ? (
+        <p className="report-line report-heading" key={`heading-${index}`}>
+          {line}
+        </p>
+      ) : (
+        <p className="report-line" key={`line-${index}`}>
+          {line || "\u00a0"}
+        </p>
+      ),
+    );
+}
+
 export function ReportStudio({ reports }: ReportStudioProps) {
   const router = useRouter();
   const [sourceType, setSourceType] = useState<"notes" | "audio">("notes");
@@ -139,8 +157,8 @@ export function ReportStudio({ reports }: ReportStudioProps) {
   }
 
   return (
-    <div className="grid two-col">
-      <section className="card stack" id="new-report">
+    <div className="dashboard-studio">
+      <section className="studio-panel stack" id="new-report">
         <div className="stack">
           <div className="pill">New report</div>
           <div>
@@ -149,17 +167,17 @@ export function ReportStudio({ reports }: ReportStudioProps) {
           </div>
         </div>
 
-        <div className="actions">
+        <div className="studio-tabs">
           <button
             type="button"
-            className={sourceType === "notes" ? "btn" : "btn-secondary"}
+            className={sourceType === "notes" ? "btn studio-tab-active" : "btn-secondary studio-tab-idle"}
             onClick={() => setSourceType("notes")}
           >
             Paste meeting notes
           </button>
           <button
             type="button"
-            className={sourceType === "audio" ? "btn" : "btn-secondary"}
+            className={sourceType === "audio" ? "btn studio-tab-active" : "btn-secondary studio-tab-idle"}
             onClick={() => setSourceType("audio")}
           >
             Upload audio
@@ -168,56 +186,9 @@ export function ReportStudio({ reports }: ReportStudioProps) {
 
         {status ? <div className="alert alert-success">{status}</div> : null}
         {isGeneratingReport ? (
-          <div
-            className="card"
-            style={{
-              borderColor: "#abefc6",
-              background: "#f0fdf4",
-              padding: 16,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="#bbf7d0"
-                  strokeWidth="4"
-                />
-                <path
-                  d="M22 12a10 10 0 0 0-10-10"
-                  stroke="#15803d"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                >
-                  <animateTransform
-                    attributeName="transform"
-                    type="rotate"
-                    from="0 12 12"
-                    to="360 12 12"
-                    dur="0.8s"
-                    repeatCount="indefinite"
-                  />
-                </path>
-              </svg>
-              <strong>
-                Generating your FCA suitability report — this takes 15–30
-                seconds
-              </strong>
-            </div>
+          <div className="spinner-panel">
+            <div className="spinner-ring" aria-hidden="true" />
+            <strong>Generating your report...</strong>
           </div>
         ) : null}
 
@@ -238,7 +209,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
             </div>
           ) : null}
 
-          <div className="grid two-col">
+          <div className="form-grid">
             <div className="field">
               <label htmlFor="clientName">Client name</label>
               <input
@@ -308,7 +279,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
             </div>
           </div>
 
-          <div className="field">
+          <div className="field form-grid-full">
             <label htmlFor="objectives">Client objectives</label>
             <textarea
               className="textarea"
@@ -321,7 +292,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
           </div>
 
           {sourceType === "notes" ? (
-            <div className="field">
+            <div className="field form-grid-full">
               <label htmlFor="meetingNotes">Meeting notes</label>
               <textarea
                 className="textarea"
@@ -333,7 +304,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
               />
             </div>
           ) : (
-            <div className="field">
+            <div className="field form-grid-full">
               <label htmlFor="audio">Meeting audio</label>
               <input
                 className="input"
@@ -348,7 +319,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
 
           <button
             type="submit"
-            className="btn"
+            className="btn-dark"
             disabled={isSubmitting}
             aria-disabled={isSubmitting}
             style={isSubmitting ? { opacity: 0.7, cursor: "not-allowed" } : undefined}
@@ -359,15 +330,21 @@ export function ReportStudio({ reports }: ReportStudioProps) {
       </section>
 
       <section className="stack">
-        <div className="card stack">
+        <div className="studio-panel stack report-preview-card">
           <div className="pill">Latest output</div>
           {latestReport ? (
             <>
-              <div className="actions">
+              <div className="report-toolbar">
+                <div>
+                  <h2 className="section-title">Generated report preview</h2>
+                  <p className="muted" style={{ margin: "6px 0 0" }}>
+                    Review the output before exporting the final document.
+                  </p>
+                </div>
                 {latestReportId ? (
                   <a
                     href={`/api/download-report?id=${latestReportId}`}
-                    className="btn"
+                    className="btn-dark download-button"
                   >
                     Download Word document
                   </a>
@@ -375,15 +352,8 @@ export function ReportStudio({ reports }: ReportStudioProps) {
               </div>
 
               <div className="stack">
-                <div
-                  className="card"
-                  style={{
-                    background: "#ffffff",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {latestReport}
+                <div className="report-surface">
+                  <div className="report-prose">{renderReportLines(latestReport)}</div>
                 </div>
               </div>
             </>
@@ -394,23 +364,16 @@ export function ReportStudio({ reports }: ReportStudioProps) {
           )}
         </div>
 
-        <div className="card stack">
+        <div className="studio-panel stack">
           <div>
             <h2 className="section-title">Past reports</h2>
             <p className="muted">Previously generated reports for this adviser account.</p>
           </div>
 
           {hasReports ? (
-            <div className="report-list">
+            <div className="history-list">
               {reports.map((report) => (
-                <div
-                  className="report-item"
-                  key={report.id}
-                  style={{
-                    background: "#ffffff",
-                    boxShadow: "0 10px 24px rgba(16, 34, 62, 0.05)",
-                  }}
-                >
+                <div className="report-item" key={report.id}>
                   <div
                     style={{
                       display: "flex",
@@ -432,7 +395,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
                     </div>
                     <a
                       href={`/api/download-report?id=${report.id}`}
-                      className="btn-secondary"
+                      className="btn-dark"
                     >
                       Download Word Doc
                     </a>
