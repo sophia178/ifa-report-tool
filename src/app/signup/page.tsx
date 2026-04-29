@@ -43,6 +43,42 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                 required
               />
             </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+                padding: "2px 2px 0",
+              }}
+            >
+              <input
+                id="termsAccepted"
+                name="termsAccepted"
+                type="checkbox"
+                required
+                style={{ marginTop: 5 }}
+              />
+              <label
+                htmlFor="termsAccepted"
+                style={{
+                  color: "var(--foreground)",
+                  fontSize: "0.95rem",
+                  lineHeight: 1.6,
+                  textTransform: "none",
+                  letterSpacing: 0,
+                  fontWeight: 500,
+                }}
+              >
+                I am an FCA-authorised financial adviser or work under the
+                supervision of one, and I agree to the{" "}
+                <Link
+                  href="/terms"
+                  style={{ textDecoration: "underline", textUnderlineOffset: 3 }}
+                >
+                  Terms of Use
+                </Link>
+              </label>
+            </div>
             <button type="submit" className="btn">
               Sign up
             </button>

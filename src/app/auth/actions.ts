@@ -29,6 +29,16 @@ export async function signup(formData: FormData) {
 
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  const termsAccepted = formData.get("termsAccepted");
+
+  if (termsAccepted !== "on") {
+    redirect(
+      "/signup?error=" +
+        encodeURIComponent(
+          "You must confirm FCA authorisation or supervised status and accept the Terms of Use.",
+        ),
+    );
+  }
 
   const { error } = await supabase.auth.signUp({
     email,

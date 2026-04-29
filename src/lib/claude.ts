@@ -2,6 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import type { GenerateReportInput } from "@/lib/report-schema";
 
+const REPORT_DISCLAIMER =
+  "IMPORTANT DISCLAIMER: This report has been drafted by Suitance AI software as a working draft only. It must be reviewed, verified, and approved by a suitably qualified FCA-authorised financial adviser before being provided to any client. The generating software is not FCA regulated. The adviser firm and individual adviser named in this report are solely responsible for the suitability, accuracy and compliance of all advice given to clients. This draft does not constitute regulated financial advice.";
+
 const SYSTEM_PROMPT = `You are a Chartered Financial Planner and senior paraplanner with 20 years experience writing FCA suitability reports for every type of UK financial advice case. You write under FCA Consumer Duty rules (July 2023). You produce reports that would pass any compliance audit and satisfy the Financial Ombudsman Service. You write in plain professional English personalised entirely to the specific client — never generic templated language. You always use the client's name. You write in full paragraphs only. You detect the complexity of each case from the meeting notes and scale your report accordingly — simple cases get focused 4–6 page reports, complex cases get comprehensive 12–20 page reports. You never truncate. You complete every section fully.
 
 Write the report as plain structured text only. Do not return JSON. Do not return markdown code fences. Do not output your reasoning, complexity checklist, or analysis notes.
@@ -69,7 +72,7 @@ If applicable, include the current protection position, protection gap analysis 
 NEXT STEPS AND REVIEW DATE:
 Include all agreed actions with the responsible party and target date, the ongoing service proposition details, what the annual review will cover, confirmation that the client understood and agreed with the advice, and the next review date.
 
-Complete every relevant section fully before finishing. Use the client's name throughout. Every figure mentioned in the notes must appear somewhere in the report. Every recommendation must be justified specifically for this client — never generic. If critical information is missing use [INFORMATION REQUIRED: description] placeholders so the adviser knows what to add. If platform name, fund name, fund SRRI risk rating, or fund ISIN are not provided, use [INFORMATION REQUIRED: Platform name], [INFORMATION REQUIRED: Fund name], [INFORMATION REQUIRED: Fund SRRI rating], and [INFORMATION REQUIRED: Fund ISIN] where relevant. Minimum 1,500 words for simple cases. Minimum 3,000 words for complex cases involving pension transfers, IHT, or multiple recommendations. Never truncate any section.`;
+Complete every relevant section fully before finishing. Use the client's name throughout. Every figure mentioned in the notes must appear somewhere in the report. Every recommendation must be justified specifically for this client — never generic. If critical information is missing use [INFORMATION REQUIRED: description] placeholders so the adviser knows what to add. If platform name, fund name, fund SRRI risk rating, or fund ISIN are not provided, use [INFORMATION REQUIRED: Platform name], [INFORMATION REQUIRED: Fund name], [INFORMATION REQUIRED: Fund SRRI rating], and [INFORMATION REQUIRED: Fund ISIN] where relevant. Minimum 1,500 words for simple cases. Minimum 3,000 words for complex cases involving pension transfers, IHT, or multiple recommendations. Never truncate any section. After the final section, always append this exact text verbatim as the final paragraph of the report: "${REPORT_DISCLAIMER}"`;
 
 function getPromptValue(value: string | undefined, placeholder: string) {
   const normalized = value?.trim();
@@ -137,10 +140,17 @@ Requirements:
 - If information is missing, use [INFORMATION REQUIRED: description] placeholders rather than guessing.
 - Make sure the NEXT STEPS AND REVIEW DATE section includes the agreed next review date in YYYY-MM-DD format where possible.
 - Scale the level of detail to the case complexity and never truncate any section.
+- After the final section, append this exact disclaimer verbatim as the final paragraph: ${REPORT_DISCLAIMER}
 - Return plain text only.`,
       },
     ],
   });
 
-  return extractTextResponse(response.content).trim();
+  const report = extractTextResponse(response.content).trim();
+
+  if (report.endsWith(REPORT_DISCLAIMER)) {
+    return report;
+  }
+
+  return `${report}\n\n${REPORT_DISCLAIMER}`;
 }

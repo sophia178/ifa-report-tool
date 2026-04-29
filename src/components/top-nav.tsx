@@ -21,6 +21,17 @@ export function TopNav({ email }: TopNavProps) {
           <Link href="/dashboard" className="btn-ghost">
             Dashboard
           </Link>
+          <Link
+            href="/terms"
+            style={{
+              color: "rgba(248, 246, 241, 0.76)",
+              fontSize: "0.88rem",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            Terms
+          </Link>
           {email ? <span className="nav-email">{email}</span> : null}
           {email ? (
             <form action={logout}>

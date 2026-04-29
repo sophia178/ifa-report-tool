@@ -142,7 +142,12 @@ export default async function Home() {
       <footer className="site-footer shell">
         <div className="site-footer-inner">
           <span>Suitance © 2026</span>
-          <span>Built for UK Independent Financial Advisers</span>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+            <span>Built for UK Independent Financial Advisers</span>
+            <Link href="/terms" style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>
+              Terms of Use
+            </Link>
+          </div>
         </div>
       </footer>
     </main>

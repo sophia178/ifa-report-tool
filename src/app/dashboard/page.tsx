@@ -27,6 +27,33 @@ export default async function DashboardPage() {
 
   return (
     <main className="dashboard-page">
+      <div
+        style={{
+          width: "min(1280px, calc(100% - 40px))",
+          margin: "0 auto",
+          paddingTop: 28,
+        }}
+      >
+        <div
+          style={{
+            marginBottom: 18,
+            padding: "14px 18px",
+            borderRadius: 18,
+            background: "#fff3cd",
+            color: "#5c4300",
+            border: "1px solid #f1d88a",
+            boxShadow: "0 10px 24px rgba(10, 22, 40, 0.06)",
+            fontSize: "0.95rem",
+            lineHeight: 1.6,
+          }}
+        >
+          Suitance is a drafting tool for FCA-authorised advisers. All generated
+          reports must be reviewed, amended where necessary, and approved by a
+          suitably qualified FCA-authorised adviser before being sent to any
+          client. Suitance does not provide regulated financial advice and
+          accepts no liability for the use of generated content.
+        </div>
+      </div>
       <div className="dashboard-shell">
         <TopNav email={user.email} />
 
