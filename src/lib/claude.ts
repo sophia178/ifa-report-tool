@@ -39,22 +39,25 @@ FINANCIAL SITUATION ANALYSIS:
 Use exact figures from the notes wherever available. Cover current assets, income, expenditure, pensions, investments, property, protection, liabilities, and tax position. Assess the efficiency of current arrangements and identify gaps. For complex cases, include cashflow observations and retirement income projections if figures allow. Minimum 3 paragraphs.
 
 ATTITUDE TO RISK:
-Explain the client's specific responses and what led to the risk assessment. Explain what the risk score means in practice and confirm that the recommendation is consistent with it. For pension transfers, include specific transfer risk warnings. Minimum 2 paragraphs.
+Explain the client's specific responses and what led to the risk assessment. Explain what the risk score means in practice and confirm that the recommendation is consistent with it. For pension transfers, include specific transfer risk warnings. Minimum 2 paragraphs. Note to adviser: Please ensure a completed and signed attitude to risk questionnaire is retained on the client file. The FCA requires documentary evidence of the risk assessment process.
 
 CAPACITY FOR LOSS:
 Clearly distinguish capacity for loss from attitude to risk. Analyse the client's financial resilience using specific figures. State the maximum sustainable loss percentage with reasoning. For retirees or near-retirees, address sequencing risk explicitly. Minimum 2 paragraphs.
 
 RECOMMENDATION AND SUITABILITY JUSTIFICATION:
-For each recommendation, explain what it is, the specific reasons it was chosen for this client, the alternatives considered and rejected with reasons, why it is suitable against the client's risk profile and objectives, and how it meets all four Consumer Duty outcomes: products and services, price and value, consumer understanding, and consumer support. For every recommended investment fund, explicitly reference the fund's risk profile and confirm it matches the client's assessed attitude to risk. This is a specific FCA compliance requirement that checkers look for. For pension transfers, include transfer value analysis commentary, why transfer is in the client's best interests, and the relevant risk warnings. Minimum 4 paragraphs per recommendation.
+For each recommendation, explain what it is, the specific reasons it was chosen for this client, the alternatives considered and rejected with reasons, why it is suitable against the client's risk profile and objectives, and how it meets all four Consumer Duty outcomes: products and services, price and value, consumer understanding, and consumer support. For every recommended investment fund, explicitly reference the fund's risk profile and confirm it matches the client's assessed attitude to risk. This is a specific FCA compliance requirement that checkers look for. If platform name, fund name, fund SRRI risk rating, and fund ISIN are provided, include them in the recommendation. If they are not provided, use [INFORMATION REQUIRED: Platform name], [INFORMATION REQUIRED: Fund name], [INFORMATION REQUIRED: Fund SRRI rating], and [INFORMATION REQUIRED: Fund ISIN]. For pension transfers, include transfer value analysis commentary, why transfer is in the client's best interests, and the relevant risk warnings. Minimum 4 paragraphs per recommendation. Note to adviser: A Key Information Document (KID) or Key Investor Information Document (KIID) for the recommended fund must be provided to the client alongside this suitability report in accordance with FCA requirements.
 
 CHARGES DISCLOSURE:
-State every charge as both a percentage and a cash amount. Include the total ongoing charge figure and annual cash cost on the full portfolio value. Confirm fair value under Consumer Duty with reasoning. For complex cases, compare total charges to alternatives considered. Minimum 2 paragraphs.
+State every charge as both a percentage and a cash amount. Include the total ongoing charge figure and annual cash cost on the full portfolio value. Confirm fair value under Consumer Duty with reasoning. For complex cases, compare total charges to alternatives considered. Always calculate and state the total ongoing charge figure as a combined percentage AND as an annual cash amount based on the total invested sum. Show the maths clearly. Minimum 2 paragraphs.
 
 RISKS AND WARNINGS:
-Write a personalised risk section referencing the client's specific circumstances for each risk. Include investment risk, inflation risk, sequencing risk if near retirement, liquidity risk, charges drag, tax legislative risk, and any product-specific risks. For pension transfers, include the risk of loss of guaranteed benefits, loss of death benefits, loss of employer contributions, and the irreversibility warning. Minimum 3 paragraphs.
+Write a personalised risk section referencing the client's specific circumstances for each risk. Include investment risk, inflation risk, sequencing risk if near retirement, liquidity risk, charges drag, tax legislative risk, and any product-specific risks. For pension transfers, include the risk of loss of guaranteed benefits, loss of death benefits, loss of employer contributions, and the irreversibility warning. Always include a sequencing risk paragraph for any client within 10 years of their target retirement date. Minimum 3 paragraphs.
 
 PENSION TRANSFER ANALYSIS:
 IMPORTANT FCA REQUIREMENT: The FCA requires firms to start from the assumption that a pension transfer is NOT suitable. Only recommend a transfer if the notes clearly demonstrate it is in the client's best interests. If recommending a transfer, explicitly state why the presumption against transfer has been overcome with reference to the client's specific circumstances.
+At the start of any defined benefit or DB pension transfer section, include this prominently formatted warning box exactly as written:
+--- IMPORTANT NOTICE ---
+THIS SECTION CONTAINS PRELIMINARY DB TRANSFER ANALYSIS ONLY. A FULL APPROPRIATE PENSION TRANSFER ANALYSIS (APTA) MUST BE COMPLETED BEFORE ANY FINAL RECOMMENDATION CAN BE MADE ON THE DB TRANSFER. THE FCA REQUIRES FIRMS TO START FROM THE ASSUMPTION THAT A PENSION TRANSFER IS NOT SUITABLE.
 If applicable, include full transfer value analysis, why transferring is in the client's best interests, what guaranteed benefits are being given up, a comparison of projected outcomes, transfer value adequacy assessment commentary, and FCA required warnings verbatim.
 
 INHERITANCE TAX AND ESTATE PLANNING:
@@ -66,7 +69,12 @@ If applicable, include the current protection position, protection gap analysis 
 NEXT STEPS AND REVIEW DATE:
 Include all agreed actions with the responsible party and target date, the ongoing service proposition details, what the annual review will cover, confirmation that the client understood and agreed with the advice, and the next review date.
 
-Complete every relevant section fully before finishing. Use the client's name throughout. Every figure mentioned in the notes must appear somewhere in the report. Every recommendation must be justified specifically for this client — never generic. If critical information is missing use [INFORMATION REQUIRED: description] placeholders so the adviser knows what to add. Minimum 1,500 words for simple cases. Minimum 3,000 words for complex cases involving pension transfers, IHT, or multiple recommendations. Never truncate any section.`;
+Complete every relevant section fully before finishing. Use the client's name throughout. Every figure mentioned in the notes must appear somewhere in the report. Every recommendation must be justified specifically for this client — never generic. If critical information is missing use [INFORMATION REQUIRED: description] placeholders so the adviser knows what to add. If platform name, fund name, fund SRRI risk rating, or fund ISIN are not provided, use [INFORMATION REQUIRED: Platform name], [INFORMATION REQUIRED: Fund name], [INFORMATION REQUIRED: Fund SRRI rating], and [INFORMATION REQUIRED: Fund ISIN] where relevant. Minimum 1,500 words for simple cases. Minimum 3,000 words for complex cases involving pension transfers, IHT, or multiple recommendations. Never truncate any section.`;
+
+function getPromptValue(value: string | undefined, placeholder: string) {
+  const normalized = value?.trim();
+  return normalized ? normalized : placeholder;
+}
 
 function extractTextResponse(
   content: Anthropic.Messages.Message["content"],
@@ -105,6 +113,10 @@ Known client facts:
 - Date of birth: ${input.dateOfBirth || "Not provided"}
 - Adviser name: ${input.adviserName}
 - Adviser firm: ${input.adviserFirm}
+- Platform name: ${getPromptValue(input.platformName, "[INFORMATION REQUIRED: Platform name]")}
+- Fund name: ${getPromptValue(input.fundName, "[INFORMATION REQUIRED: Fund name]")}
+- Fund SRRI rating: ${getPromptValue(input.fundSrriRiskRating, "[INFORMATION REQUIRED: Fund SRRI rating]")}
+- Fund ISIN: ${getPromptValue(input.fundIsinNumber, "[INFORMATION REQUIRED: Fund ISIN]")}
 - Meeting date: ${input.meetingDate}
 - Stated objectives: ${input.objectives}
 - Input type: ${input.sourceType}

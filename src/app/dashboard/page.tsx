@@ -47,6 +47,19 @@ export default async function DashboardPage() {
                 Generate New Report
               </a>
             </div>
+            <div>
+              <a
+                href="/api/customer-portal"
+                style={{
+                  fontSize: "0.9rem",
+                  color: "rgba(255, 255, 255, 0.8)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                }}
+              >
+                Manage subscription
+              </a>
+            </div>
           </div>
         </section>
 

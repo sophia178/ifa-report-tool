@@ -52,6 +52,10 @@ export function ReportStudio({ reports }: ReportStudioProps) {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [adviserName, setAdviserName] = useState("");
   const [adviserFirm, setAdviserFirm] = useState("");
+  const [platformName, setPlatformName] = useState("");
+  const [fundName, setFundName] = useState("");
+  const [fundSrriRiskRating, setFundSrriRiskRating] = useState("");
+  const [fundIsinNumber, setFundIsinNumber] = useState("");
   const [meetingDate, setMeetingDate] = useState(today);
   const [objectives, setObjectives] = useState("");
   const [meetingNotes, setMeetingNotes] = useState("");
@@ -122,6 +126,10 @@ export function ReportStudio({ reports }: ReportStudioProps) {
           dateOfBirth,
           adviserName,
           adviserFirm,
+          platformName,
+          fundName,
+          fundSrriRiskRating,
+          fundIsinNumber,
           meetingDate,
           objectives,
           sourceType,
@@ -275,6 +283,72 @@ export function ReportStudio({ reports }: ReportStudioProps) {
                 value={adviserFirm}
                 onChange={(event) => setAdviserFirm(event.target.value)}
                 required
+              />
+            </div>
+
+            <div
+              className="form-grid-full"
+              style={{
+                borderTop: "1px solid rgba(15, 23, 42, 0.08)",
+                paddingTop: 20,
+                marginTop: 4,
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                }}
+              >
+                Investment Details (optional)
+              </h3>
+            </div>
+
+            <div className="field">
+              <label htmlFor="platformName">Platform name</label>
+              <input
+                className="input"
+                id="platformName"
+                value={platformName}
+                onChange={(event) => setPlatformName(event.target.value)}
+                placeholder="e.g. Transact, Nucleus, Quilter"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="fundName">Fund name</label>
+              <input
+                className="input"
+                id="fundName"
+                value={fundName}
+                onChange={(event) => setFundName(event.target.value)}
+                placeholder="e.g. Vanguard LifeStrategy 60%"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="fundSrriRiskRating">Fund SRRI rating</label>
+              <input
+                className="input"
+                id="fundSrriRiskRating"
+                type="number"
+                min={1}
+                max={7}
+                value={fundSrriRiskRating}
+                onChange={(event) => setFundSrriRiskRating(event.target.value)}
+                placeholder="Risk rating 1-7"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="fundIsinNumber">Fund ISIN</label>
+              <input
+                className="input"
+                id="fundIsinNumber"
+                value={fundIsinNumber}
+                onChange={(event) => setFundIsinNumber(event.target.value)}
+                placeholder="e.g. GB00B3X7QG63"
               />
             </div>
           </div>

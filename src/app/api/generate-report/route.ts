@@ -22,7 +22,40 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const input = generateReportInputSchema.parse(body);
+    const {
+      clientName,
+      clientEmail,
+      dateOfBirth,
+      adviserName,
+      adviserFirm,
+      platformName,
+      fundName,
+      fundSrriRiskRating,
+      fundIsinNumber,
+      meetingDate,
+      objectives,
+      sourceType,
+      meetingNotes,
+      transcript,
+      audioPath,
+    } = body;
+    const input = generateReportInputSchema.parse({
+      clientName,
+      clientEmail,
+      dateOfBirth,
+      adviserName,
+      adviserFirm,
+      platformName,
+      fundName,
+      fundSrriRiskRating,
+      fundIsinNumber,
+      meetingDate,
+      objectives,
+      sourceType,
+      meetingNotes,
+      transcript,
+      audioPath,
+    });
     const nextReviewDate = getNextReviewDate(input.meetingDate);
 
     let report;
