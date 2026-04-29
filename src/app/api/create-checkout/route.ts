@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
-import { getBaseUrl } from "@/lib/utils";
 
 export async function POST() {
   try {
@@ -27,8 +26,16 @@ export async function POST() {
       );
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+    if (!appUrl) {
+      return NextResponse.json(
+        { error: "NEXT_PUBLIC_APP_URL is not configured." },
+        { status: 500 },
+      );
+    }
+
     const stripe = getStripe();
-    const baseUrl = getBaseUrl();
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer_email: user.email,
@@ -48,8 +55,8 @@ export async function POST() {
           userEmail: user.email,
         },
       },
-      success_url: `${baseUrl}/dashboard`,
-      cancel_url: `${baseUrl}/pricing`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
     });
 
     return NextResponse.json({ url: session.url });
