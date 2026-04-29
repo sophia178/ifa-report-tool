@@ -14,9 +14,9 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Clearance — AI Suitability Reports",
+  title: "Suitance — AI Suitability Reports for Financial Advisers",
   description:
-    "FCA-compliant suitability reports generated in seconds for UK independent financial advisers",
+    "Suitance helps UK independent financial advisers generate FCA-compliant suitability reports in seconds using AI",
 };
 
 export default function RootLayout({

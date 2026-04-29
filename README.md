@@ -1,4 +1,4 @@
-# FCA Suitability Reports
+# Suitance
 
 Next.js app for financial advisers that:
 
@@ -7,6 +7,7 @@ Next.js app for financial advisers that:
 - transcribes audio with AssemblyAI
 - generates FCA-style suitability reports with the Claude API
 - stores reports in Supabase
+- handles paid subscriptions with Stripe
 - exports each report as a Word document
 
 ## Setup
@@ -20,6 +21,10 @@ Next.js app for financial advisers that:
 4. Add:
    - `ANTHROPIC_API_KEY`
    - `ASSEMBLYAI_API_KEY`
+   - `STRIPE_SECRET_KEY`
+   - `STRIPE_PRICE_ID`
+   - `STRIPE_WEBHOOK_SECRET`
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 5. Install dependencies and start the app:
 
 ```bash
@@ -32,6 +37,7 @@ npm run dev
 - `/` marketing/landing page
 - `/login` adviser login
 - `/signup` adviser registration
+- `/pricing` subscription plan and checkout
 - `/dashboard` report dashboard and generation flow
 
 ## Notes

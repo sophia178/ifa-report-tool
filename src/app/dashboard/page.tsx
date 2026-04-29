@@ -1,10 +1,18 @@
 import { ReportStudio } from "@/components/report-studio";
 import { TopNav } from "@/components/top-nav";
 import { requireUser } from "@/lib/auth";
+import { checkSubscription } from "@/lib/subscription";
 import type { Report } from "@/types/report";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
+  const isSubscribed = await checkSubscription(user.id);
+
+  if (!isSubscribed) {
+    redirect("/pricing?message=subscribe");
+  }
+
   const { data, error } = await supabase
     .from("reports")
     .select("id, client_name, created_at, report_text")
@@ -29,7 +37,7 @@ export default async function DashboardPage() {
               Generate premium suitability reports with confidence.
             </h1>
             <p>
-              Clearance helps advisers turn meeting notes or recorded advice
+              Suitance helps advisers turn meeting notes or recorded advice
               meetings into clean, structured suitability reports ready for
               review and Word export.
             </p>

@@ -11,10 +11,13 @@ export function TopNav({ email }: TopNavProps) {
     <div className="nav-shell">
       <div className="nav">
         <Link href="/" className="nav-brand">
-          Clearance
+          Suitance
         </Link>
 
         <div className="nav-links">
+          <Link href="/pricing" className="btn-ghost">
+            Pricing
+          </Link>
           <Link href="/dashboard" className="btn-ghost">
             Dashboard
           </Link>
@@ -28,10 +31,10 @@ export function TopNav({ email }: TopNavProps) {
           ) : (
             <>
               <Link href="/login" className="btn-outline-light">
-                Sign in
+                Log in
               </Link>
               <Link href="/signup" className="btn">
-                Start free
+                Start now
               </Link>
             </>
           )}

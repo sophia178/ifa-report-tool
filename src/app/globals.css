@@ -176,6 +176,15 @@ button {
   transform: translateY(-1px);
 }
 
+.btn:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-dark:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn:focus-visible,
 .btn-secondary:focus-visible,
 .btn-ghost:focus-visible,
@@ -534,8 +543,18 @@ button {
   padding-bottom: 64px;
 }
 
+.pricing-page {
+  padding-bottom: 64px;
+}
+
 .dashboard-shell {
   width: min(1280px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 28px 0 72px;
+}
+
+.pricing-shell {
+  width: min(1120px, calc(100% - 40px));
   margin: 0 auto;
   padding: 28px 0 72px;
 }
@@ -550,6 +569,107 @@ button {
     linear-gradient(135deg, #0d1c31 0%, #12213b 100%);
   color: #f8f6f1;
   box-shadow: var(--shadow-lg);
+}
+
+.pricing-banner {
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: var(--primary);
+  color: #f8f6f1;
+  box-shadow: var(--shadow-sm);
+}
+
+.pricing-hero {
+  display: grid;
+  gap: 24px;
+  padding: 42px;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 168, 76, 0.18), transparent 30%),
+    linear-gradient(135deg, #0a1628 0%, #12213b 100%);
+  color: #f8f6f1;
+  box-shadow: var(--shadow-lg);
+}
+
+.pricing-hero p {
+  margin: 0;
+  max-width: 760px;
+  color: rgba(248, 246, 241, 0.8);
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 24px;
+  margin-top: 28px;
+  align-items: start;
+}
+
+.pricing-card {
+  display: grid;
+  gap: 22px;
+  padding: 34px;
+}
+
+.pricing-plan-name {
+  margin: 0;
+  color: var(--primary);
+  font-size: 1.65rem;
+}
+
+.pricing-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pricing-price strong {
+  color: var(--primary);
+  font-size: clamp(2.5rem, 5vw, 3.6rem);
+  line-height: 1;
+  font-family:
+    var(--font-display), "Playfair Display", Georgia, "Times New Roman", serif;
+}
+
+.pricing-price span {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.pricing-feature-list {
+  display: grid;
+  gap: 14px;
+}
+
+.pricing-feature {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.pricing-feature::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin-top: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 6px rgba(201, 168, 76, 0.12);
+  flex-shrink: 0;
+}
+
+.pricing-smallprint {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.pricing-cta-button {
+  width: 100%;
+}
+
+.pricing-note {
+  padding: 24px 26px;
 }
 
 .dashboard-hero p {
@@ -742,6 +862,10 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
   .report-preview-card {
     min-height: auto;
   }
@@ -759,6 +883,7 @@ button {
   }
 
   .dashboard-hero,
+  .pricing-hero,
   .card,
   .studio-panel {
     padding: 24px;
@@ -768,7 +893,8 @@ button {
 @media (max-width: 720px) {
   .shell,
   .shell-narrow,
-  .dashboard-shell {
+  .dashboard-shell,
+  .pricing-shell {
     width: min(100% - 24px, 100%);
     padding-top: 18px;
     padding-bottom: 48px;

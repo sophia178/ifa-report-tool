@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TopNav } from "@/components/top-nav";
+import { checkSubscription } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
@@ -8,6 +9,8 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const isSubscribed = user ? await checkSubscription(user.id) : false;
+  const startHref = user ? (isSubscribed ? "/dashboard" : "/pricing") : "/signup";
 
   return (
     <main className="landing-page">
@@ -23,16 +26,16 @@ export default async function Home() {
                 <span className="hero-accent">Written in seconds.</span>
               </h1>
               <p className="hero-subtitle">
-                Clearance uses AI to turn your meeting notes or audio into fully
+                Suitance uses AI to turn your meeting notes or audio into fully
                 structured FCA-compliant suitability reports — ready to download
                 as a Word document.
               </p>
               <div className="actions">
-                <Link href={user ? "/dashboard" : "/signup"} className="btn">
-                  Start free
+                <Link href={startHref} className="btn">
+                  Start now
                 </Link>
                 <Link href="/login" className="btn-outline-light">
-                  Sign in
+                  Log in
                 </Link>
               </div>
             </div>
@@ -60,7 +63,7 @@ export default async function Home() {
           <span className="section-kicker">How It Works</span>
           <h2 className="section-title">A smoother workflow for advice firms.</h2>
           <p className="section-copy">
-            Clearance keeps the process simple: capture the meeting, generate the
+            Suitance keeps the process simple: capture the meeting, generate the
             report, and send the final document onward without spending an
             afternoon drafting.
           </p>
@@ -71,7 +74,7 @@ export default async function Home() {
             <span className="step-number">1</span>
             <h3>Paste notes or upload audio</h3>
             <p className="muted">
-              Start with your adviser notes or a recorded meeting. Clearance
+              Start with your adviser notes or a recorded meeting. Suitance
               accepts both without changing your process.
             </p>
           </article>
@@ -96,7 +99,7 @@ export default async function Home() {
 
       <section className="section-block shell reveal-on-scroll">
         <div className="stack" style={{ gap: 14 }}>
-          <span className="section-kicker">Why Clearance</span>
+          <span className="section-kicker">Why Suitance</span>
           <h2 className="section-title">Built for modern UK independent advisers.</h2>
           <p className="section-copy">
             Designed to feel trustworthy in front of clients and efficient behind
@@ -138,7 +141,7 @@ export default async function Home() {
 
       <footer className="site-footer shell">
         <div className="site-footer-inner">
-          <span>Clearance © 2026</span>
+          <span>Suitance © 2026</span>
           <span>Built for UK Independent Financial Advisers</span>
         </div>
       </footer>
