@@ -69,14 +69,18 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                   fontWeight: 500,
                 }}
               >
-                I am an FCA-authorised financial adviser or work under the
-                supervision of one, and I agree to the{" "}
+                I confirm that I am an FCA-authorised financial adviser or
+                paraplanner, or that I work under the supervision of an
+                FCA-authorised firm. I have read and agree to the{" "}
                 <Link
                   href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{ textDecoration: "underline", textUnderlineOffset: 3 }}
                 >
                   Terms of Use
                 </Link>
+                .
               </label>
             </div>
             <button type="submit" className="btn">
