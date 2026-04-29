@@ -151,7 +151,9 @@ button {
 
 .btn,
 .btn-secondary,
-.btn-ghost {
+.btn-ghost,
+.btn-outline-light,
+.btn-light {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -172,7 +174,9 @@ button {
 
 .btn:hover,
 .btn-secondary:hover,
-.btn-ghost:hover {
+.btn-ghost:hover,
+.btn-outline-light:hover,
+.btn-light:hover {
   transform: translateY(-1px);
 }
 
@@ -188,6 +192,8 @@ button {
 .btn:focus-visible,
 .btn-secondary:focus-visible,
 .btn-ghost:focus-visible,
+.btn-outline-light:focus-visible,
+.btn-light:focus-visible,
 .input:focus-visible,
 .textarea:focus-visible {
   outline: 2px solid rgba(201, 168, 76, 0.5);
@@ -381,10 +387,22 @@ button {
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 14px;
+}
+
+.nav-links > * {
+  flex-shrink: 0;
+}
+
+.nav-links form {
+  display: flex;
 }
 
 .nav-email {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
   color: rgba(248, 246, 241, 0.72);
   font-size: 0.84rem;
   letter-spacing: 0.03em;
