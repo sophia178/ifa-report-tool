@@ -18,27 +18,36 @@ export async function GET() {
       );
     }
 
+    console.log("Stripe customer portal lookup email:", user.email);
+
     const stripe = getStripe();
     const customers = await stripe.customers.list({
       email: user.email,
       limit: 1,
     });
+    console.log("Stripe customers found:", customers.data.length);
     const customer = customers.data[0];
 
     if (!customer) {
-      return NextResponse.redirect(
-        `${getBaseUrl()}/pricing?message=${encodeURIComponent(
-          "You need an active subscription to manage billing.",
-        )}`,
+      return NextResponse.json(
+        { message: `No Stripe customer found for email: ${user.email}` },
+        { status: 404 },
       );
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: customer.id,
-      return_url: `${getBaseUrl()}/dashboard`,
-    });
+    console.log("Stripe customer found:", customer);
 
-    return NextResponse.redirect(session.url);
+    try {
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customer.id,
+        return_url: `${getBaseUrl()}/dashboard`,
+      });
+
+      return NextResponse.redirect(session.url);
+    } catch (error) {
+      console.error("Stripe portal session creation failed:", error);
+      throw error;
+    }
   } catch (error) {
     console.error("Stripe customer portal session creation failed:", error);
 

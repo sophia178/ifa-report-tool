@@ -14,7 +14,13 @@ export function TopNav({ email }: TopNavProps) {
           Suitance
         </Link>
 
-        <div className="nav-links">
+        <div
+          className="nav-links"
+          style={{
+            columnGap: 16,
+            rowGap: 16,
+          }}
+        >
           <Link href="/pricing" className="btn-ghost">
             Pricing
           </Link>
