@@ -4,27 +4,6 @@ import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/utils";
 
-async function getCustomerId(userId: string, email: string) {
-  const stripe = getStripe();
-  const customers = await stripe.customers.list({
-    email,
-    limit: 10,
-  });
-
-  const customer = customers.data.find((item) => {
-    if (item.deleted) {
-      return false;
-    }
-
-    return (
-      item.metadata.userId === userId ||
-      item.email?.toLowerCase() === email.toLowerCase()
-    );
-  });
-
-  return customer?.id ?? null;
-}
-
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -39,18 +18,23 @@ export async function GET() {
       );
     }
 
-    const customerId = await getCustomerId(user.id, user.email);
+    const stripe = getStripe();
+    const customers = await stripe.customers.list({
+      email: user.email,
+      limit: 1,
+    });
+    const customer = customers.data[0];
 
-    if (!customerId) {
-      return NextResponse.json(
-        { error: "No Stripe customer account was found for this user." },
-        { status: 404 },
+    if (!customer) {
+      return NextResponse.redirect(
+        `${getBaseUrl()}/pricing?message=${encodeURIComponent(
+          "You need an active subscription to manage billing.",
+        )}`,
       );
     }
 
-    const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
-      customer: customerId,
+      customer: customer.id,
       return_url: `${getBaseUrl()}/dashboard`,
     });
 
@@ -63,6 +47,9 @@ export async function GET() {
         ? error.message
         : "Unable to create Stripe customer portal session.";
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: `Stripe customer portal session creation failed. ${message}` },
+      { status: 500 },
+    );
   }
 }
