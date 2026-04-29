@@ -4,6 +4,8 @@ import { generateSuitabilityReport } from "@/lib/claude";
 import { generateReportInputSchema } from "@/lib/report-schema";
 import { createClient } from "@/lib/supabase/server";
 
+export const maxDuration = 60;
+
 function getNextReviewDate(meetingDate: string) {
   const date = new Date(`${meetingDate}T00:00:00Z`);
   date.setUTCFullYear(date.getUTCFullYear() + 1);

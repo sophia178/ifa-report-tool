@@ -115,29 +115,39 @@ export function ReportStudio({ reports }: ReportStudioProps) {
       setStatus(
         "Generating your FCA suitability report — this takes 15–30 seconds",
       );
-      const response = await fetch("/api/generate-report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          clientName,
-          clientEmail,
-          dateOfBirth,
-          adviserName,
-          adviserFirm,
-          platformName,
-          fundName,
-          fundSrriRiskRating,
-          fundIsinNumber,
-          meetingDate,
-          objectives,
-          sourceType,
-          meetingNotes,
-          transcript,
-          audioPath,
-        }),
-      });
+      const controller = new AbortController();
+      const payload = {
+        clientName,
+        clientEmail,
+        dateOfBirth,
+        adviserName,
+        adviserFirm,
+        platformName,
+        fundName,
+        fundSrriRiskRating,
+        fundIsinNumber,
+        meetingDate,
+        objectives,
+        sourceType,
+        meetingNotes,
+        transcript,
+        audioPath,
+      };
+      const timeoutId = setTimeout(() => controller.abort(), 55000);
+      let response: Response;
+
+      try {
+        response = await fetch("/api/generate-report", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const json = (await response.json()) as GenerateResponse & {
         error?: string;

@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+export const maxDuration = 60;
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {

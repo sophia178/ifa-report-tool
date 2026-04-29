@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const BUCKET_NAME = "meeting-audio";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
