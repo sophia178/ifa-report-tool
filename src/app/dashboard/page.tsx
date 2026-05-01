@@ -1,10 +1,9 @@
 import { ReportStudio } from "@/components/report-studio";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { requireUser } from "@/lib/auth";
 import { checkSubscription } from "@/lib/subscription";
 import type { Report } from "@/types/report";
 import { redirect } from "next/navigation";
+import { Info, Plus, FileText, Download } from "lucide-react";
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
@@ -14,7 +13,7 @@ export default async function DashboardPage() {
     redirect("/pricing?message=subscribe");
   }
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("reports")
     .select("id, client_name, created_at, report_text")
     .order("created_at", { ascending: false });
@@ -27,75 +26,47 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <main className="dashboard-page">
-      <div
-        style={{
-          width: "min(1280px, calc(100% - 40px))",
-          margin: "0 auto",
-          paddingTop: 28,
-        }}
-      >
-        <div
-          style={{
-            marginBottom: 18,
-            padding: "14px 18px",
-            borderRadius: 18,
-            background: "#fff3cd",
-            color: "#5c4300",
-            border: "1px solid #f1d88a",
-            boxShadow: "0 10px 24px rgba(10, 22, 40, 0.06)",
-            fontSize: "0.95rem",
-            lineHeight: 1.6,
-          }}
-        >
-          Suitance is a drafting tool for FCA-authorised advisers. All generated
-          reports must be reviewed, amended where necessary, and approved by a
-          suitably qualified FCA-authorised adviser before being sent to any
-          client. Suitance does not provide regulated financial advice and
-          accepts no liability for the use of generated content.
+    <div className="stack gap-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="stack gap-2">
+          <h2 className="display-medium text-[#0a1628]">Report Studio</h2>
+          <p className="text-gray-500 body-large">
+            Transform meeting notes into FCA-compliant suitability reports.
+          </p>
         </div>
-      </div>
-      <div className="dashboard-shell">
-        <TopNav email={user.email} />
-        <DashboardNav />
-
-        <section className="dashboard-hero fade-in">
-          <span className="section-kicker">Adviser Dashboard</span>
-          <div className="stack">
-            <h1 className="display-title" style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)" }}>
-              Generate premium suitability reports with confidence.
-            </h1>
-            <p>
-              Suitance helps advisers turn meeting notes or recorded advice
-              meetings into clean, structured suitability reports ready for
-              review and Word export.
-            </p>
-            {error ? <div className="alert alert-error">{error.message}</div> : null}
-            <div className="actions">
-              <a href="#new-report" className="btn">
-                Generate New Report
-              </a>
+        
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 bg-white border border-gray-100 rounded-xl shadow-sm flex items-center gap-4">
+            <div className="stack gap-0">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Plan</span>
+              <span className="text-sm font-bold text-[#0a1628]">Plus Professional</span>
             </div>
-            <div>
-              <a
-                href="/api/customer-portal"
-                style={{
-                  fontSize: "0.9rem",
-                  color: "rgba(255, 255, 255, 0.8)",
-                  textDecoration: "underline",
-                  textUnderlineOffset: 3,
-                }}
-              >
-                Manage subscription
-              </a>
-            </div>
+            <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-200"></div>
           </div>
-        </section>
-
-        <div style={{ marginTop: 28 }}>
-          <ReportStudio reports={reports} />
         </div>
       </div>
-    </main>
+
+      <div className="card bg-[#0a1628] border-none text-white relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#c9a84c]/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div className="relative flex items-start gap-6">
+          <div className="w-12 h-12 rounded-xl bg-[#c9a84c]/20 flex items-center justify-center text-[#c9a84c] shrink-0">
+            <Info size={24} />
+          </div>
+          <div className="stack gap-2">
+            <h4 className="title-large text-white">Regulatory Compliance Notice</h4>
+            <p className="text-gray-400 leading-relaxed max-w-4xl">
+              Suitance is a professional drafting tool for FCA-authorised advisers. All generated reports 
+              must be reviewed, amended where necessary, and approved by a qualified adviser before client delivery. 
+              The platform does not provide regulated advice.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <ReportStudio reports={reports} />
+      </div>
+    </div>
   );
 }
+

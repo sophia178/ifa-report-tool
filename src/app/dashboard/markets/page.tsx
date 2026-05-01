@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TopNav } from "@/components/top-nav";
 import { DashboardNav } from "@/components/dashboard-nav";
-import { TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
+import { TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, RefreshCw, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -97,99 +97,120 @@ export default function MarketsPage() {
 
   const renderCard = (item: MarketItem) => {
     const isPositive = !item.changePercent.startsWith("-") && item.changePercent !== "0.00%";
+    
+    // Simple SVG sparkline generation
+    const points = Array.from({ length: 10 }, (_, i) => ({
+      x: i * 20,
+      y: 20 + Math.random() * 20 * (isPositive ? -1 : 1) + (isPositive ? 10 : 0)
+    }));
+    const d = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+
     return (
-      <div key={item.symbol} className="p-4 rounded-xl border border-[rgba(193,163,98,0.1)] bg-[rgba(15,23,40,0.3)] stack gap-2">
+      <div key={item.symbol} className="market-card stack gap-4">
         <div className="flex justify-between items-start">
-          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">{item.symbol}</span>
-          {isPositive ? (
-            <ArrowUpRight className="text-green-500" size={16} />
-          ) : (
-            <ArrowDownRight className="text-red-500" size={16} />
-          )}
-        </div>
-        <div className="flex justify-between items-end">
-          <span className="text-xl font-bold text-gray-200">{item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
-          <span className={`text-sm font-bold ${isPositive ? "text-green-500" : "text-red-500"}`}>
+          <div className="stack gap-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.symbol}</span>
+            <span className="text-lg font-bold text-[#0a1628]">
+              {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+            </span>
+          </div>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${isPositive ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+            {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
             {item.changePercent}
-          </span>
+          </div>
         </div>
+        
+        <svg className="sparkline" viewBox="0 0 180 40" preserveAspectRatio="none">
+          <path
+            d={d}
+            fill="none"
+            stroke={isPositive ? "#10b981" : "#ef4444"}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
     );
   };
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(1200px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="stack gap-8">
-            <div className="flex justify-between items-end">
-              <div className="stack gap-2">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <TrendingUp className="text-[#c1a362]" />
-                  Live Market Dashboard
-                </h2>
-                <p className="text-gray-400">
-                  Real-time global market data. Auto-refreshes every 60 seconds.
-                </p>
-              </div>
-              <div className="text-right stack gap-1">
-                <button 
-                  onClick={fetchMarketData} 
-                  disabled={isRefreshing}
-                  className="text-xs text-[#c1a362] hover:underline flex items-center gap-1 justify-end"
-                >
-                  <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
-                  Manual Refresh
-                </button>
-                {lastUpdated && (
-                  <span className="text-[10px] text-gray-500">
-                    Last updated: {lastUpdated.toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {error && <div className="alert alert-error">{error}</div>}
-
-            {data && (
-              <div className="stack gap-10 fade-in">
-                <section className="stack gap-4">
-                  <h3 className="text-lg font-bold text-[#c1a362] border-b border-[rgba(193,163,98,0.2)] pb-2 uppercase tracking-widest text-xs">Major Indices</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {data.indices.map(renderCard)}
-                  </div>
-                </section>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                  <section className="stack gap-4">
-                    <h3 className="text-lg font-bold text-[#c1a362] border-b border-[rgba(193,163,98,0.2)] pb-2 uppercase tracking-widest text-xs">FX Pairs</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {data.fx.map(renderCard)}
-                    </div>
-                  </section>
-
-                  <section className="stack gap-4">
-                    <h3 className="text-lg font-bold text-[#c1a362] border-b border-[rgba(193,163,98,0.2)] pb-2 uppercase tracking-widest text-xs">Commodities</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {data.commodities.map(renderCard)}
-                    </div>
-                  </section>
-                </div>
-              </div>
-            )}
-
-            {!data && !error && (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="animate-spin text-[#c1a362]" size={40} />
-                <p className="text-gray-500">Connecting to market data streams...</p>
-              </div>
-            )}
+    <div className="stack gap-10">
+      <div className="flex justify-between items-end">
+        <div className="stack gap-2">
+          <h2 className="display-medium text-[#0a1628]">Market Intelligence</h2>
+          <p className="text-gray-500 body-large">
+            Real-time global market data terminal. Refreshes every 60s.
+          </p>
+        </div>
+        <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
+          <div className="stack gap-0 text-right pr-4 border-r border-gray-100">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Last Update</span>
+            <span className="text-xs font-bold text-[#0a1628]">{lastUpdated?.toLocaleTimeString()}</span>
           </div>
+          <button 
+            onClick={fetchMarketData} 
+            disabled={isRefreshing}
+            className="w-10 h-10 flex items-center justify-center text-[#c9a84c] hover:bg-[#F4F6F9] rounded-lg transition-colors"
+          >
+            <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+          </button>
         </div>
       </div>
-    </main>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium flex items-center gap-3">
+          <ShieldAlert size={18} />
+          {error}
+        </div>
+      )}
+
+      {data && (
+        <div className="stack gap-12 fade-in">
+          <section className="stack gap-6">
+            <div className="flex items-center gap-4">
+              <h3 className="title-large text-[#0a1628]">Global Indices</h3>
+              <div className="h-px flex-1 bg-gray-100"></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              {data.indices.map(renderCard)}
+            </div>
+          </section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <section className="stack gap-6">
+              <div className="flex items-center gap-4">
+                <h3 className="title-large text-[#0a1628]">Foreign Exchange</h3>
+                <div className="h-px flex-1 bg-gray-100"></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {data.fx.map(renderCard)}
+              </div>
+            </section>
+
+            <section className="stack gap-6">
+              <div className="flex items-center gap-4">
+                <h3 className="title-large text-[#0a1628]">Commodities</h3>
+                <div className="h-px flex-1 bg-gray-100"></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {data.commodities.map(renderCard)}
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {!data && !error && (
+        <div className="flex flex-col items-center justify-center py-32 gap-6">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-[#F4F6F9] border-t-[#c9a84c] animate-spin"></div>
+            <TrendingUp className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#c9a84c]" size={24} />
+          </div>
+          <p className="text-gray-400 font-medium">Connecting to global data streams...</p>
+        </div>
+      )}
+    </div>
   );
 }
+
