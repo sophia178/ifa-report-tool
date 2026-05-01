@@ -1,5 +1,6 @@
 import { ReportStudio } from "@/components/report-studio";
 import { TopNav } from "@/components/top-nav";
+import { DashboardNav } from "@/components/dashboard-nav";
 import { requireUser } from "@/lib/auth";
 import { checkSubscription } from "@/lib/subscription";
 import type { Report } from "@/types/report";
@@ -56,6 +57,7 @@ export default async function DashboardPage() {
       </div>
       <div className="dashboard-shell">
         <TopNav email={user.email} />
+        <DashboardNav />
 
         <section className="dashboard-hero fade-in">
           <span className="section-kicker">Adviser Dashboard</span>

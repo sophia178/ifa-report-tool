@@ -72,6 +72,73 @@ on public.reports
 for delete
 using (auth.uid() = user_id);
 
+create table if not exists public.research_summaries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  input_text text not null,
+  summary text not null,
+  key_points text[] not null,
+  risks text,
+  relevance_rating integer not null check (relevance_rating >= 1 and relevance_rating <= 10),
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.research_summaries enable row level security;
+
+create policy "Users can view own research_summaries"
+on public.research_summaries
+for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert own research_summaries"
+on public.research_summaries
+for insert
+with check (auth.uid() = user_id);
+
+create table if not exists public.client_emails (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  client_name text not null,
+  purpose text not null,
+  key_points text not null,
+  tone text not null,
+  email_content text not null,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.client_emails enable row level security;
+
+create policy "Users can view own client_emails"
+on public.client_emails
+for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert own client_emails"
+on public.client_emails
+for insert
+with check (auth.uid() = user_id);
+
+create table if not exists public.australian_soas (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  client_name text not null,
+  meeting_notes text not null,
+  soa_text text not null,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.australian_soas enable row level security;
+
+create policy "Users can view own australian_soas"
+on public.australian_soas
+for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert own australian_soas"
+on public.australian_soas
+for insert
+with check (auth.uid() = user_id);
+
 insert into storage.buckets (id, name, public)
 values ('meeting-audio', 'meeting-audio', false)
 on conflict (id) do nothing;

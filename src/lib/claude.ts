@@ -154,3 +154,102 @@ Requirements:
 
   return `${report}\n\n${REPORT_DISCLAIMER}`;
 }
+
+export async function summariseResearch(text: string): Promise<{
+  summary: string;
+  keyPoints: string[];
+  risks: string;
+  relevanceRating: number;
+}> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const systemPrompt = `You are a specialist research analyst for UK financial advisers. 
+Analyse the provided text and return a JSON object with:
+- summary: A exactly 3-sentence plain English summary.
+- keyPoints: Exactly 5 key bullet points as an array of strings.
+- risks: Any risks or concerns flagged for advisers or clients.
+- relevanceRating: A rating from 1 to 10 for how relevant this is to a UK financial adviser.
+
+Return ONLY the JSON object.`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: [{ role: "user", content: text }],
+  });
+
+  const textResponse = extractTextResponse(response.content);
+  return JSON.parse(textResponse);
+}
+
+export async function draftClientEmail(input: {
+  clientName: string;
+  purpose: string;
+  keyPoints: string;
+  tone: "formal" | "friendly" | "concise";
+}): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const systemPrompt = `You are a professional financial adviser writing to a client. 
+Draft a complete, ready-to-send email based on the inputs provided.
+The email should be professional, clear, and follow UK financial services best practices for communication.
+Tone: ${input.tone}
+Purpose: ${input.purpose}
+Client Name: ${input.clientName}
+Key Points: ${input.keyPoints}
+
+Return ONLY the email body text, including a professional subject line at the top.`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [
+      {
+        role: "user",
+        content: `Draft an email for ${input.clientName} about ${input.purpose}. Include these points: ${input.keyPoints}`,
+      },
+    ],
+  });
+
+  return extractTextResponse(response.content);
+}
+
+export async function generateAustralianSOA(input: {
+  clientName: string;
+  meetingNotes: string;
+}): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const systemPrompt = `You are a senior Australian financial planner and compliance expert. 
+Generate a complete Australian Statement of Advice (SOA) compliant with ASIC RG 175.
+The SOA must include:
+- Client Profile
+- Needs Analysis
+- Strategic Recommendations
+- Product Recommendations with Justification
+- Fees and Costs Disclosure
+- Risks
+- Authority to Proceed
+
+Use professional Australian English. Use the client name: ${input.clientName}.
+Write the SOA as plain structured text with clear section headers like "SECTION 1 - CLIENT PROFILE".
+
+Return ONLY the SOA text.`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-3-5-sonnet-20241022",
+    max_tokens: 8192,
+    system: systemPrompt,
+    messages: [{ role: "user", content: input.meetingNotes }],
+  });
+
+  return extractTextResponse(response.content);
+}
