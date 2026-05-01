@@ -2,7 +2,8 @@
 
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 import type { Report } from "@/types/report";
 
@@ -13,6 +14,12 @@ type ReportStudioProps = {
 type GenerateResponse = {
   report: string;
   reportId: string;
+};
+
+type Template = {
+  id: string;
+  name: string;
+  content: string;
 };
 
 const today = new Date().toISOString().slice(0, 10);
@@ -59,8 +66,19 @@ export function ReportStudio({ reports }: ReportStudioProps) {
   const [meetingDate, setMeetingDate] = useState(today);
   const [objectives, setObjectives] = useState("");
   const [meetingNotes, setMeetingNotes] = useState("");
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchTemplates() {
+      const supabase = createClient();
+      const { data } = await supabase.from("report_templates").select("id, name, content");
+      if (data) setTemplates(data);
+    }
+    fetchTemplates();
+  }, []);
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -116,6 +134,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
         "Generating your FCA suitability report — this takes 15–30 seconds",
       );
       const controller = new AbortController();
+      const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
       const payload = {
         clientName,
         clientEmail,
@@ -132,6 +151,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
         meetingNotes,
         transcript,
         audioPath,
+        templateContent: selectedTemplate?.content || "",
       };
       const timeoutId = setTimeout(() => controller.abort(), 55000);
       let response: Response;
@@ -228,6 +248,23 @@ export function ReportStudio({ reports }: ReportStudioProps) {
           ) : null}
 
           <div className="form-grid">
+            <div className="field">
+              <label htmlFor="template">Starting template (optional)</label>
+              <select
+                className="input"
+                id="template"
+                value={selectedTemplateId}
+                onChange={(event) => setSelectedTemplateId(event.target.value)}
+              >
+                <option value="">Default Suitance Format</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="field">
               <label htmlFor="clientName">Client name</label>
               <input

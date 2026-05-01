@@ -9,10 +9,12 @@ async function upsertSubscriptionStatus({
   userId,
   email,
   subscribed,
+  stripePriceId,
 }: {
   userId?: string;
   email?: string | null;
   subscribed: boolean;
+  stripePriceId?: string | null;
 }) {
   if (!userId) {
     return;
@@ -24,6 +26,7 @@ async function upsertSubscriptionStatus({
       id: userId,
       email: email ?? null,
       subscribed,
+      stripe_price_id: stripePriceId ?? null,
     },
     { onConflict: "id" },
   );
@@ -54,10 +57,21 @@ export async function POST(request: Request) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
+      const stripe = getStripe();
+      
+      // Get the full session with line items to find the price ID
+      const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
+        session.id,
+        { expand: ['line_items'] }
+      );
+      
+      const stripePriceId = sessionWithLineItems.line_items?.data[0]?.price?.id;
+
       await upsertSubscriptionStatus({
         userId: session.metadata?.userId,
         email: session.customer_details?.email ?? session.customer_email,
         subscribed: true,
+        stripePriceId,
       });
       break;
     }
@@ -66,6 +80,7 @@ export async function POST(request: Request) {
       await upsertSubscriptionStatus({
         userId: subscription.metadata?.userId,
         subscribed: false,
+        stripePriceId: null,
       });
       break;
     }

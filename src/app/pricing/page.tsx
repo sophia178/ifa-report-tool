@@ -7,12 +7,51 @@ type PricingPageProps = {
   searchParams: Promise<{ message?: string }>;
 };
 
-const features = [
-  "Unlimited suitability reports",
-  "All 8 FCA sections",
-  "Audio transcription",
-  "Word document download",
-  "UK FCA Consumer Duty format",
+const tiers = [
+  {
+    id: "starter",
+    name: "Starter",
+    price: "£19",
+    description: "Perfect for sole practitioners and paraplanners.",
+    features: [
+      "UK FCA suitability reports",
+      "Research summariser",
+      "Client email drafter",
+      "20 reports per month",
+      "Word document download",
+    ],
+    isStripe: true,
+  },
+  {
+    id: "plus",
+    name: "Plus",
+    price: "£49",
+    description: "Comprehensive tools for professional advisers.",
+    features: [
+      "Everything in Starter",
+      "Australian SOA generator",
+      "USA financial plan generator",
+      "Compliance checker",
+      "Unlimited reports",
+    ],
+    isStripe: true,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: "£99",
+    description: "The complete Suitance OS for advice firms.",
+    features: [
+      "Everything in Plus",
+      "Live market dashboard",
+      "AI market briefing",
+      "Economic calendar",
+      "Portfolio risk analyser",
+      "AI Trade journal",
+      "Team seats",
+    ],
+    isStripe: true,
+  },
 ];
 
 export default async function PricingPage({ searchParams }: PricingPageProps) {
@@ -35,54 +74,60 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <section className="pricing-hero fade-in">
           <span className="section-kicker">Pricing</span>
           <div className="stack" style={{ gap: 14 }}>
-            <h1 className="display-title" style={{ fontSize: "clamp(2.4rem, 5vw, 4.4rem)" }}>
-              Premium suitability reporting for independent advisers.
+            <h1 className="display-title" style={{ fontSize: "clamp(2.4rem, 5vw, 4rem)" }}>
+              The operating system for modern financial advice.
             </h1>
             <p>
-              Suitance gives UK financial advisers one simple plan for faster FCA-ready
-              reporting, built-in transcription, and polished Word exports.
+              Choose the plan that fits your practice. From simple reporting to a full firm-wide dashboard.
             </p>
           </div>
         </section>
 
-        <section className="pricing-grid">
-          <article className="card pricing-card reveal-on-scroll">
-            <div className="stack" style={{ gap: 10 }}>
-              <span className="pill">Single plan</span>
-              <div>
-                <h2 className="pricing-plan-name">Suitance Beta</h2>
-                <div className="pricing-price">
-                  <strong>£19</strong>
-                  <span>per month</span>
+        <section className="pricing-grid-three">
+          {tiers.map((tier) => (
+            <article key={tier.name} className="card pricing-card reveal-on-scroll">
+              <div className="stack" style={{ gap: 10 }}>
+                <div className="flex justify-between items-start">
+                  <span className="pill">{tier.name}</span>
+                </div>
+                <div>
+                  <div className="pricing-price">
+                    <strong>{tier.price}</strong>
+                    <span>per month</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">{tier.description}</p>
                 </div>
               </div>
-            </div>
 
-            <div className="pricing-feature-list">
-              {features.map((feature) => (
-                <div className="pricing-feature" key={feature}>
-                  <span>{feature}</span>
-                </div>
-              ))}
-            </div>
+              <div className="pricing-feature-list" style={{ marginTop: 24, flex: 1 }}>
+                {tier.features.map((feature) => (
+                  <div className="pricing-feature" key={feature}>
+                    <span className="text-sm">{feature}</span>
+                  </div>
+                ))}
+              </div>
 
-            <PricingCta isLoggedIn={Boolean(user)} isSubscribed={isSubscribed} />
-            <p className="pricing-smallprint">
-              Beta pricing locked in for life for early members. Cancel anytime.
-            </p>
-          </article>
+              <PricingCta 
+                isLoggedIn={Boolean(user)} 
+                isSubscribed={isSubscribed} 
+                plan={tier.id as any}
+                price={tier.price}
+              />
+            </article>
+          ))}
+        </section>
 
+        <section className="mt-20">
           <aside className="soft-panel pricing-note reveal-on-scroll">
             <div className="stack">
-              <span className="badge">Included</span>
-              <h2 className="section-title">Built for the full suitability workflow.</h2>
+              <span className="badge">Professional Grade</span>
+              <h2 className="section-title">Built for the full advice lifecycle.</h2>
               <p className="muted">
-                Capture adviser notes or audio, generate a structured report, review the
-                output, and export the final document in one secure workspace.
+                Whether you are drafting a simple suitability report or performing complex portfolio risk analysis, Suitance provides the security, accuracy, and professional polish your clients expect.
               </p>
               <div className="meta">
-                <span>For UK independent financial advisers</span>
-                <span>FCA-aligned structure</span>
+                <span>Multi-region support (UK, US, AU)</span>
+                <span>FCA-aligned compliance</span>
                 <span>Stripe-secured billing</span>
               </div>
             </div>

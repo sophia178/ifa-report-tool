@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const {
@@ -17,11 +17,15 @@ export async function POST() {
       );
     }
 
-    const priceId = process.env.STRIPE_PRICE_ID;
+    const { plan } = await request.json();
+
+    let priceId = process.env.STRIPE_PRICE_ID;
+    if (plan === "plus") priceId = process.env.STRIPE_PLUS_PRICE_ID;
+    if (plan === "pro") priceId = process.env.STRIPE_PRO_PRICE_ID;
 
     if (!priceId) {
       return NextResponse.json(
-        { error: "STRIPE_PRICE_ID is not configured." },
+        { error: "Stripe price ID is not configured for this plan." },
         { status: 500 },
       );
     }

@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       meetingNotes,
       transcript,
       audioPath,
+      templateContent,
     } = body;
     const input = generateReportInputSchema.parse({
       clientName,
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
     let report;
 
     try {
-      report = await generateSuitabilityReport(input);
+      report = await generateSuitabilityReport(input, templateContent);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unexpected generation error.";

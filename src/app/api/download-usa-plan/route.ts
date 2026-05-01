@@ -5,10 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const soaId = searchParams.get("id");
+    const planId = searchParams.get("id");
 
-    if (!soaId) {
-      return NextResponse.json({ error: "SOA ID is required." }, { status: 400 });
+    if (!planId) {
+      return NextResponse.json({ error: "Plan ID is required." }, { status: 400 });
     }
 
     const supabase = await createClient();
@@ -21,14 +21,14 @@ export async function GET(request: Request) {
     }
 
     const { data, error } = await supabase
-      .from("australian_soas")
-      .select("client_name, soa_text")
-      .eq("id", soaId)
+      .from("usa_financial_plans")
+      .select("client_name, plan_text")
+      .eq("id", planId)
       .eq("user_id", user.id)
       .single();
 
     if (error || !data) {
-      return NextResponse.json({ error: "SOA not found." }, { status: 404 });
+      return NextResponse.json({ error: "Plan not found." }, { status: 404 });
     }
 
     // Check for white label settings
@@ -38,10 +38,9 @@ export async function GET(request: Request) {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // We can reuse buildSuitabilityReportDocx as it handles SECTION headers correctly
-    const buffer = await buildSuitabilityReportDocx(data.soa_text, whiteLabel);
+    const buffer = await buildSuitabilityReportDocx(data.plan_text, whiteLabel);
 
-    const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-soa.docx`;
+    const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-usa-financial-plan.docx`;
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

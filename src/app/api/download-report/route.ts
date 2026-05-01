@@ -32,7 +32,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Report not found." }, { status: 404 });
     }
 
-    const buffer = await buildSuitabilityReportDocx(data.report_text);
+    // Check for white label settings
+    const { data: whiteLabel } = await supabase
+      .from("white_label_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const buffer = await buildSuitabilityReportDocx(data.report_text, whiteLabel);
 
     const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-suitability-report.docx`;
 

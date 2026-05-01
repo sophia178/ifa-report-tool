@@ -5,6 +5,7 @@ import {
   Packer,
   Paragraph,
   TextRun,
+  ImageRun,
 } from "docx";
 
 function sectionHeading(text: string) {
@@ -29,7 +30,16 @@ function toParagraphs(text: string) {
     );
 }
 
-export async function buildSuitabilityReportDocx(reportText: string) {
+export async function buildSuitabilityReportDocx(
+  reportText: string,
+  whiteLabel?: {
+    firm_name: string;
+    firm_address?: string | null;
+    fca_number?: string | null;
+    logo_url?: string | null;
+    footer_message?: string | null;
+  }
+) {
   const normalizedText = reportText.replace(/\r/g, "").trim();
   const sections = normalizedText
     .split(/(?=^SECTION\s+\d+\s*[-—:])/im)
@@ -56,10 +66,76 @@ export async function buildSuitabilityReportDocx(reportText: string) {
         })
       : toParagraphs(normalizedText);
 
+  // Prepare header children
+  const headerChildren: any[] = [];
+
+  if (whiteLabel) {
+    if (whiteLabel.logo_url) {
+      try {
+        // In a real server environment, we'd fetch the image buffer
+        const imageRes = await fetch(whiteLabel.logo_url);
+        const imageBuffer = await imageRes.arrayBuffer();
+        headerChildren.push(
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            children: [
+              new ImageRun({
+                data: imageBuffer,
+                transformation: { width: 100, height: 100 },
+                type: "png", // Add type
+              } as any), // Use as any to bypass strict docx type check if needed
+            ],
+          })
+        );
+      } catch (e) {
+        console.error("Failed to load logo for docx", e);
+      }
+    }
+
+    headerChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [
+          new TextRun({ text: whiteLabel.firm_name, bold: true, size: 24 }),
+        ],
+      })
+    );
+
+    if (whiteLabel.firm_address) {
+      headerChildren.push(
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          children: [new TextRun({ text: whiteLabel.firm_address, size: 16 })],
+        })
+      );
+    }
+
+    if (whiteLabel.fca_number) {
+      headerChildren.push(
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          children: [
+            new TextRun({ text: `FCA Number: ${whiteLabel.fca_number}`, size: 16 }),
+          ],
+        })
+      );
+    }
+  } else {
+    headerChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [
+          new TextRun({ text: "Suitance Professional", bold: true, color: "C1A362" }),
+        ],
+      })
+    );
+  }
+
   const doc = new Document({
     sections: [
       {
         children: [
+          ...headerChildren,
           new Paragraph({
             alignment: AlignmentType.CENTER,
             heading: HeadingLevel.TITLE,
@@ -69,9 +145,24 @@ export async function buildSuitabilityReportDocx(reportText: string) {
                 bold: true,
               }),
             ],
-            spacing: { after: 240 },
+            spacing: { before: 480, after: 240 },
           }),
           ...content,
+          ...(whiteLabel?.footer_message 
+            ? [
+                new Paragraph({
+                  spacing: { before: 480 },
+                  children: [
+                    new TextRun({
+                      text: whiteLabel.footer_message,
+                      size: 14,
+                      italics: true,
+                      color: "666666",
+                    }),
+                  ],
+                })
+              ]
+            : []),
         ],
       },
     ],

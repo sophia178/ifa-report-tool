@@ -3,29 +3,25 @@
 import { useState, useEffect } from "react";
 import { TopNav } from "@/components/top-nav";
 import { DashboardNav } from "@/components/dashboard-nav";
-import { Map, Loader2, FileDown } from "lucide-react";
+import { Flag, Loader2, FileDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const today = new Date().toISOString().slice(0, 10);
 
-export default function SOAAustraliaPage() {
+export default function USAPlanPage() {
   const router = useRouter();
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [adviserName, setAdviserName] = useState("");
   const [adviserFirm, setAdviserFirm] = useState("");
-  const [platformName, setPlatformName] = useState("");
-  const [fundName, setFundName] = useState("");
-  const [fundSrriRiskRating, setFundSrriRiskRating] = useState("");
-  const [fundIsinNumber, setFundIsinNumber] = useState("");
   const [meetingDate, setMeetingDate] = useState(today);
   const [objectives, setObjectives] = useState("");
   const [meetingNotes, setMeetingNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [soaId, setSoaId] = useState<string | null>(null);
-  const [soaText, setSoaText] = useState<string | null>(null);
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [planText, setPlanText] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | undefined>();
@@ -80,11 +76,11 @@ export default function SOAAustraliaPage() {
     if (!clientName || !meetingNotes) return;
     setIsGenerating(true);
     setError("");
-    setSoaId(null);
-    setSoaText(null);
+    setPlanId(null);
+    setPlanText(null);
 
     try {
-      const response = await fetch("/api/soa-australia", {
+      const response = await fetch("/api/usa-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -93,10 +89,6 @@ export default function SOAAustraliaPage() {
           dateOfBirth,
           adviserName,
           adviserFirm,
-          platformName,
-          fundName,
-          fundSrriRiskRating,
-          fundIsinNumber,
           meetingDate,
           objectives,
           meetingNotes,
@@ -104,10 +96,10 @@ export default function SOAAustraliaPage() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to generate SOA");
+      if (!response.ok) throw new Error(data.error || "Failed to generate USA plan");
 
-      setSoaId(data.soaId);
-      setSoaText(data.soaText);
+      setPlanId(data.planId);
+      setPlanText(data.planText);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -127,11 +119,11 @@ export default function SOAAustraliaPage() {
               <div className="p-8 stack gap-6">
                 <div className="stack gap-2">
                   <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <Map className="text-[#c1a362]" />
-                    Australian SOA Generator
+                    <Flag className="text-[#c1a362]" />
+                    USA Financial Plan Generator
                   </h2>
                   <p className="text-gray-400">
-                    Generate an ASIC RG 175 compliant Statement of Advice from meeting notes.
+                    Generate a complete US Financial Plan compliant with CFP Board standards.
                   </p>
                 </div>
 
@@ -195,47 +187,6 @@ export default function SOAAustraliaPage() {
                     </div>
                   </div>
 
-                  <div className="stack gap-2">
-                    <h3 className="text-sm font-semibold border-b border-[rgba(193,163,98,0.2)] pb-2">Investment Details (optional)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Platform Name</label>
-                        <input
-                          className="input"
-                          value={platformName}
-                          onChange={(e) => setPlatformName(e.target.value)}
-                        />
-                      </div>
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Fund Name</label>
-                        <input
-                          className="input"
-                          value={fundName}
-                          onChange={(e) => setFundName(e.target.value)}
-                        />
-                      </div>
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Fund SRRI Rating</label>
-                        <input
-                          className="input"
-                          type="number"
-                          min="1"
-                          max="7"
-                          value={fundSrriRiskRating}
-                          onChange={(e) => setFundSrriRiskRating(e.target.value)}
-                        />
-                      </div>
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Fund ISIN</label>
-                        <input
-                          className="input"
-                          value={fundIsinNumber}
-                          onChange={(e) => setFundIsinNumber(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="field">
                     <label className="text-sm font-medium text-gray-400">Client Objectives</label>
                     <textarea
@@ -266,10 +217,10 @@ export default function SOAAustraliaPage() {
                     {isGenerating ? (
                       <>
                         <Loader2 className="animate-spin" size={18} />
-                        Generating SOA...
+                        Generating Plan...
                       </>
                     ) : (
-                      "Generate Statement of Advice"
+                      "Generate USA Financial Plan"
                     )}
                   </button>
                 </form>
@@ -277,13 +228,13 @@ export default function SOAAustraliaPage() {
             </div>
 
             <div className="stack gap-6">
-              {soaText ? (
+              {planText ? (
                 <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)] fade-in">
                   <div className="p-8 stack gap-6">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-bold">Generated SOA</h3>
+                      <h3 className="text-xl font-bold">Generated Plan</h3>
                       <a
-                        href={`/api/download-soa?id=${soaId}`}
+                        href={`/api/download-usa-plan?id=${planId}`}
                         className="btn-light btn-sm flex items-center gap-2"
                         download
                       >
@@ -292,7 +243,7 @@ export default function SOAAustraliaPage() {
                       </a>
                     </div>
                     <div className="p-6 rounded-xl bg-white text-gray-900 h-[800px] overflow-y-auto">
-                      {soaText.split('\n').map((line, i) => (
+                      {planText.split('\n').map((line, i) => (
                         <p key={i} className={`mb-3 ${line.startsWith('SECTION') ? 'font-bold text-lg mt-6' : ''}`}>
                           {line}
                         </p>
@@ -303,11 +254,11 @@ export default function SOAAustraliaPage() {
               ) : (
                 <div className="card border border-dashed border-[rgba(193,163,98,0.2)] bg-transparent p-12 text-center stack gap-4 items-center">
                   <div className="p-4 rounded-full bg-[rgba(193,163,98,0.05)] text-[#c1a362]">
-                    <Map size={48} />
+                    <Flag size={48} />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-300">No SOA Generated Yet</h3>
+                  <h3 className="text-xl font-semibold text-gray-300">No Plan Generated Yet</h3>
                   <p className="text-gray-500 max-w-xs mx-auto">
-                    Fill in the client details and meeting notes to generate a compliant Statement of Advice.
+                    Fill in the client details and meeting notes to generate a compliant USA Financial Plan.
                   </p>
                 </div>
               )}

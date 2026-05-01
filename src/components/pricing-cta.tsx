@@ -7,9 +7,11 @@ import { useState } from "react";
 type PricingCtaProps = {
   isLoggedIn: boolean;
   isSubscribed: boolean;
+  plan?: "starter" | "plus" | "pro";
+  price?: string;
 };
 
-export function PricingCta({ isLoggedIn, isSubscribed }: PricingCtaProps) {
+export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price = "£19" }: PricingCtaProps) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,6 +28,8 @@ export function PricingCta({ isLoggedIn, isSubscribed }: PricingCtaProps) {
 
       const response = await fetch("/api/create-checkout", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
       });
       const json = (await response.json()) as { error?: string; url?: string };
 
@@ -53,7 +57,7 @@ export function PricingCta({ isLoggedIn, isSubscribed }: PricingCtaProps) {
   if (!isLoggedIn) {
     return (
       <Link href="/signup" className="btn pricing-cta-button">
-        Start now — £19/month
+        Start now — {price}/month
       </Link>
     );
   }
@@ -66,7 +70,7 @@ export function PricingCta({ isLoggedIn, isSubscribed }: PricingCtaProps) {
         onClick={handleCheckout}
         disabled={isLoading}
       >
-        {isLoading ? "Redirecting..." : "Start now — £19/month"}
+        {isLoading ? "Redirecting..." : `Start now — ${price}/month`}
       </button>
       {error ? <div className="alert alert-error">{error}</div> : null}
     </div>

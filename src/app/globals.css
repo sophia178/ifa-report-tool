@@ -658,10 +658,23 @@ button {
 
 .pricing-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
-  gap: 24px;
+  grid-template-columns: 1fr 400px;
+  gap: 28px;
   margin-top: 28px;
-  align-items: start;
+  align-items: stretch;
+}
+
+.pricing-grid-three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+@media (max-width: 1024px) {
+  .pricing-grid-three {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pricing-card {
