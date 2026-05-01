@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileText, Search, Mail, Map, Shield, Flag, TrendingUp, BarChart3, Coffee, Calendar, ShieldAlert, Layout, Bell, Zap, Newspaper, Users, Settings } from "lucide-react";
