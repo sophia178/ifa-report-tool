@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { 
   ShieldCheck, 
   Globe, 
+  Bell, 
   Zap, 
   ArrowRight, 
   CheckCircle2, 
@@ -18,7 +19,8 @@ import {
   BarChart3, 
   Coffee, 
   Calendar, 
-  ShieldAlert 
+  ShieldAlert,
+  Users
 } from "lucide-react";
 
 export default async function Home() {
@@ -64,106 +66,133 @@ export default async function Home() {
       {/* Social Proof Strip */}
       <section className="bg-white border-y border-gray-100 py-10">
         <div className="shell flex flex-wrap justify-between items-center gap-8">
-          <div className="flex items-center gap-4">
-            <div className="text-3xl font-bold text-[#0a1628]">96/100</div>
+          <div className="flex items-center gap-6">
+            <div className="stack gap-1">
+              <div className="text-3xl font-bold text-[#0a1628]">96/100</div>
+              <div className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest">Compliance Score</div>
+            </div>
             <div className="text-sm text-gray-500 leading-tight">
-              Compliance score from <br /> independent assessment
+              Verified by independent <br /> regulatory assessment
             </div>
           </div>
-          <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
+          
+          <div className="h-8 w-px bg-gray-200 hidden lg:block"></div>
+          
           <div className="flex items-center gap-4">
-            <ShieldCheck className="text-green-600" size={32} />
-            <div className="text-lg font-semibold text-[#0a1628]">FCA Consumer Duty aligned</div>
-          </div>
-          <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
-          <div className="flex items-center gap-4">
-            <div className="flex -space-x-2">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-600">
-                  {String.fromCharCode(64 + i)}
-                </div>
-              ))}
+            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+              <ShieldCheck size={28} />
             </div>
-            <div className="text-sm text-gray-500">Trusted by 500+ advice firms</div>
+            <div className="stack gap-1">
+              <div className="text-lg font-bold text-[#0a1628]">Consumer Duty Aligned</div>
+              <div className="text-xs text-gray-500">Full FCA PRIN 2A coverage</div>
+            </div>
+          </div>
+          
+          <div className="h-8 w-px bg-gray-200 hidden lg:block"></div>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center">
+              <div className="w-10 h-10 rounded-full bg-[#0a1628] flex items-center justify-center text-[#c1a362] border-2 border-white shadow-sm">
+                <Users size={20} />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-[#c1a362] flex items-center justify-center text-[#0a1628] border-2 border-white shadow-sm -ml-3">
+                <ShieldCheck size={20} />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-white shadow-sm -ml-3 text-[10px] font-bold">
+                +500
+              </div>
+            </div>
+            <div className="stack gap-1">
+              <div className="text-sm font-bold text-[#0a1628]">Trusted by 500+ Firms</div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-widest">Global user base</div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Feature Showcase */}
       <section className="py-32 shell">
-        <div className="text-center mb-20 stack gap-4">
-          <h2 className="text-4xl font-bold text-[#0a1628]">Built for the full advice lifecycle.</h2>
-          <p className="text-gray-500 max-w-2xl mx-auto text-lg">
-            One platform that covers everything from initial research to final report generation and ongoing market monitoring.
+        <div className="text-center mb-24 stack gap-4">
+          <span className="text-[#c1a362] font-bold uppercase tracking-[0.2em] text-xs">Capabilities</span>
+          <h2 className="text-5xl font-bold text-[#0a1628] tracking-tight">Built for the full advice lifecycle.</h2>
+          <p className="text-gray-500 max-w-2xl mx-auto text-lg leading-relaxed">
+            One unified platform that transforms rough evidence into professional-grade financial advice documentation in seconds.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* Starter */}
-          <div className="card p-8 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-xl bg-[#c1a362]/10 flex items-center justify-center text-[#c1a362] mb-6">
-              <Zap size={24} />
+          <div className="group card p-10 bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-[#c1a362]/10 flex items-center justify-center text-[#c1a362] mb-8 group-hover:scale-110 transition-transform">
+              <Zap size={28} />
             </div>
-            <h3 className="text-xl font-bold mb-2">Starter</h3>
-            <p className="text-sm text-gray-500 mb-8">The essential toolkit for UK-based independent advisers.</p>
-            <ul className="stack gap-4">
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <FileText size={16} className="text-[#c1a362]" /> UK FCA Suitability Reports
+            <h3 className="text-2xl font-bold mb-3 text-[#0a1628]">Starter</h3>
+            <p className="text-gray-500 mb-10 leading-relaxed">The essential toolkit for UK-based independent financial advisers.</p>
+            <ul className="stack gap-5">
+              <li className="flex items-start gap-4 text-sm text-gray-700 font-medium">
+                <div className="mt-1"><FileText size={18} className="text-[#c1a362]" /></div>
+                <span>UK FCA Suitability Reports</span>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <Search size={16} className="text-[#c1a362]" /> Research Summariser
+              <li className="flex items-start gap-4 text-sm text-gray-700 font-medium">
+                <div className="mt-1"><Search size={18} className="text-[#c1a362]" /></div>
+                <span>Research Summariser</span>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <Mail size={16} className="text-[#c1a362]" /> Client Email Drafter
+              <li className="flex items-start gap-4 text-sm text-gray-700 font-medium">
+                <div className="mt-1"><Mail size={18} className="text-[#c1a362]" /></div>
+                <span>Client Email Drafter</span>
               </li>
             </ul>
           </div>
 
           {/* Plus */}
-          <div className="card p-8 bg-[#0a1628] text-white border border-[#c1a362]/20 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#c1a362] bg-[#c1a362]/10 px-2 py-1 rounded border border-[#c1a362]/20">Most Popular</span>
+          <div className="group card p-10 bg-[#0a1628] text-white border border-[#c1a362]/30 shadow-2xl relative overflow-hidden hover:-translate-y-1 transition-all duration-300">
+            <div className="absolute top-0 right-0 p-5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#c1a362] bg-[#c1a362]/10 px-3 py-1.5 rounded-full border border-[#c1a362]/20">Most Popular</span>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-[#c1a362] flex items-center justify-center text-white mb-6">
-              <Globe size={24} />
+            <div className="w-14 h-14 rounded-2xl bg-[#c1a362] flex items-center justify-center text-white mb-8 group-hover:scale-110 transition-transform">
+              <Globe size={28} />
             </div>
-            <h3 className="text-xl font-bold mb-2">Plus</h3>
-            <p className="text-sm text-gray-400 mb-8">Advanced tools for international advice and compliance.</p>
-            <ul className="stack gap-4">
-              <li className="flex items-center gap-3 text-sm text-gray-300">
-                <Map size={16} className="text-[#c1a362]" /> Australian SOA Generator
+            <h3 className="text-2xl font-bold mb-3">Plus</h3>
+            <p className="text-gray-400 mb-10 leading-relaxed">Advanced tools for international advice firms and compliance officers.</p>
+            <ul className="stack gap-5">
+              <li className="flex items-start gap-4 text-sm text-gray-200 font-medium">
+                <div className="mt-1"><Map size={18} className="text-[#c1a362]" /></div>
+                <span>Australian SOA Generator</span>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-300">
-                <Flag size={16} className="text-[#c1a362]" /> USA Financial Plan Generator
+              <li className="flex items-start gap-4 text-sm text-gray-200 font-medium">
+                <div className="mt-1"><Flag size={18} className="text-[#c1a362]" /></div>
+                <span>USA Financial Plan Generator</span>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-300">
-                <Shield size={16} className="text-[#c1a362]" /> Compliance Checker
+              <li className="flex items-start gap-4 text-sm text-gray-200 font-medium">
+                <div className="mt-1"><Shield size={18} className="text-[#c1a362]" /></div>
+                <span>Compliance Checker</span>
+              </li>
+              <li className="flex items-start gap-4 text-sm text-gray-200 font-medium">
+                <div className="mt-1"><Bell size={18} className="text-[#c1a362]" /></div>
+                <span>Regulatory Alerts</span>
               </li>
             </ul>
           </div>
 
           {/* Pro */}
-          <div className="card p-8 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-xl bg-[#0a1628]/5 flex items-center justify-center text-[#0a1628] mb-6">
-              <BarChart3 size={24} />
+          <div className="group card p-10 bg-white border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-[#0a1628]/5 flex items-center justify-center text-[#0a1628] mb-8 group-hover:scale-110 transition-transform">
+              <BarChart3 size={28} />
             </div>
-            <h3 className="text-xl font-bold mb-2">Pro</h3>
-            <p className="text-sm text-gray-500 mb-8">Total market intelligence and portfolio risk control.</p>
-            <ul className="stack gap-4">
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <BarChart3 size={16} className="text-[#0a1628]" /> Live Market Dashboard
+            <h3 className="text-2xl font-bold mb-3 text-[#0a1628]">Pro</h3>
+            <p className="text-gray-500 mb-10 leading-relaxed">Total market intelligence, portfolio risk control, and team management.</p>
+            <ul className="stack gap-5">
+              <li className="flex items-start gap-4 text-sm text-gray-700 font-medium">
+                <div className="mt-1"><BarChart3 size={18} className="text-[#0a1628]" /></div>
+                <span>Live Market Dashboard</span>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <Coffee size={16} className="text-[#0a1628]" /> AI Market Briefing
+              <li className="flex items-start gap-4 text-sm text-gray-700 font-medium">
+                <div className="mt-1"><ShieldAlert size={18} className="text-[#0a1628]" /></div>
+                <span>Portfolio Risk Analyser</span>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <Calendar size={16} className="text-[#0a1628]" /> Economic Calendar
-              </li>
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <ShieldAlert size={16} className="text-[#0a1628]" /> Portfolio Risk Analyser
-              </li>
-              <li className="flex items-center gap-3 text-sm text-gray-700">
-                <TrendingUp size={16} className="text-[#0a1628]" /> AI Trade Journal
+              <li className="flex items-start gap-4 text-sm text-gray-700 font-medium">
+                <div className="mt-1"><Users size={18} className="text-[#0a1628]" /></div>
+                <span>Team Seats & Management</span>
               </li>
             </ul>
           </div>

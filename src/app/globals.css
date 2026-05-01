@@ -574,41 +574,51 @@ button {
 .dashboard-nav {
   width: min(1280px, calc(100% - 40px));
   margin: 0 auto;
-  display: flex;
-  gap: 12px;
   border-bottom: 1px solid rgba(193, 163, 98, 0.2);
-  padding-bottom: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.nav-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .dashboard-nav .nav-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  color: rgba(248, 246, 241, 0.6);
+  padding: 10px 18px;
+  border-radius: 12px;
+  color: #5f6877;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   transition: all 0.2s ease;
+  background: rgba(10, 22, 40, 0.03);
+  border: 1px solid transparent;
 }
 
 .dashboard-nav .nav-item:hover {
   background: rgba(193, 163, 98, 0.1);
-  color: var(--gold-light);
+  color: var(--primary);
+  border-color: rgba(193, 163, 98, 0.2);
 }
 
 .dashboard-nav .nav-item.active {
-  background: rgba(193, 163, 98, 0.2);
-  color: var(--gold-light);
-  font-weight: 500;
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(10, 22, 40, 0.15);
 }
 
 .dashboard-nav .nav-item .icon {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .dashboard-nav .nav-item.active .icon {
   opacity: 1;
+  color: var(--gold);
 }
 
 .pricing-shell {
