@@ -38,34 +38,33 @@ export default async function Home() {
   const startHref = user ? (isSubscribed ? "/dashboard" : "/pricing") : "/signup";
 
   return (
-    <main className="landing-page min-h-screen bg-white">
+    <main className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="bg-[#0a1628] text-white pt-8 pb-40 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-3xl -mr-96 -mt-96 pointer-events-none"></div>
-        <div className="shell relative">
+      <section className="bg-slate-900 text-white pt-8 pb-40 overflow-hidden relative">
+        <div className="container mx-auto px-4 relative">
           <TopNav email={user?.email} />
           
           <div className="mt-32 max-w-5xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80 text-xs font-medium mb-8 backdrop-blur-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse"></span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium mb-8">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
               The Operating System for Finance v2.4
             </div>
-            <h1 className="display-large mb-8">
+            <h1 className="text-6xl font-black text-white mb-8 leading-tight">
               The professional terminal for <br />
-              <span className="text-gradient animate-gradient">financial professionals.</span>
+              <span className="text-yellow-500">financial professionals.</span>
             </h1>
-            <p className="text-xl text-gray-400 max-w-2xl mb-12 body-large">
+            <p className="text-xl text-slate-300 max-w-2xl mb-12">
               Full regulatory coverage for UK, Australia, and USA. 
               Suitability reports, compliance checking, market intelligence, and portfolio risk analysis in one unified professional workspace.
             </p>
             <div className="flex flex-wrap gap-6 items-center">
-              <Link href={startHref} className="btn btn-gold h-14 px-8 text-lg font-bold">
+              <Link href={startHref} className="bg-yellow-500 text-slate-900 font-bold px-8 py-4 rounded-full hover:bg-yellow-400 transition flex items-center gap-3 text-lg">
                 Get Started for Free
                 <ArrowRight size={20} />
               </Link>
-              <div className="flex items-center gap-6 text-sm text-gray-400 font-medium">
-                <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#c9a84c]" /> FCA Aligned</span>
-                <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#c9a84c]" /> ASIC Compliant</span>
+              <div className="flex items-center gap-6 text-sm text-slate-400 font-medium">
+                <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-yellow-500" /> FCA Aligned</span>
+                <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-yellow-500" /> ASIC Compliant</span>
               </div>
             </div>
           </div>
@@ -73,23 +72,23 @@ export default async function Home() {
       </section>
 
       {/* Feature Grid */}
-      <section className="py-32 bg-[#F4F6F9]">
-        <div className="shell">
+      <section className="py-32 bg-slate-50">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-24">
-            <h2 className="display-medium mb-6">Built for the full advice lifecycle.</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto text-lg">
+            <h2 className="text-4xl font-black text-slate-900 mb-6">Built for the full advice lifecycle.</h2>
+            <p className="text-slate-500 max-w-2xl mx-auto text-lg">
               One unified platform that transforms rough evidence into professional-grade financial advice documentation in seconds.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, i) => (
-              <div key={i} className="card group hover:scale-[1.02]">
-                <div className="w-12 h-12 rounded-xl bg-[#0a1628]/5 flex items-center justify-center text-[#0a1628] mb-6 group-hover:bg-[#c9a84c] group-hover:text-white transition-all duration-300">
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow group">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-900 mb-6 group-hover:bg-yellow-500 group-hover:text-slate-900 transition-colors">
                   <feature.icon size={24} />
                 </div>
-                <h3 className="title-large mb-3">{feature.name}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.name}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -98,66 +97,53 @@ export default async function Home() {
 
       {/* How it Works */}
       <section className="py-32 bg-white">
-        <div className="shell">
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
-            <div className="stack gap-12">
-              <h2 className="display-medium">Advice intelligence, <br />simplified.</h2>
-              <div className="stack gap-8">
+            <div className="space-y-12">
+              <h2 className="text-4xl font-black text-slate-900">Advice intelligence, simplified.</h2>
+              <div className="space-y-8">
                 {[
                   { step: "01", title: "Capture Data", desc: "Upload meeting audio or paste rough notes from your client meeting." },
                   { step: "02", title: "AI Analysis", desc: "Our models process the evidence against specific regulatory requirements." },
                   { step: "03", title: "Refine & Export", desc: "Review the generated report, make final tweaks, and export to professional Word doc." }
                 ].map((item, i) => (
                   <div key={i} className="flex gap-6">
-                    <span className="text-4xl font-black text-[#c9a84c]/20 tabular-nums">{item.step}</span>
-                    <div className="stack gap-2">
-                      <h4 className="text-xl font-bold">{item.title}</h4>
-                      <p className="text-gray-500">{item.desc}</p>
+                    <span className="text-4xl font-black text-yellow-500/20 tabular-nums">{item.step}</span>
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-bold text-slate-900">{item.title}</h4>
+                      <p className="text-slate-500">{item.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="relative">
-              <div className="aspect-square rounded-3xl bg-[#0a1628] shadow-2xl overflow-hidden p-8">
-                <div className="w-full h-full rounded-2xl bg-[#1e293b] border border-white/5 flex flex-col">
-                  <div className="h-12 border-b border-white/5 flex items-center gap-2 px-6">
-                    <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
-                    <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
-                    <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
-                  </div>
-                  <div className="flex-1 p-8">
-                    <div className="h-4 w-48 bg-white/10 rounded mb-6"></div>
-                    <div className="stack gap-4">
-                      <div className="h-2 w-full bg-white/5 rounded"></div>
-                      <div className="h-2 w-full bg-white/5 rounded"></div>
-                      <div className="h-2 w-3/4 bg-white/5 rounded"></div>
-                    </div>
-                    <div className="mt-12 grid grid-cols-2 gap-4">
-                      <div className="h-24 bg-[#c9a84c]/10 border border-[#c9a84c]/20 rounded-xl"></div>
-                      <div className="h-24 bg-white/5 border border-white/10 rounded-xl"></div>
-                    </div>
+            <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl overflow-hidden relative">
+              <div className="w-full h-full rounded-2xl bg-slate-800 border border-slate-700 flex flex-col min-h-[400px]">
+                <div className="h-12 border-b border-slate-700 flex items-center gap-2 px-6">
+                  <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                  <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                  <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                </div>
+                <div className="flex-1 p-8">
+                  <div className="h-4 w-48 bg-slate-700 rounded mb-6"></div>
+                  <div className="space-y-4">
+                    <div className="h-2 w-full bg-slate-700/50 rounded"></div>
+                    <div className="h-2 w-full bg-slate-700/50 rounded"></div>
+                    <div className="h-2 w-3/4 bg-slate-700/50 rounded"></div>
                   </div>
                 </div>
-              </div>
-              <div className="absolute -bottom-12 -left-12 p-8 bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-[280px] hidden lg:block">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600"><CheckCircle2 size={20} /></div>
-                  <span className="font-bold text-sm">FCA Validated</span>
-                </div>
-                <p className="text-xs text-gray-400">Section 21 of the FSMA 2000 compliant report generation.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Preview */}
-      <section className="py-32 bg-[#0a1628] text-white">
-        <div className="shell">
+      {/* Pricing Section */}
+      <section className="py-32 bg-slate-900 text-white">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-24">
-            <h2 className="display-medium mb-6">Professional pricing for professional firms.</h2>
-            <p className="text-gray-400">Choose the tier that matches your firm&apos;s regulatory scope.</p>
+            <h2 className="text-4xl font-black mb-6">Professional pricing for professional firms.</h2>
+            <p className="text-slate-400">Choose the tier that matches your firm&apos;s regulatory scope.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -166,22 +152,22 @@ export default async function Home() {
               { name: "Plus", price: "£49", desc: "International scope and compliance.", accent: true },
               { name: "Pro", price: "£99", desc: "Full market intelligence terminal.", accent: false }
             ].map((tier, i) => (
-              <div key={i} className={`p-12 rounded-3xl border ${tier.accent ? "border-[#c9a84c] bg-[#1e293b]" : "border-white/10 bg-white/5"} stack gap-8`}>
-                <div className="stack gap-2">
+              <div key={i} className={`p-12 rounded-3xl border ${tier.accent ? "border-yellow-500 bg-slate-800" : "border-slate-800 bg-slate-800/50"} flex flex-col gap-8`}>
+                <div className="space-y-2">
                   <h3 className="text-xl font-bold">{tier.name}</h3>
                   <div className="flex items-baseline gap-2">
                     <span className="text-5xl font-black">{tier.price}</span>
-                    <span className="text-gray-400 font-medium">/mo</span>
+                    <span className="text-slate-400 font-medium">/mo</span>
                   </div>
-                  <p className="text-gray-400 text-sm mt-4">{tier.desc}</p>
+                  <p className="text-slate-400 text-sm mt-4">{tier.desc}</p>
                 </div>
-                <Link href="/signup" className={`btn h-12 w-full font-bold ${tier.accent ? "btn-gold" : "bg-white text-[#0a1628]"}`}>
+                <Link href="/signup" className={`py-4 w-full text-center font-bold rounded-full transition ${tier.accent ? "bg-yellow-500 text-slate-900" : "bg-white text-slate-900"}`}>
                   Start Free Trial
                 </Link>
-                <div className="stack gap-4 mt-4">
+                <div className="space-y-4 mt-4">
                   {[1, 2, 3, 4].map(j => (
-                    <div key={j} className="flex items-center gap-3 text-sm text-gray-400">
-                      <CheckCircle2 size={16} className="text-[#c9a84c]" />
+                    <div key={j} className="flex items-center gap-3 text-sm text-slate-400">
+                      <CheckCircle2 size={16} className="text-yellow-500" />
                       <span>Feature inclusion {j}</span>
                     </div>
                   ))}
@@ -191,6 +177,18 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <footer className="bg-white py-20 border-t border-slate-100">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-10">
+          <div className="text-2xl font-black text-slate-900">Suitance<span className="text-yellow-500">.</span></div>
+          <div className="flex gap-10 text-sm font-medium text-slate-500">
+            <a href="#" className="hover:text-slate-900">Terms</a>
+            <a href="#" className="hover:text-slate-900">Privacy</a>
+            <a href="#" className="hover:text-slate-900">Contact</a>
+          </div>
+          <div className="text-sm text-slate-400">© 2026 Suitance Intelligence. All rights reserved.</div>
+        </div>
+      </footer>
     </main>
   );
 }

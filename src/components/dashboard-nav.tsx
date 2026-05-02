@@ -6,7 +6,7 @@ import {
   FileText, Search, Mail, Map, Shield, Flag, TrendingUp, 
   BarChart3, Coffee, Calendar, ShieldAlert, Layout, 
   Bell, Zap, Newspaper, Users, Settings, Briefcase, 
-  Target, ClipboardList
+  Target, ClipboardList, Home
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -59,16 +59,20 @@ export function DashboardNav() {
   const pathname = usePathname();
 
   return (
-    <aside className="dashboard-sidebar">
-      <div className="sidebar-logo">
-        Suitance<span className="text-[#c9a84c]">.</span>
+    <div className="flex flex-col h-full">
+      <div className="p-6">
+        <Link href="/" className="text-2xl font-black text-white flex items-center gap-2">
+          Suitance<span className="text-yellow-500">.</span>
+        </Link>
       </div>
       
-      <nav className="sidebar-nav">
+      <nav className="flex-1 px-4 space-y-8 overflow-y-auto">
         {navGroups.map((group) => (
-          <div key={group.title} className="stack gap-2">
-            <div className="sidebar-group-title">{group.title}</div>
-            <div className="stack gap-1">
+          <div key={group.title} className="space-y-2">
+            <div className="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              {group.title}
+            </div>
+            <div className="space-y-1">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -76,7 +80,12 @@ export function DashboardNav() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={clsx("sidebar-item", isActive && "active")}
+                    className={clsx(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      isActive 
+                        ? "bg-yellow-500 text-slate-900" 
+                        : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    )}
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
@@ -88,18 +97,19 @@ export function DashboardNav() {
         ))}
       </nav>
 
-      <div className="mt-auto p-6 border-t border-white/5">
-        <div className="p-4 bg-white/5 rounded-xl border border-white/5 stack gap-3">
+      <div className="p-6 mt-auto border-t border-slate-800">
+        <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-800 space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#c9a84c]"></div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">Pro Status</span>
+            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pro Status</span>
           </div>
-          <p className="text-[10px] text-white/40 leading-relaxed">
+          <p className="text-[10px] text-slate-500 leading-relaxed">
             You have full access to global regulatory intelligence.
           </p>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
+
 
