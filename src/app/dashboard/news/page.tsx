@@ -237,6 +237,14 @@ export default function NewsPage() {
                     ))}
                   </div>
                 </div>
+              ) : !isGenerating ? (
+                <div className="card border border-dashed border-[rgba(193,163,98,0.2)] bg-transparent p-20 text-center stack gap-4 items-center justify-center h-full">
+                  <div className="p-4 rounded-full bg-[rgba(193,163,98,0.05)] text-[#c1a362]">
+                    <Newspaper size={48} />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-300">No News Briefings Yet</h3>
+                  <p className="text-gray-500 max-w-xs mx-auto">Enter keywords on the left and click Generate Briefing to get your first custom report.</p>
+                </div>
               ) : null}
             </div>
           </div>

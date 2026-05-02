@@ -3,9 +3,10 @@ import { analyseTrades } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
+export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -19,18 +20,8 @@ export async function POST() {
       return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
-    const { data: trades, error } = await supabase
-      .from("trades")
-      .select("*")
-      .order("trade_date", { ascending: false });
-
-    if (error) throw error;
-    if (!trades || trades.length === 0) {
-      return NextResponse.json({ error: "No trades found to analyse." }, { status: 400 });
-    }
-
+    const { trades } = await request.json();
     const result = await analyseTrades(trades);
-
     return NextResponse.json(result);
   } catch (error) {
     console.error("Trade analysis error:", error);

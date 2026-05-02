@@ -108,7 +108,7 @@ ${templateContent}`
     : "";
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 16000,
     system: SYSTEM_PROMPT,
     messages: [
@@ -180,7 +180,7 @@ Analyse the provided text and return a JSON object with:
 Return ONLY the JSON object.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 1024,
     system: systemPrompt,
     messages: [{ role: "user", content: text }],
@@ -206,7 +206,7 @@ For each update, provide:
 Return a JSON array of objects.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: "Generate recent regulatory updates." }],
@@ -236,7 +236,7 @@ Provide a JSON object with:
 Return ONLY the JSON object.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: idea }],
@@ -263,7 +263,7 @@ For each topic, provide a JSON object with:
 Return a JSON array of objects.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: "Generate news briefing." }],
@@ -291,7 +291,7 @@ Format the briefing with clear section headers like "SECTION 1 - OVERNIGHT MARKE
 Do not use markdown code fences. Return only the briefing text.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 4096,
     system: systemPrompt,
     messages: [{ role: "user", content: "Generate today's market briefing." }],
@@ -318,7 +318,7 @@ Expected Impact: ${event.impact}
 Focus on the implications for UK inflation, interest rates, portfolio returns, and client sentiment.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 512,
     system: systemPrompt,
     messages: [{ role: "user", content: `Explain why ${event.title} matters.` }],
@@ -354,7 +354,7 @@ Return a JSON object with:
 Return ONLY the JSON object.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 2048,
     system: systemPrompt,
     messages: [{ role: "user", content: "Analyse my portfolio risk." }],
@@ -385,7 +385,7 @@ Key Points: ${input.keyPoints}
 Return ONLY the email body text, including a professional subject line at the top.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 2048,
     system: systemPrompt,
     messages: [
@@ -424,7 +424,7 @@ Write the SOA as plain structured text with clear section headers like "SECTION 
 Return ONLY the SOA text.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 8192,
     system: systemPrompt,
     messages: [{ role: "user", content: input.meetingNotes }],
@@ -459,7 +459,7 @@ Return a JSON object with:
 Return ONLY the JSON object.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 2048,
     system: systemPrompt,
     messages: [{ role: "user", content: text }],
@@ -495,7 +495,7 @@ Write the plan as plain structured text with clear section headers like "SECTION
 Return ONLY the financial plan text.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 8192,
     system: systemPrompt,
     messages: [{ role: "user", content: input.meetingNotes }],
@@ -531,7 +531,7 @@ Return a JSON object with:
 Return ONLY the JSON object.`;
 
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     max_tokens: 2048,
     system: systemPrompt,
     messages: [{ role: "user", content: "Analyse my trades" }],

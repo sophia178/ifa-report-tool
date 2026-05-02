@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
 export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {

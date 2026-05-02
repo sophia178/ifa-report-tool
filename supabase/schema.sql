@@ -9,7 +9,6 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles add column if not exists stripe_price_id text;
-
 alter table public.profiles add column if not exists subscribed boolean not null default false;
 alter table public.profiles enable row level security;
 

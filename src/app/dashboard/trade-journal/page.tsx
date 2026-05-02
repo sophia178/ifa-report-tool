@@ -142,6 +142,8 @@ export default function TradeJournalPage() {
     try {
       const response = await fetch("/api/trades/analyse", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trades }),
       });
 
       const data = await response.json();
