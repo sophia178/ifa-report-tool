@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Newspaper, Loader2, Search, RefreshCw, Send, AlertTriangle, MessageSquare, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -115,13 +113,7 @@ export default function NewsPage() {
   const latestBriefing = briefings[0];
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(1200px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             <div className="lg:col-span-1 stack gap-6">
               <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] p-8">
                 <div className="stack gap-6">
@@ -245,19 +237,8 @@ export default function NewsPage() {
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="card border border-dashed border-[rgba(193,163,98,0.2)] bg-transparent p-20 text-center stack gap-4 items-center justify-center h-full">
-                  <div className="p-4 rounded-full bg-[rgba(193,163,98,0.05)] text-[#c1a362]">
-                    <Newspaper size={48} />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-300">No Briefing Generated</h3>
-                  <p className="text-gray-500 max-w-xs mx-auto">Enter your keywords on the left and click Generate Briefing to see the latest insights.</p>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

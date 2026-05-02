@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Mail, Loader2, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -102,13 +100,7 @@ export default function EmailsPage() {
   }
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(800px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
+    <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
             <div className="p-8 stack gap-6">
               <div className="stack gap-2">
                 <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -224,8 +216,5 @@ export default function EmailsPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

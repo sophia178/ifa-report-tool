@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Calendar, Loader2, Info, ChevronRight, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -110,22 +108,16 @@ export default function CalendarPage() {
   };
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(900px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="stack gap-8">
-            <div className="stack gap-2">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Calendar className="text-[#c1a362]" />
-                Economic Calendar
-              </h2>
-              <p className="text-gray-400">
-                Major upcoming economic events for the next 30 days with AI-powered adviser insights.
-              </p>
-            </div>
+    <div className="stack gap-8">
+      <div className="stack gap-2">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Calendar className="text-[#c1a362]" />
+          Economic Calendar
+        </h2>
+        <p className="text-gray-400">
+          Major upcoming economic events for the next 30 days with AI-powered adviser insights.
+        </p>
+      </div>
 
             <div className="stack gap-4">
               {events.map((event) => (
@@ -182,8 +174,5 @@ export default function CalendarPage() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

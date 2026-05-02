@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Layout, Loader2, Plus, Trash2, Edit3, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -113,30 +111,24 @@ export default function TemplatesPage() {
   }
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(1200px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="stack gap-8">
-            <div className="flex justify-between items-center">
-              <div className="stack gap-2">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Layout className="text-[#c1a362]" />
-                  Report Templates
-                </h2>
-                <p className="text-gray-400">
-                  Manage your custom report structures and boilerplate text.
-                </p>
-              </div>
-              {!isCreating && (
-                <button className="btn" onClick={() => setIsCreating(true)}>
-                  <Plus size={18} className="mr-2" />
-                  New Template
-                </button>
-              )}
-            </div>
+    <div className="stack gap-8">
+      <div className="flex justify-between items-center">
+        <div className="stack gap-2">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Layout className="text-[#c1a362]" />
+            Report Templates
+          </h2>
+          <p className="text-gray-400">
+            Manage your custom report structures and boilerplate text.
+          </p>
+        </div>
+        {!isCreating && (
+          <button className="btn" onClick={() => setIsCreating(true)}>
+            <Plus size={18} className="mr-2" />
+            New Template
+          </button>
+        )}
+      </div>
 
             {isCreating && (
               <div className="card border border-[#c1a362]/30 bg-[rgba(15,23,40,0.5)] p-8 fade-in">
@@ -207,8 +199,5 @@ export default function TemplatesPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

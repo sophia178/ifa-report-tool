@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { TrendingUp, Loader2, Plus, BarChart2, Check, Star, AlertTriangle, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -171,24 +169,18 @@ export default function TradeJournalPage() {
   }
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(1000px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="stack gap-6">
-            <div className="flex justify-between items-center">
-              <div className="stack gap-2">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <TrendingUp className="text-[#c1a362]" />
-                  AI Trade Journal
-                </h2>
-                <p className="text-gray-400">
-                  Log your trades and get AI-powered performance analysis.
-                </p>
-              </div>
-            </div>
+    <div className="stack gap-6">
+      <div className="flex justify-between items-center">
+        <div className="stack gap-2">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <TrendingUp className="text-[#c1a362]" />
+            AI Trade Journal
+          </h2>
+          <p className="text-gray-400">
+            Log your trades and get AI-powered performance analysis.
+          </p>
+        </div>
+      </div>
 
             <div className="studio-tabs">
               <button
@@ -431,8 +423,5 @@ export default function TradeJournalPage() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

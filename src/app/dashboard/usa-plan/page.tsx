@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Flag, Loader2, FileDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -108,13 +106,7 @@ export default function USAPlanPage() {
   }
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(1200px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
               <div className="p-8 stack gap-6">
                 <div className="stack gap-2">
@@ -264,8 +256,5 @@ export default function USAPlanPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

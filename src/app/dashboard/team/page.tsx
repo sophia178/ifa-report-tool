@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Users, Loader2, UserPlus, Trash2, Mail, ShieldCheck, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -114,22 +112,16 @@ export default function TeamPage() {
   }
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(1000px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="stack gap-8">
-            <div className="stack gap-2">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Users className="text-[#c1a362]" />
-                Team Management
-              </h2>
-              <p className="text-gray-400">
-                Invite team members and manage their access to your Pro subscription.
-              </p>
-            </div>
+    <div className="stack gap-8">
+      <div className="stack gap-2">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Users className="text-[#c1a362]" />
+          Team Management
+        </h2>
+        <p className="text-gray-400">
+          Invite team members and manage their access to your Pro subscription.
+        </p>
+      </div>
 
             {!isPro ? (
               <div className="card border border-amber-500/20 bg-amber-500/5 p-8 text-center stack gap-4">
@@ -247,8 +239,5 @@ export default function TeamPage() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Bell, Loader2, Globe, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -124,13 +122,7 @@ export default function RegulatoryPage() {
   const latestSummary = summaries[0];
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(1100px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             <div className="lg:col-span-1 stack gap-6">
               <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] p-8">
                 <div className="stack gap-6">
@@ -251,8 +243,5 @@ export default function RegulatoryPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
-    </main>
   );
 }

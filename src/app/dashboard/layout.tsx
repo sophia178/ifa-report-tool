@@ -15,20 +15,20 @@ export default async function DashboardLayout({
       {/* Sidebar */}
       <aside style={{ 
         width: "240px", 
+        minWidth: "240px",
+        flexShrink: 0,
         backgroundColor: "#0A1628", 
         minHeight: "100vh", 
-        position: "fixed", 
-        left: 0, 
-        top: 0, 
+        display: "flex",
+        flexDirection: "column",
         zIndex: 50, 
-        overflowY: "auto", 
         borderRight: "1px solid rgba(255, 255, 255, 0.05)" 
       }}>
         <DashboardNav />
       </aside>
 
       {/* Main Content */}
-      <main style={{ marginLeft: "240px", flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh", overflowY: "auto" }}>
         <header style={{ 
           height: "64px", 
           backgroundColor: "#FFFFFF", 

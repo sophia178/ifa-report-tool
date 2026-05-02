@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TopNav } from "@/components/top-nav";
-import { DashboardNav } from "@/components/dashboard-nav";
 import { Settings, Loader2, Upload, Save, Building2, MapPin, Hash, MessageSquare, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -143,22 +141,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="dashboard-page">
-      <div className="dashboard-shell">
-        <TopNav email={userEmail} />
-        <DashboardNav />
-
-        <div className="dashboard-content" style={{ width: "min(800px, calc(100% - 40px))", margin: "40px auto" }}>
-          <div className="stack gap-8">
-            <div className="stack gap-2">
-              <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Settings className="text-[#c1a362]" />
-                Platform Settings
-              </h2>
-              <p className="text-gray-400">
-                Manage your firm details and white-label preferences.
-              </p>
-            </div>
+    <div className="stack gap-8">
+      <div className="stack gap-2">
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Settings className="text-[#c1a362]" />
+          Platform Settings
+        </h2>
+        <p className="text-gray-400">
+          Manage your firm details and white-label preferences.
+        </p>
+      </div>
 
             {!isPro ? (
               <div className="card border border-amber-500/20 bg-amber-500/5 p-8 text-center stack gap-4">
@@ -275,8 +267,5 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </main>
   );
 }
