@@ -1,7 +1,7 @@
 import { DashboardNav } from "@/components/dashboard-nav";
 import { requireUser } from "@/lib/auth";
 import { logout } from "@/app/auth/actions";
-import { LogOut, User, Bell, Search, Settings } from "lucide-react";
+import { LogOut, Bell, Search } from "lucide-react";
 
 export default async function DashboardLayout({
   children,
@@ -11,48 +11,94 @@ export default async function DashboardLayout({
   const { user } = await requireUser();
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       {/* Sidebar */}
-      <aside className="bg-slate-900 w-60 min-h-screen fixed left-0 top-0 z-50 overflow-y-auto">
+      <aside style={{ 
+        width: "240px", 
+        backgroundColor: "#0A1628", 
+        minHeight: "100vh", 
+        position: "fixed", 
+        left: 0, 
+        top: 0, 
+        zIndex: 50, 
+        overflowY: "auto", 
+        borderRight: "1px solid rgba(255, 255, 255, 0.05)" 
+      }}>
         <DashboardNav />
       </aside>
 
       {/* Main Content */}
-      <main className="ml-60 flex-1 flex flex-col min-h-screen">
-        <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-40">
-          <div className="flex items-center gap-8">
-            <h1 className="text-xl font-bold text-slate-900">Workspace</h1>
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200 text-slate-400">
+      <main style={{ marginLeft: "240px", flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        <header style={{ 
+          height: "64px", 
+          backgroundColor: "#FFFFFF", 
+          borderBottom: "1px solid rgba(10, 22, 40, 0.08)", 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "space-between", 
+          padding: "0 32px", 
+          position: "sticky", 
+          top: 0, 
+          zIndex: 40 
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
+            <h1 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628" }}>Workspace</h1>
+            <div style={{ 
+              display: "none", // Hide on mobile if this were responsive
+              alignItems: "center", 
+              gap: "8px", 
+              padding: "6px 12px", 
+              backgroundColor: "#F4F6F9", 
+              borderRadius: "8px", 
+              border: "1px solid rgba(10, 22, 40, 0.08)", 
+              color: "#8A94A6" 
+            }}>
               <Search size={14} />
-              <span className="text-xs font-medium">Search tools...</span>
-              <span className="ml-4 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-400">⌘K</span>
+              <span style={{ fontSize: "12px", fontWeight: "500" }}>Search tools...</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <button style={{ padding: "8px", color: "#8A94A6", cursor: "pointer", background: "none", border: "none" }}>
               <Bell size={20} />
             </button>
             
-            <div className="h-8 w-px bg-slate-200 mx-2"></div>
+            <div style={{ height: "32px", width: "1px", backgroundColor: "rgba(10, 22, 40, 0.08)", margin: "0 8px" }}></div>
 
-            <div className="flex items-center gap-3 pl-2">
-              <div className="hidden sm:grid text-right">
-                <span className="text-sm font-bold text-slate-900 leading-tight truncate max-w-[150px]">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", textAlign: "right" }}>
+                <span style={{ fontSize: "14px", fontWeight: "700", color: "#0A1628", lineHeight: 1.2 }}>
                   {user.email?.split('@')[0]}
                 </span>
-                <span className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">
+                <span style={{ fontSize: "10px", fontWeight: "600", color: "#8A94A6", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Principal Adviser
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-yellow-500 font-bold border border-slate-800">
+              <div style={{ 
+                width: "40px", 
+                height: "40px", 
+                borderRadius: "12px", 
+                backgroundColor: "#0A1628", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center", 
+                color: "#C9A84C", 
+                fontWeight: "700", 
+                border: "1px solid rgba(255, 255, 255, 0.1)" 
+              }}>
                 {user.email?.[0].toUpperCase()}
               </div>
               
               <form action={logout}>
                 <button 
                   type="submit" 
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  style={{ 
+                    padding: "8px", 
+                    color: "#8A94A6", 
+                    cursor: "pointer", 
+                    background: "none", 
+                    border: "none" 
+                  }}
                   title="Sign out"
                 >
                   <LogOut size={20} />
@@ -62,12 +108,10 @@ export default async function DashboardLayout({
           </div>
         </header>
 
-        <div className="p-8 flex-1">
+        <div style={{ padding: "32px", flex: 1 }}>
           {children}
         </div>
       </main>
     </div>
   );
 }
-
-

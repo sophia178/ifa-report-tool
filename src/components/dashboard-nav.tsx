@@ -5,10 +5,8 @@ import { usePathname } from "next/navigation";
 import { 
   FileText, Search, Mail, Map, Shield, Flag, TrendingUp, 
   BarChart3, Coffee, Calendar, ShieldAlert, Layout, 
-  Bell, Zap, Newspaper, Users, Settings, Briefcase, 
-  Target, ClipboardList, Home
+  Bell, Zap, Newspaper, Users, Settings
 } from "lucide-react";
-import { clsx } from "clsx";
 
 const navGroups = [
   {
@@ -59,20 +57,20 @@ export function DashboardNav() {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-6">
-        <Link href="/" className="text-2xl font-black text-white flex items-center gap-2">
-          Suitance<span className="text-yellow-500">.</span>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", color: "#FFFFFF" }}>
+      <div style={{ padding: "24px" }}>
+        <Link href="/" style={{ fontSize: "24px", fontWeight: "900", color: "#FFFFFF", display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
+          Suitance<span style={{ color: "#C9A84C" }}>.</span>
         </Link>
       </div>
       
-      <nav className="flex-1 px-4 space-y-8 overflow-y-auto">
+      <nav style={{ flex: 1, padding: "0 16px", display: "flex", flexDirection: "column", gap: "32px", overflowY: "auto" }}>
         {navGroups.map((group) => (
-          <div key={group.title} className="space-y-2">
-            <div className="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+          <div key={group.title} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ padding: "0 12px", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255, 255, 255, 0.4)" }}>
               {group.title}
             </div>
-            <div className="space-y-1">
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -80,12 +78,19 @@ export function DashboardNav() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={clsx(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      isActive 
-                        ? "bg-yellow-500 text-slate-900" 
-                        : "text-slate-400 hover:text-white hover:bg-slate-800"
-                    )}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      textDecoration: "none",
+                      transition: "all 0.2s",
+                      backgroundColor: isActive ? "#C9A84C" : "transparent",
+                      color: isActive ? "#0A1628" : "rgba(255, 255, 255, 0.7)"
+                    }}
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
@@ -97,13 +102,13 @@ export function DashboardNav() {
         ))}
       </nav>
 
-      <div className="p-6 mt-auto border-t border-slate-800">
-        <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pro Status</span>
+      <div style={{ padding: "24px", marginTop: "auto", borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}>
+        <div style={{ padding: "16px", backgroundColor: "rgba(255, 255, 255, 0.05)", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.05)", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#C9A84C" }}></div>
+            <span style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255, 255, 255, 0.4)" }}>Pro Status</span>
           </div>
-          <p className="text-[10px] text-slate-500 leading-relaxed">
+          <p style={{ fontSize: "10px", color: "rgba(255, 255, 255, 0.3)", lineHeight: "1.6" }}>
             You have full access to global regulatory intelligence.
           </p>
         </div>
@@ -111,5 +116,3 @@ export function DashboardNav() {
     </div>
   );
 }
-
-
