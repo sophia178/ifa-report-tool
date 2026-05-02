@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FileText, Download, Zap, Clock, User, CheckCircle } from "lucide-react";
 
 import type { Report } from "@/types/report";
 
@@ -23,15 +24,6 @@ type Template = {
 };
 
 const today = new Date().toISOString().slice(0, 10);
-
-function getReportPreview(report: Report) {
-  const lines = report.content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => Boolean(line) && !/^SECTION\s+\d+\s*[-—:]/i.test(line));
-
-  return lines.slice(0, 2);
-}
 
 function renderReportLines(report: string) {
   return report
@@ -70,6 +62,13 @@ export function ReportStudio({ reports }: ReportStudioProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [latestReport, setLatestReport] = useState<string | null>(reports[0]?.content ?? null);
+  const [latestReportId, setLatestReportId] = useState<string | null>(
+    reports[0]?.id ?? null,
+  );
 
   useEffect(() => {
     async function fetchTemplates() {
@@ -79,20 +78,6 @@ export function ReportStudio({ reports }: ReportStudioProps) {
     }
     fetchTemplates();
   }, []);
-  const [error, setError] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [latestReport, setLatestReport] = useState<string | null>(reports[0]?.content ?? null);
-  const [latestReportId, setLatestReportId] = useState<string | null>(
-    reports[0]?.id ?? null,
-  );
-
-  const hasReports = reports.length > 0;
-  const headerText = useMemo(() => {
-    return sourceType === "audio"
-      ? "Upload meeting audio to transcribe, assess, and format the report."
-      : "Paste meeting notes and turn them into a structured suitability report.";
-  }, [sourceType]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -130,9 +115,8 @@ export function ReportStudio({ reports }: ReportStudioProps) {
       }
 
       setIsGeneratingReport(true);
-      setStatus(
-        "Generating your FCA suitability report — this takes 15–30 seconds",
-      );
+      setStatus("Generating your FCA suitability report...");
+      
       const controller = new AbortController();
       const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
       const payload = {
@@ -153,15 +137,14 @@ export function ReportStudio({ reports }: ReportStudioProps) {
         audioPath,
         templateContent: selectedTemplate?.content || "",
       };
+      
       const timeoutId = setTimeout(() => controller.abort(), 55000);
       let response: Response;
 
       try {
         response = await fetch("/api/generate-report", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
           signal: controller.signal,
         });
@@ -169,9 +152,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
         clearTimeout(timeoutId);
       }
 
-      const json = (await response.json()) as GenerateResponse & {
-        error?: string;
-      };
+      const json = (await response.json()) as GenerateResponse & { error?: string };
 
       if (!response.ok) {
         throw new Error(json.error || "Report generation failed.");
@@ -184,8 +165,7 @@ export function ReportStudio({ reports }: ReportStudioProps) {
       setAudioFile(null);
       router.refresh();
     } catch (caughtError) {
-      const message =
-        caughtError instanceof Error ? caughtError.message : "Unexpected error.";
+      const message = caughtError instanceof Error ? caughtError.message : "Unexpected error.";
       setError(message);
       setStatus("");
     } finally {
@@ -195,370 +175,137 @@ export function ReportStudio({ reports }: ReportStudioProps) {
   }
 
   return (
-    <div className="dashboard-studio">
-      <section className="studio-panel stack" id="new-report">
-        <div className="stack">
-          <div className="pill">New report</div>
-          <div>
-            <h2 className="section-title">Suitability report builder</h2>
-            <p className="muted">{headerText}</p>
-          </div>
+    <div className="studio-container">
+      {/* Left Column: Form */}
+      <section className="studio-panel stack">
+        <div className="stack" style={{ gap: "8px" }}>
+          <div className="pill" style={{ width: "fit-content" }}>Report Builder</div>
+          <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#0A1628" }}>Client Evidence</h2>
+          <p className="muted">Enter meeting details and client objectives below.</p>
         </div>
 
         <div className="studio-tabs">
           <button
             type="button"
-            className={sourceType === "notes" ? "btn studio-tab-active" : "btn-secondary studio-tab-idle"}
+            className={`studio-tab ${sourceType === "notes" ? "studio-tab-active" : "studio-tab-idle"}`}
             onClick={() => setSourceType("notes")}
           >
-            Paste meeting notes
+            Meeting Notes
           </button>
           <button
             type="button"
-            className={sourceType === "audio" ? "btn studio-tab-active" : "btn-secondary studio-tab-idle"}
+            className={`studio-tab ${sourceType === "audio" ? "studio-tab-active" : "studio-tab-idle"}`}
             onClick={() => setSourceType("audio")}
           >
-            Upload audio
+            Meeting Audio
           </button>
         </div>
 
-        {status ? <div className="alert alert-success">{status}</div> : null}
-        {isGeneratingReport ? (
-          <div className="spinner-panel">
-            <div className="spinner-ring" aria-hidden="true" />
-            <strong>Generating your report...</strong>
-          </div>
-        ) : null}
-
-        <form className="stack" onSubmit={handleSubmit}>
-          {error ? (
-            <div
-              role="alert"
-              style={{
-                color: "#b42318",
-                background: "#fef3f2",
-                border: "1px solid #fecdca",
-                borderRadius: 16,
-                padding: 16,
-              }}
-            >
-              <p style={{ margin: 0, fontWeight: 700 }}>Report generation failed</p>
-              <p style={{ margin: "8px 0 0", color: "#b42318" }}>{error}</p>
-            </div>
-          ) : null}
-
+        <form className="stack" onSubmit={handleSubmit} style={{ gap: "32px" }}>
           <div className="form-grid">
             <div className="field">
-              <label htmlFor="template">Starting template (optional)</label>
-              <select
-                className="input"
-                id="template"
-                value={selectedTemplateId}
-                onChange={(event) => setSelectedTemplateId(event.target.value)}
-              >
-                <option value="">Default Suitance Format</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
+              <label>Client Name</label>
+              <input className="input" value={clientName} onChange={(e) => setClientName(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>Client Email</label>
+              <input className="input" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>Meeting Date</label>
+              <input className="input" type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>Starting Template</label>
+              <select className="input" value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)}>
+                <option value="">Standard Format</option>
+                {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="clientName">Client name</label>
-              <input
-                className="input"
-                id="clientName"
-                value={clientName}
-                onChange={(event) => setClientName(event.target.value)}
-                required
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="clientEmail">Client email</label>
-              <input
-                className="input"
-                id="clientEmail"
-                type="email"
-                value={clientEmail}
-                onChange={(event) => setClientEmail(event.target.value)}
-                required
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="dateOfBirth">Date of birth</label>
-              <input
-                className="input"
-                id="dateOfBirth"
-                type="date"
-                value={dateOfBirth}
-                onChange={(event) => setDateOfBirth(event.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="meetingDate">Meeting date</label>
-              <input
-                className="input"
-                id="meetingDate"
-                type="date"
-                value={meetingDate}
-                onChange={(event) => setMeetingDate(event.target.value)}
-                required
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="adviserName">Adviser name</label>
-              <input
-                className="input"
-                id="adviserName"
-                value={adviserName}
-                onChange={(event) => setAdviserName(event.target.value)}
-                required
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="adviserFirm">Adviser firm</label>
-              <input
-                className="input"
-                id="adviserFirm"
-                value={adviserFirm}
-                onChange={(event) => setAdviserFirm(event.target.value)}
-                required
-              />
-            </div>
-
-            <div
-              className="form-grid-full"
-              style={{
-                borderTop: "1px solid rgba(15, 23, 42, 0.08)",
-                paddingTop: 20,
-                marginTop: 4,
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "0.95rem",
-                  fontWeight: 600,
-                }}
-              >
-                Investment Details (optional)
-              </h3>
-            </div>
-
-            <div className="field">
-              <label htmlFor="platformName">Platform name</label>
-              <input
-                className="input"
-                id="platformName"
-                value={platformName}
-                onChange={(event) => setPlatformName(event.target.value)}
-                placeholder="e.g. Transact, Nucleus, Quilter"
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="fundName">Fund name</label>
-              <input
-                className="input"
-                id="fundName"
-                value={fundName}
-                onChange={(event) => setFundName(event.target.value)}
-                placeholder="e.g. Vanguard LifeStrategy 60%"
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="fundSrriRiskRating">Fund SRRI rating</label>
-              <input
-                className="input"
-                id="fundSrriRiskRating"
-                type="number"
-                min={1}
-                max={7}
-                value={fundSrriRiskRating}
-                onChange={(event) => setFundSrriRiskRating(event.target.value)}
-                placeholder="Risk rating 1-7"
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="fundIsinNumber">Fund ISIN</label>
-              <input
-                className="input"
-                id="fundIsinNumber"
-                value={fundIsinNumber}
-                onChange={(event) => setFundIsinNumber(event.target.value)}
-                placeholder="e.g. GB00B3X7QG63"
-              />
             </div>
           </div>
 
-          <div className="field form-grid-full">
-            <label htmlFor="objectives">Client objectives</label>
-            <textarea
-              className="textarea"
-              id="objectives"
-              value={objectives}
-              onChange={(event) => setObjectives(event.target.value)}
-              placeholder="Retirement income planning, tax efficiency, medium-term growth..."
-              required
+          <div className="field">
+            <label>Investment Objectives</label>
+            <textarea 
+              className="textarea" 
+              value={objectives} 
+              onChange={(e) => setObjectives(e.target.value)} 
+              placeholder="e.g. Retirement planning, tax-efficient growth..." 
+              required 
             />
           </div>
 
           {sourceType === "notes" ? (
-            <div className="field form-grid-full">
-              <label htmlFor="meetingNotes">Meeting notes</label>
-              <textarea
-                className="textarea"
-                id="meetingNotes"
-                value={meetingNotes}
-                onChange={(event) => setMeetingNotes(event.target.value)}
-                placeholder="Paste the adviser meeting notes here..."
-                required={sourceType === "notes"}
+            <div className="field">
+              <label>Meeting Notes</label>
+              <textarea 
+                className="textarea" 
+                style={{ minHeight: "200px" }}
+                value={meetingNotes} 
+                onChange={(e) => setMeetingNotes(e.target.value)} 
+                placeholder="Paste your rough meeting notes here..." 
+                required 
               />
             </div>
           ) : (
-            <div className="field form-grid-full">
-              <label htmlFor="audio">Meeting audio</label>
-              <input
-                className="input"
-                id="audio"
-                type="file"
-                accept="audio/*"
-                onChange={(event) => setAudioFile(event.target.files?.[0] ?? null)}
-                required={sourceType === "audio"}
+            <div className="field">
+              <label>Audio File</label>
+              <input 
+                type="file" 
+                className="input" 
+                accept="audio/*" 
+                onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)} 
+                required 
               />
             </div>
           )}
 
-          <button
-            type="submit"
-            className="btn-dark"
-            disabled={isSubmitting}
-            aria-disabled={isSubmitting}
-            style={isSubmitting ? { opacity: 0.7, cursor: "not-allowed" } : undefined}
-          >
-            {isSubmitting ? "Generating..." : "Generate report"}
+          <button type="submit" className="btn-dark" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
+                <Zap size={18} className="animate-pulse" /> Generating Report...
+              </span>
+            ) : "Generate Report"}
           </button>
+
+          {error && (
+            <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#B91C1C", fontSize: "14px" }}>
+              <strong>Error:</strong> {error}
+            </div>
+          )}
+          {status && !error && (
+            <div style={{ padding: "16px", backgroundColor: "#F0FDF4", border: "1px solid #DCFCE7", borderRadius: "12px", color: "#15803D", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <CheckCircle size={16} /> {status}
+            </div>
+          )}
         </form>
       </section>
 
+      {/* Right Column: Preview */}
       <section className="stack">
-        <div className="studio-panel stack report-preview-card">
-          <div className="pill">Latest output</div>
-          {latestReport ? (
-            <>
-              <div className="report-toolbar">
-                <div>
-                  <h2 className="section-title">Generated report preview</h2>
-                  <p className="muted" style={{ margin: "6px 0 0" }}>
-                    Review the output before exporting the final document.
-                  </p>
-                </div>
-                {latestReportId ? (
-                  <a
-                    href={`/api/download-report?id=${latestReportId}`}
-                    className="btn-dark download-button"
-                  >
-                    Download Word document
-                  </a>
-                ) : null}
-              </div>
-
-              <div className="stack">
-                <div className="report-surface">
-                  <div className="report-prose">{renderReportLines(latestReport)}</div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <p className="muted">
-              Generate a report to preview the formatted FCA suitability output here.
-            </p>
-          )}
-        </div>
-
-        <div className="studio-panel stack">
-          <div>
-            <h2 className="section-title">Past reports</h2>
-            <p className="muted">Previously generated reports for this adviser account.</p>
+        <div className="studio-panel stack" style={{ minHeight: "800px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="stack" style={{ gap: "4px" }}>
+              <div className="pill" style={{ width: "fit-content" }}>Output</div>
+              <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#0A1628" }}>Report Preview</h2>
+            </div>
+            {latestReportId && (
+              <a href={`/api/download-report?id=${latestReportId}`} className="btn-dark" style={{ padding: "10px 20px", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Download size={16} /> Download Word
+              </a>
+            )}
           </div>
 
-          {hasReports ? (
-            <div className="history-list">
-              {reports.map((report) => (
-                <div className="report-item" key={report.id}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: 16,
-                      marginBottom: 12,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div>
-                      <h3 style={{ marginBottom: 6 }}>{report.client_name}</h3>
-                      <div className="meta">
-                        <span>
-                          Generated{" "}
-                          {format(new Date(report.created_at), "dd MMM yyyy, HH:mm")}
-                        </span>
-                      </div>
-                    </div>
-                    <a
-                      href={`/api/download-report?id=${report.id}`}
-                      className="btn-dark"
-                    >
-                      Download Word Doc
-                    </a>
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 6,
-                      marginBottom: 12,
-                    }}
-                  >
-                    {getReportPreview(report).map((line, index) => (
-                      <p
-                        key={`${report.id}-${index}`}
-                        className="muted"
-                        style={{
-                          margin: 0,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-                  <div className="actions" style={{ marginTop: 14 }}>
-                    <a
-                      href={`/api/download-report?id=${report.id}`}
-                      className="btn-secondary"
-                    >
-                      Download Word Doc
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="muted">No reports yet. Create the first one from the form.</p>
-          )}
+          <div className="report-surface" style={{ marginTop: "24px" }}>
+            {latestReport ? (
+              <div className="report-prose">{renderReportLines(latestReport)}</div>
+            ) : (
+              <div style={{ height: "600px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", color: "#8A94A6", gap: "16px" }}>
+                <FileText size={48} strokeWidth={1} />
+                <p>Your generated report will appear here.<br />Fill in the details on the left to begin.</p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </div>
