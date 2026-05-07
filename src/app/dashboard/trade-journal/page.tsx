@@ -41,7 +41,6 @@ export default function TradeJournalPage() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -52,8 +51,6 @@ export default function TradeJournalPage() {
         router.push("/login");
         return;
       }
-
-      setUserEmail(user.email);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -66,7 +63,6 @@ export default function TradeJournalPage() {
         return;
       }
 
-      // Check if user has Pro plan
       const planRes = await fetch("/api/user-plan");
       const { plan } = await planRes.json();
       
@@ -93,8 +89,8 @@ export default function TradeJournalPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -129,7 +125,7 @@ export default function TradeJournalPage() {
       await fetchTrades();
       setActiveTab("history");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -151,7 +147,7 @@ export default function TradeJournalPage() {
 
       setAnalysis(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsAnalysing(false);
     }
@@ -171,259 +167,314 @@ export default function TradeJournalPage() {
   }
 
   return (
-    <div className="stack gap-6">
-      <div className="flex justify-between items-center">
-        <div className="stack gap-2">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <TrendingUp className="text-[#c1a362]" />
-            AI Trade Journal
-          </h2>
-          <p className="text-gray-400">
-            Log your trades and get AI-powered performance analysis.
-          </p>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          AI Trade Journal
+        </h1>
+        <p style={{ color: "#64748B", margin: 0 }}>
+          Log your trades and get AI-powered performance analysis.
+        </p>
       </div>
 
-            <div className="studio-tabs">
+      <div style={{ display: "flex", backgroundColor: "#F1F5F9", padding: "4px", borderRadius: "10px", width: "fit-content" }}>
+        <button
+          onClick={() => setActiveTab("log")}
+          style={{
+            padding: "8px 20px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            fontWeight: "600",
+            cursor: "pointer",
+            border: "none",
+            backgroundColor: activeTab === "log" ? "white" : "transparent",
+            color: activeTab === "log" ? "#0A1628" : "#64748B",
+            boxShadow: activeTab === "log" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+            transition: "all 0.2s ease"
+          }}
+        >
+          <Plus size={16} style={{ display: "inline", marginRight: "8px", verticalAlign: "middle" }} />
+          Log Trade
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          style={{
+            padding: "8px 20px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            fontWeight: "600",
+            cursor: "pointer",
+            border: "none",
+            backgroundColor: activeTab === "history" ? "white" : "transparent",
+            color: activeTab === "history" ? "#0A1628" : "#64748B",
+            boxShadow: activeTab === "history" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+            transition: "all 0.2s ease"
+          }}
+        >
+          <BarChart2 size={16} style={{ display: "inline", marginRight: "8px", verticalAlign: "middle" }} />
+          History & Analysis
+        </button>
+      </div>
+
+      {activeTab === "log" ? (
+        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+          <form onSubmit={handleLogTrade} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "24px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#475569" }}>Asset Name</label>
+                <input
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", color: "#1E293B" }}
+                  placeholder="e.g. AAPL, BTC/USD"
+                  value={assetName}
+                  onChange={(e) => setAssetName(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#475569" }}>Entry Price</label>
+                <input
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", color: "#1E293B" }}
+                  type="number"
+                  step="0.00000001"
+                  value={entryPrice}
+                  onChange={(e) => setEntryPrice(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#475569" }}>Exit Price</label>
+                <input
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", color: "#1E293B" }}
+                  type="number"
+                  step="0.00000001"
+                  value={exitPrice}
+                  onChange={(e) => setExitPrice(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#475569" }}>Position Size</label>
+                <input
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", color: "#1E293B" }}
+                  type="number"
+                  step="0.01"
+                  value={positionSize}
+                  onChange={(e) => setPositionSize(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#475569" }}>Trade Date</label>
+                <input
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", color: "#1E293B" }}
+                  type="date"
+                  value={tradeDate}
+                  onChange={(e) => setTradeDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "600", color: "#475569" }}>Trade Rationale</label>
+              <textarea
+                style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", minHeight: "120px", color: "#1E293B", fontFamily: "inherit" }}
+                placeholder="Why did you take this trade? Strategy, setup, emotions..."
+                value={rationale}
+                onChange={(e) => setRationale(e.target.value)}
+                required
+              />
+            </div>
+
+            {error && (
+              <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                backgroundColor: "#0A1628",
+                color: "white",
+                padding: "14px 24px",
+                borderRadius: "8px",
+                fontSize: "15px",
+                fontWeight: "600",
+                border: "none",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                opacity: isSubmitting ? 0.7 : 1
+              }}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  Logging Trade...
+                </>
+              ) : (
+                "Log Trade to Journal"
+              )}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+          <div style={{ backgroundColor: "white", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+                <thead style={{ backgroundColor: "#F8FAFC", color: "#64748B" }}>
+                  <tr>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #E5E7EB" }}>Date</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #E5E7EB" }}>Asset</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #E5E7EB" }}>Size</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #E5E7EB" }}>Entry</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #E5E7EB" }}>Exit</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #E5E7EB" }}>P/L</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid #E5E7EB", textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: "14px" }}>
+                  {trades.length > 0 ? (
+                    trades.map((trade, idx) => {
+                      const pl = (trade.exit_price - trade.entry_price) * trade.position_size;
+                      const isWin = pl > 0;
+                      return (
+                        <tr key={trade.id} style={{ backgroundColor: idx % 2 === 0 ? "transparent" : "#FAFBFC", borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "16px 24px", color: "#64748B" }}>{format(new Date(trade.trade_date), "dd MMM yy")}</td>
+                          <td style={{ padding: "16px 24px", fontWeight: "700", color: "#0A1628" }}>{trade.asset_name}</td>
+                          <td style={{ padding: "16px 24px", color: "#334155" }}>{trade.position_size}</td>
+                          <td style={{ padding: "16px 24px", color: "#334155" }}>{trade.entry_price}</td>
+                          <td style={{ padding: "16px 24px", color: "#334155" }}>{trade.exit_price}</td>
+                          <td style={{ padding: "16px 24px", fontWeight: "800", color: isWin ? "#059669" : "#DC2626" }}>
+                            {isWin ? "+" : ""}{pl.toFixed(2)}
+                          </td>
+                          <td style={{ padding: "16px 24px", textAlign: "right" }}>
+                            <button 
+                              onClick={() => handleDeleteTrade(trade.id)}
+                              style={{ color: "#94A3B8", cursor: "pointer", background: "none", border: "none", padding: "4px" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = "#DC2626")}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = "#94A3B8")}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={7} style={{ padding: "48px", textAlign: "center", color: "#94A3B8", fontStyle: "italic" }}>No trades logged yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Performance Analysis</h3>
               <button
-                className={`btn ${activeTab === "log" ? "studio-tab-active" : "btn-secondary studio-tab-idle"}`}
-                onClick={() => setActiveTab("log")}
+                disabled={isAnalysing || trades.length === 0}
+                onClick={handleAnalyse}
+                style={{
+                  backgroundColor: "#0A1628",
+                  color: "white",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  border: "none",
+                  cursor: (isAnalysing || trades.length === 0) ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  opacity: (isAnalysing || trades.length === 0) ? 0.7 : 1
+                }}
               >
-                <Plus size={18} className="mr-2 inline" />
-                Log Trade
-              </button>
-              <button
-                className={`btn ${activeTab === "history" ? "studio-tab-active" : "btn-secondary studio-tab-idle"}`}
-                onClick={() => setActiveTab("history")}
-              >
-                <BarChart2 size={18} className="mr-2 inline" />
-                History & Analysis
+                {isAnalysing ? (
+                  <>
+                    <Loader2 className="animate-spin" size={14} />
+                    Analysing...
+                  </>
+                ) : (
+                  <>
+                    <BarChart2 size={14} />
+                    Analyse Performance
+                  </>
+                )}
               </button>
             </div>
 
-            {activeTab === "log" ? (
-              <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)] fade-in">
-                <form onSubmit={handleLogTrade} className="p-8 stack gap-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Asset Name</label>
-                      <input
-                        className="input"
-                        placeholder="e.g. AAPL, BTC/USD"
-                        value={assetName}
-                        onChange={(e) => setAssetName(e.target.value)}
-                        required
-                      />
+            {analysis && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "24px" }}>
+                <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "24px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>Win Rate</span>
+                      <span style={{ fontSize: "24px", fontWeight: "800", color: "#059669" }}>{analysis.winRate}</span>
                     </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Entry Price</label>
-                      <input
-                        className="input"
-                        type="number"
-                        step="0.00000001"
-                        value={entryPrice}
-                        onChange={(e) => setEntryPrice(e.target.value)}
-                        required
-                      />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "right" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg P/L</span>
+                      <span style={{ fontSize: "24px", fontWeight: "800", color: parseFloat(analysis.avgProfitLoss) >= 0 ? "#059669" : "#DC2626" }}>
+                        {analysis.avgProfitLoss}
+                      </span>
                     </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Exit Price</label>
-                      <input
-                        className="input"
-                        type="number"
-                        step="0.00000001"
-                        value={exitPrice}
-                        onChange={(e) => setExitPrice(e.target.value)}
-                        required
-                      />
+                  </div>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "24px", borderTop: "1px solid #F1F5F9" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase" }}>Best Assets</span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {analysis.bestAssets.map((asset, i) => (
+                          <span key={i} style={{ padding: "4px 10px", borderRadius: "6px", backgroundColor: "#ECFDF5", color: "#059669", fontSize: "12px", fontWeight: "700", border: "1px solid #10B981" }}>{asset}</span>
+                        ))}
+                      </div>
                     </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Position Size</label>
-                      <input
-                        className="input"
-                        type="number"
-                        step="0.01"
-                        value={positionSize}
-                        onChange={(e) => setPositionSize(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Trade Date</label>
-                      <input
-                        className="input"
-                        type="date"
-                        value={tradeDate}
-                        onChange={(e) => setTradeDate(e.target.value)}
-                        required
-                      />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase" }}>Worst Assets</span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {analysis.worstAssets.map((asset, i) => (
+                          <span key={i} style={{ padding: "4px 10px", borderRadius: "6px", backgroundColor: "#FEF2F2", color: "#DC2626", fontSize: "12px", fontWeight: "700", border: "1px solid #EF4444" }}>{asset}</span>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="field">
-                    <label className="text-sm font-medium text-gray-400">Trade Rationale</label>
-                    <textarea
-                      className="textarea min-h-[120px]"
-                      placeholder="Why did you take this trade? Strategy, setup, emotions..."
-                      value={rationale}
-                      onChange={(e) => setRationale(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {error && <div className="alert alert-error">{error}</div>}
-
-                  <button
-                    type="submit"
-                    className="btn w-full"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="animate-spin" size={18} />
-                        Logging Trade...
-                      </>
-                    ) : (
-                      "Log Trade to Journal"
-                    )}
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <div className="stack gap-8 fade-in">
-                <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
-                  <div className="p-0 overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-[rgba(193,163,98,0.05)] text-[#c1a362] text-xs uppercase tracking-wider">
-                        <tr>
-                          <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Date</th>
-                          <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Asset</th>
-                          <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Size</th>
-                          <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Entry</th>
-                          <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Exit</th>
-                          <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">P/L</th>
-                          <th className="p-4 border-b border-[rgba(193,163,98,0.1)] text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-sm">
-                        {trades.length > 0 ? (
-                          trades.map((trade) => {
-                            const pl = (trade.exit_price - trade.entry_price) * trade.position_size;
-                            const isWin = pl > 0;
-                            return (
-                              <tr key={trade.id} className="border-b border-[rgba(193,163,98,0.05)] hover:bg-[rgba(193,163,98,0.02)]">
-                                <td className="p-4 text-gray-400">{format(new Date(trade.trade_date), "dd MMM yy")}</td>
-                                <td className="p-4 font-bold text-gray-200">{trade.asset_name}</td>
-                                <td className="p-4 text-gray-300">{trade.position_size}</td>
-                                <td className="p-4 text-gray-300">{trade.entry_price}</td>
-                                <td className="p-4 text-gray-300">{trade.exit_price}</td>
-                                <td className={`p-4 font-bold ${isWin ? "text-green-500" : "text-red-500"}`}>
-                                  {isWin ? "+" : ""}{pl.toFixed(2)}
-                                </td>
-                                <td className="p-4 text-right">
-                                  <button 
-                                    onClick={() => handleDeleteTrade(trade.id)}
-                                    className="text-gray-500 hover:text-red-500 transition-colors"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan={7} className="p-8 text-center text-gray-500 italic">No trades logged yet.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                  <div style={{ paddingTop: "24px", borderTop: "1px solid #F1F5F9", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#D97706", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <AlertTriangle size={14} />
+                      Loss Patterns Identified
+                    </span>
+                    <p style={{ fontSize: "14px", color: "#475569", fontStyle: "italic", lineHeight: "1.6", margin: 0 }}>&ldquo;{analysis.patterns}&rdquo;</p>
                   </div>
                 </div>
 
-                <div className="stack gap-6">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">Performance Analysis</h3>
-                    <button
-                      className="btn-light btn-sm flex items-center gap-2"
-                      onClick={handleAnalyse}
-                      disabled={isAnalysing || trades.length === 0}
-                    >
-                      {isAnalysing ? (
-                        <>
-                          <Loader2 className="animate-spin" size={16} />
-                          Analysing...
-                        </>
-                      ) : (
-                        <>
-                          <BarChart2 size={16} />
-                          Analyse Performance
-                        </>
-                      )}
-                    </button>
+                <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: "8px", margin: 0 }}>
+                    <Star size={16} color="#C9A84C" />
+                    Growth Recommendations
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {analysis.recommendations.map((rec, i) => (
+                      <div key={i} style={{ display: "flex", gap: "16px", padding: "16px", backgroundColor: "#F8FAFC", borderRadius: "10px", border: "1px solid #E5E7EB" }}>
+                        <span style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628" }}>{i + 1}.</span>
+                        <p style={{ fontSize: "14px", color: "#334155", lineHeight: "1.5", margin: 0 }}>{rec}</p>
+                      </div>
+                    ))}
                   </div>
-
-                  {analysis && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in">
-                      <div className="card border border-[rgba(193,163,98,0.2)] p-6 stack gap-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="stack gap-1">
-                            <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Win Rate</span>
-                            <span className="text-2xl font-bold text-green-500">{analysis.winRate}</span>
-                          </div>
-                          <div className="stack gap-1 text-right">
-                            <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Avg P/L</span>
-                            <span className={`text-2xl font-bold ${parseFloat(analysis.avgProfitLoss) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                              {analysis.avgProfitLoss}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[rgba(193,163,98,0.1)]">
-                          <div className="stack gap-1">
-                            <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Best Assets</span>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {analysis.bestAssets.map((asset, i) => (
-                                <span key={i} className="px-2 py-1 rounded bg-green-500/10 text-green-500 text-xs font-bold border border-green-500/20">{asset}</span>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="stack gap-1 text-right">
-                            <span className="text-xs text-gray-400 uppercase tracking-wider font-bold">Worst Assets</span>
-                            <div className="flex flex-wrap gap-2 mt-1 justify-end">
-                              {analysis.worstAssets.map((asset, i) => (
-                                <span key={i} className="px-2 py-1 rounded bg-red-500/10 text-red-500 text-xs font-bold border border-red-500/20">{asset}</span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="pt-4 border-t border-[rgba(193,163,98,0.1)] stack gap-2">
-                          <span className="text-xs text-gray-400 uppercase tracking-wider font-bold flex items-center gap-1">
-                            <AlertTriangle size={12} className="text-amber-500" />
-                            Loss Patterns Identified
-                          </span>
-                          <p className="text-sm text-gray-300 leading-relaxed italic">&ldquo;{analysis.patterns}&rdquo;</p>
-                        </div>
-                      </div>
-
-                      <div className="card border border-[rgba(193,163,98,0.2)] p-6 stack gap-4">
-                        <h4 className="text-sm font-bold text-[#c1a362] uppercase tracking-wider flex items-center gap-2">
-                          <Star size={16} />
-                          Growth Recommendations
-                        </h4>
-                        <ul className="stack gap-4">
-                          {analysis.recommendations.map((rec, i) => (
-                            <li key={i} className="flex gap-3 text-sm text-gray-200 bg-[rgba(193,163,98,0.05)] p-3 rounded-lg border border-[rgba(193,163,98,0.1)]">
-                              <span className="text-[#c1a362] font-bold shrink-0">{i + 1}.</span>
-                              {rec}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -23,7 +23,6 @@ export default function MarketsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [userEmail, setUserEmail] = useState<string | undefined>();
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchMarketData = useCallback(async () => {
@@ -35,7 +34,7 @@ export default function MarketsPage() {
       setData(result);
       setLastUpdated(new Date());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsRefreshing(false);
     }
@@ -51,8 +50,6 @@ export default function MarketsPage() {
         return;
       }
 
-      setUserEmail(user.email);
-
       const { data: profile } = await supabase
         .from("profiles")
         .select("subscribed")
@@ -64,7 +61,6 @@ export default function MarketsPage() {
         return;
       }
 
-      // Check if user has Pro plan
       const planRes = await fetch("/api/user-plan");
       const { plan } = await planRes.json();
       
@@ -87,8 +83,8 @@ export default function MarketsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -96,102 +92,114 @@ export default function MarketsPage() {
   const renderCard = (item: MarketItem) => {
     const isPositive = !item.changePercent.startsWith("-") && item.changePercent !== "0.00%";
     
-    // Simple SVG sparkline generation
-    const points = Array.from({ length: 10 }, (_, i) => ({
-      x: i * 20,
-      y: 20 + Math.random() * 20 * (isPositive ? -1 : 1) + (isPositive ? 10 : 0)
-    }));
-    const d = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
-
     return (
-      <div key={item.symbol} className="market-card stack gap-4">
-        <div className="flex justify-between items-start">
-          <div className="stack gap-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.symbol}</span>
-            <span className="text-lg font-bold text-[#0a1628]">
-              {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-            </span>
-          </div>
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${isPositive ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
-            {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-            {item.changePercent}
-          </div>
+      <div key={item.symbol} style={{ 
+        backgroundColor: "white", 
+        borderRadius: "8px", 
+        padding: "20px", 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        border: "1px solid #F0F2F5"
+      }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            {item.symbol}
+          </span>
+          <span style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628" }}>
+            {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+          </span>
         </div>
-        
-        <svg className="sparkline" viewBox="0 0 180 40" preserveAspectRatio="none">
-          <path
-            d={d}
-            fill="none"
-            stroke={isPositive ? "#10b981" : "#ef4444"}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: "4px", 
+          padding: "6px 12px", 
+          borderRadius: "6px", 
+          fontSize: "13px", 
+          fontWeight: "700",
+          backgroundColor: isPositive ? "#ECFDF5" : "#FEF2F2",
+          color: isPositive ? "#059669" : "#DC2626"
+        }}>
+          {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {item.changePercent}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="stack gap-10">
-      <div className="flex justify-between items-end">
-        <div className="stack gap-2">
-          <h2 className="display-medium text-[#0a1628]">Market Intelligence</h2>
-          <p className="text-gray-500 body-large">
+    <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+            Market Intelligence
+          </h1>
+          <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
             Real-time global market data terminal. Refreshes every 60s.
           </p>
         </div>
-        <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
-          <div className="stack gap-0 text-right pr-4 border-r border-gray-100">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Last Update</span>
-            <span className="text-xs font-bold text-[#0a1628]">{lastUpdated?.toLocaleTimeString()}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", backgroundColor: "white", padding: "12px 20px", borderRadius: "12px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <div style={{ display: "flex", flexDirection: "column", textAlign: "right", paddingRight: "16px", borderRight: "1px solid #E5E7EB" }}>
+            <span style={{ fontSize: "10px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase" }}>Last Update</span>
+            <span style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>{lastUpdated?.toLocaleTimeString()}</span>
           </div>
           <button 
             onClick={fetchMarketData} 
             disabled={isRefreshing}
-            className="w-10 h-10 flex items-center justify-center text-[#c9a84c] hover:bg-[#F4F6F9] rounded-lg transition-colors"
+            style={{ 
+              backgroundColor: "transparent", 
+              border: "none", 
+              cursor: isRefreshing ? "not-allowed" : "pointer",
+              color: "#0A1628",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "4px"
+            }}
           >
-            <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+            <RefreshCw size={20} style={{ animation: isRefreshing ? "spin 1s linear infinite" : "none" }} />
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium flex items-center gap-3">
+        <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
           <ShieldAlert size={18} />
           {error}
         </div>
       )}
 
       {data && (
-        <div className="stack gap-12 fade-in">
-          <section className="stack gap-6">
-            <div className="flex items-center gap-4">
-              <h3 className="title-large text-[#0a1628]">Global Indices</h3>
-              <div className="h-px flex-1 bg-gray-100"></div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "48px" }}>
+          <section style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Global Indices</h2>
+              <div style={{ height: "1px", flex: 1, backgroundColor: "#E5E7EB" }}></div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" }}>
               {data.indices.map(renderCard)}
             </div>
           </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <section className="stack gap-6">
-              <div className="flex items-center gap-4">
-                <h3 className="title-large text-[#0a1628]">Foreign Exchange</h3>
-                <div className="h-px flex-1 bg-gray-100"></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", flexWrap: "wrap" }}>
+            <section style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Foreign Exchange</h2>
+                <div style={{ height: "1px", flex: 1, backgroundColor: "#E5E7EB" }}></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {data.fx.map(renderCard)}
               </div>
             </section>
 
-            <section className="stack gap-6">
-              <div className="flex items-center gap-4">
-                <h3 className="title-large text-[#0a1628]">Commodities</h3>
-                <div className="h-px flex-1 bg-gray-100"></div>
+            <section style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Commodities</h2>
+                <div style={{ height: "1px", flex: 1, backgroundColor: "#E5E7EB" }}></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {data.commodities.map(renderCard)}
               </div>
             </section>
@@ -200,15 +208,21 @@ export default function MarketsPage() {
       )}
 
       {!data && !error && (
-        <div className="flex flex-col items-center justify-center py-32 gap-6">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-[#F4F6F9] border-t-[#c9a84c] animate-spin"></div>
-            <TrendingUp className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#c9a84c]" size={24} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 0", gap: "24px" }}>
+          <div style={{ position: "relative" }}>
+            <div style={{ width: "64px", height: "64px", borderRadius: "50%", border: "4px solid #F1F5F9", borderTopColor: "#0A1628", animation: "spin 1s linear infinite" }}></div>
+            <TrendingUp style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: "#0A1628" }} size={24} />
           </div>
-          <p className="text-gray-400 font-medium">Connecting to global data streams...</p>
+          <p style={{ color: "#64748B", fontWeight: "600" }}>Connecting to global data streams...</p>
         </div>
       )}
+
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
-

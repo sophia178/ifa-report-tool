@@ -24,7 +24,6 @@ export default function CompliancePage() {
   const [result, setResult] = useState<ComplianceResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -35,8 +34,6 @@ export default function CompliancePage() {
         router.push("/login");
         return;
       }
-
-      setUserEmail(user.email);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -49,7 +46,6 @@ export default function CompliancePage() {
         return;
       }
 
-      // Check if user has at least Plus plan
       const planRes = await fetch("/api/user-plan");
       const { plan } = await planRes.json();
       
@@ -65,8 +61,8 @@ export default function CompliancePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -88,115 +84,152 @@ export default function CompliancePage() {
 
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsChecking(false);
     }
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 50) return "text-amber-500";
-    return "text-red-500";
+    if (score >= 80) return "#059669"; // Emerald 600
+    if (score >= 50) return "#D97706"; // Amber 600
+    return "#DC2626"; // Red 600
   };
 
-  const getRecommendationColor = (rec: string) => {
-    return rec === "Pass" ? "bg-green-500/10 text-green-500 border-green-500/20" : "bg-red-500/10 text-red-500 border-red-500/20";
+  const getRecommendationStyles = (rec: string) => {
+    return rec === "Pass" 
+      ? { backgroundColor: "#ECFDF5", color: "#059669", border: "1px solid #10B981" }
+      : { backgroundColor: "#FEF2F2", color: "#DC2626", border: "1px solid #EF4444" };
   };
 
   return (
-    <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
-            <div className="p-8 stack gap-6">
-              <div className="stack gap-2">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Shield className="text-[#c1a362]" />
-                  Compliance Checker
-                </h2>
-                <p className="text-gray-400">
-                  Analyse advice text against FCA Consumer Duty and COBS 9 rules.
-                </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          Compliance Checker
+        </h1>
+        <p style={{ color: "#64748B", margin: 0 }}>
+          Analyse advice text against FCA Consumer Duty and COBS 9 rules.
+        </p>
+      </div>
+
+      <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "24px" }}>
+        <textarea
+          style={{
+            border: "1px solid #E5E7EB",
+            borderRadius: "8px",
+            padding: "16px",
+            fontSize: "15px",
+            width: "100%",
+            minHeight: "250px",
+            resize: "vertical",
+            fontFamily: "inherit",
+            color: "#1E293B",
+            backgroundColor: "#F8FAFC"
+          }}
+          placeholder="Paste advice text, report section, or client communication here..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+
+        {error && (
+          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          disabled={isChecking || !text.trim()}
+          onClick={handleCheck}
+          style={{
+            backgroundColor: "#0A1628",
+            color: "white",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            fontSize: "15px",
+            fontWeight: "600",
+            border: "none",
+            cursor: (isChecking || !text.trim()) ? "not-allowed" : "pointer",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            opacity: (isChecking || !text.trim()) ? 0.7 : 1
+          }}
+        >
+          {isChecking ? (
+            <>
+              <Loader2 className="animate-spin" size={18} />
+              Analysing Compliance...
+            </>
+          ) : (
+            "Check Compliance"
+          )}
+        </button>
+
+        {result && (
+          <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "32px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+              <div style={{ padding: "32px", borderRadius: "12px", backgroundColor: "#F8FAFC", border: "1px solid #E5E7EB", textAlign: "center" }}>
+                <h3 style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", marginBottom: "8px" }}>Compliance Score</h3>
+                <div style={{ fontSize: "48px", fontWeight: "900", color: getScoreColor(result.score) }}>
+                  {result.score}/100
+                </div>
               </div>
-
-              <div className="stack gap-4">
-                <textarea
-                  className="input min-h-[250px] resize-y p-4"
-                  placeholder="Paste advice text, report section, or client communication here..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                />
-
-                {error && <div className="alert alert-error">{error}</div>}
-
-                <button
-                  className="btn w-full"
-                  disabled={isChecking || !text.trim()}
-                  onClick={handleCheck}
-                >
-                  {isChecking ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Analysing Compliance...
-                    </>
-                  ) : (
-                    "Check Compliance"
-                  )}
-                </button>
+              <div style={{ 
+                padding: "32px", 
+                borderRadius: "12px", 
+                display: "flex", 
+                flexDirection: "column", 
+                alignItems: "center", 
+                justifyContent: "center",
+                ...getRecommendationStyles(result.recommendation)
+              }}>
+                <h3 style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "inherit", marginBottom: "8px" }}>Recommendation</h3>
+                <div style={{ fontSize: "32px", fontWeight: "800", display: "flex", alignItems: "center", gap: "12px" }}>
+                  {result.recommendation === "Pass" ? <CheckCircle size={32} /> : <XCircle size={32} />}
+                  {result.recommendation}
+                </div>
               </div>
+            </div>
 
-              {result && (
-                <div className="mt-8 stack gap-8 fade-in">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 rounded-xl bg-[rgba(193,163,98,0.05)] border border-[rgba(193,163,98,0.2)] text-center">
-                      <h3 className="text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">Compliance Score</h3>
-                      <div className={`text-5xl font-bold ${getScoreColor(result.score)}`}>
-                        {result.score}/100
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", display: "flex", alignItems: "center", gap: "12px", margin: 0 }}>
+                <AlertCircle size={20} color="#0A1628" />
+                Identified Issues & Fixes
+              </h3>
+              
+              {result.issues.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {result.issues.map((item, i) => (
+                    <div key={i} style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
+                          <span style={{ fontSize: "11px", fontWeight: "800", color: "#DC2626", textTransform: "uppercase" }}>Issue</span>
+                          <p style={{ color: "#1E293B", fontWeight: "600", fontSize: "15px", margin: 0 }}>{item.issue}</p>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "right" }}>
+                          <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase" }}>Relevant Rule</span>
+                          <p style={{ fontSize: "13px", fontFamily: "monospace", color: "#0A1628", backgroundColor: "#F1F5F9", padding: "4px 8px", borderRadius: "4px", margin: 0 }}>{item.rule}</p>
+                        </div>
+                      </div>
+                      <div style={{ paddingTop: "16px", borderTop: "1px solid #F1F5F9" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#059669", textTransform: "uppercase" }}>Suggested Fix</span>
+                        <p style={{ color: "#475569", fontSize: "14px", marginTop: "4px", fontStyle: "italic", margin: 0 }}>&ldquo;{item.fix}&rdquo;</p>
                       </div>
                     </div>
-                    <div className={`p-6 rounded-xl border flex flex-col items-center justify-center ${getRecommendationColor(result.recommendation)}`}>
-                      <h3 className="text-sm font-medium mb-2 uppercase tracking-wider">Recommendation</h3>
-                      <div className="text-3xl font-bold flex items-center gap-2">
-                        {result.recommendation === "Pass" ? <CheckCircle /> : <XCircle />}
-                        {result.recommendation}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="stack gap-6">
-                    <h3 className="text-xl font-bold flex items-center gap-2">
-                      <AlertCircle className="text-[#c1a362]" />
-                      Identified Issues & Fixes
-                    </h3>
-                    
-                    {result.issues.length > 0 ? (
-                      <div className="stack gap-4">
-                        {result.issues.map((item, i) => (
-                          <div key={i} className="p-6 rounded-xl border border-[rgba(193,163,98,0.1)] bg-[rgba(15,23,40,0.3)] stack gap-4">
-                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                              <div className="stack gap-1">
-                                <span className="text-xs font-bold text-red-400 uppercase">Issue</span>
-                                <p className="text-gray-200">{item.issue}</p>
-                              </div>
-                              <div className="stack gap-1 md:text-right shrink-0">
-                                <span className="text-xs font-bold text-[#c1a362] uppercase">Relevant Rule</span>
-                                <p className="text-sm font-mono text-[#c1a362]">{item.rule}</p>
-                              </div>
-                            </div>
-                            <div className="pt-4 border-t border-[rgba(193,163,98,0.1)]">
-                              <span className="text-xs font-bold text-green-400 uppercase">Suggested Fix</span>
-                              <p className="text-sm text-gray-300 mt-1 italic">&ldquo;{item.fix}&rdquo;</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-12 text-center border border-dashed border-[rgba(193,163,98,0.2)] rounded-xl">
-                        <p className="text-gray-400">No major compliance issues identified.</p>
-                      </div>
-                    )}
-                  </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: "48px", textAlign: "center", border: "2px dashed #E5E7EB", borderRadius: "12px" }}>
+                  <p style={{ color: "#94A3B8", margin: 0 }}>No major compliance issues identified.</p>
                 </div>
               )}
             </div>
           </div>
+        )}
+      </div>
+    </div>
   );
 }

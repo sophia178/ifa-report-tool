@@ -1,12 +1,6 @@
 import Link from "next/link";
-import { TopNav } from "@/components/top-nav";
 import { checkSubscription } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase/server";
-import { 
-  ArrowRight, CheckCircle2, FileText, 
-  Zap, ShieldCheck, Download, 
-  CheckCircle, Users, Layout, Shield
-} from "lucide-react";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -17,110 +11,91 @@ export default async function Home() {
   const startHref = user ? (isSubscribed ? "/dashboard" : "/pricing") : "/signup";
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      {/* Top Nav handled by component but ensuring it fits the minimal theme */}
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px" }}>
-        <TopNav email={user?.email} />
-      </div>
+    <main style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif", margin: 0, padding: 0 }}>
+      {/* Navigation Bar */}
+      <nav style={{ width: "100%", backgroundColor: "#FFFFFF", borderBottom: "1px solid #E5E7EB", padding: "0 48px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between", boxSizing: "border-box", position: "fixed", top: 0, left: 0, zIndex: 1000 }}>
+        <div style={{ fontSize: "20px", fontWeight: "bold", color: "#0A1628" }}>Suitance</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+          <Link href="/login" style={{ textDecoration: "none", color: "#6B7280", fontSize: "14px", fontWeight: "500" }}>Log in</Link>
+          <Link href={startHref} style={{ textDecoration: "none", backgroundColor: "#0A1628", color: "#FFFFFF", padding: "12px 24px", borderRadius: "8px", fontSize: "14px", fontWeight: "600" }}>Start now</Link>
+        </div>
+      </nav>
 
       {/* Hero Section */}
-      <section style={{ textAlign: "center", paddingTop: "80px", paddingBottom: "120px" }}>
-        <div style={{ maxWidth: "800px", margin: "0 auto", padding: "0 24px" }}>
-          <h1 style={{ fontSize: "72px", fontWeight: "800", color: "#0A1628", marginBottom: "24px", lineHeight: "1.1", letterSpacing: "-0.04em" }}>
-            Suitability reports.<br />Written in seconds.
-          </h1>
-          <p style={{ fontSize: "22px", color: "#5F6877", marginBottom: "48px", lineHeight: "1.5", maxWidth: "640px", margin: "0 auto 48px" }}>
-            Suitance turns your client meeting notes into complete FCA-compliant suitability reports. Reviewed by you. Sent with confidence.
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-            <Link href={startHref} style={{ backgroundColor: "#C9A84C", color: "#FFFFFF", fontWeight: "700", padding: "18px 40px", borderRadius: "12px", fontSize: "18px", textDecoration: "none", boxShadow: "0 4px 14px rgba(201, 168, 76, 0.4)" }}>
-              Start free — £19/month
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 3 Step Features */}
-      <section style={{ paddingBottom: "120px" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "32px" }}>
-            {[
-              { icon: FileText, title: "Paste notes or upload audio", desc: "Start with your raw evidence from client meetings." },
-              { icon: Zap, title: "AI generates your full FCA report", desc: "Our models build a structured, compliant draft instantly." },
-              { icon: Download, title: "Download as Word document", desc: "Export your polished report ready for final review." }
-            ].map((item, i) => (
-              <div key={i} style={{ padding: "40px", borderRadius: "24px", border: "1px solid #F0F2F5", textAlign: "center", backgroundColor: "#FFFFFF" }}>
-                <div style={{ width: "56px", height: "56px", borderRadius: "16px", backgroundColor: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", color: "#0A1628" }}>
-                  <item.icon size={28} />
-                </div>
-                <h3 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "12px", color: "#0A1628" }}>{item.title}</h3>
-                <p style={{ color: "#5F6877", lineHeight: "1.6" }}>{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <section style={{ backgroundColor: "#0A1628", padding: "184px 48px 120px 48px", textAlign: "center" }}>
+        <h1 style={{ fontSize: "56px", fontWeight: "800", color: "#FFFFFF", lineHeight: "1.1", maxWidth: "700px", margin: "0 auto 24px" }}>
+          Suitability reports. Written <span style={{ textDecoration: "underline", textDecorationColor: "#C9A84C", textUnderlineOffset: "8px" }}>in seconds.</span>
+        </h1>
+        <p style={{ fontSize: "18px", color: "#94A3B8", maxWidth: "500px", margin: "0 auto 40px", lineHeight: "1.5" }}>
+          Suitance turns your client meeting notes into complete FCA-compliant suitability reports. Reviewed by you. Sent with confidence.
+        </p>
+        <Link href={startHref} style={{ display: "inline-block", textDecoration: "none", backgroundColor: "#C9A84C", color: "#0A1628", fontWeight: "700", fontSize: "16px", padding: "16px 40px", borderRadius: "50px", border: "none", cursor: "pointer" }}>
+          Start free — £19/month
+        </Link>
       </section>
 
       {/* Social Proof Bar */}
-      <section style={{ borderTop: "1px solid #F0F2F5", borderBottom: "1px solid #F0F2F5", backgroundColor: "#FAFBFC", padding: "32px 0" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "32px", alignItems: "center", textAlign: "center" }}>
-            {[
-              { label: "96/100 compliance score", icon: ShieldCheck },
-              { label: "FCA Consumer Duty aligned", icon: CheckCircle },
-              { label: "All 8 required sections", icon: Layout },
-              { label: "Used by UK advisers", icon: Users }
-            ].map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", color: "#5F6877", fontSize: "15px", fontWeight: "600" }}>
-                <item.icon size={20} color="#C9A84C" />
-                {item.label}
+      <section style={{ backgroundColor: "#0A1628", padding: "24px 48px", borderTop: "1px solid rgba(255,255,255,0.1)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>96/100 compliance score</div>
+          <div style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
+          <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>FCA Consumer Duty aligned</div>
+          <div style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
+          <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>All 8 required sections</div>
+          <div style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
+          <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>Used by UK advisers</div>
+        </div>
+      </section>
+
+      {/* Three Steps Section */}
+      <section style={{ backgroundColor: "#FFFFFF", padding: "80px 48px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", gap: "32px" }}>
+          {[
+            { num: "1", title: "Paste notes or upload audio", desc: "Start with your raw evidence from client meetings." },
+            { num: "2", title: "AI generates your full FCA report", desc: "Our models build a structured, compliant draft instantly." },
+            { num: "3", title: "Download as Word document", desc: "Export your polished report ready for final review." }
+          ].map((step, i) => (
+            <div key={i} style={{ backgroundColor: "#F8FAFC", padding: "32px", borderRadius: "12px", flex: 1 }}>
+              <div style={{ width: "32px", height: "32px", backgroundColor: "#0A1628", color: "#FFFFFF", borderRadius: "50%", fontSize: "14px", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {step.num}
               </div>
-            ))}
-          </div>
+              <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", marginTop: "16px", marginBottom: "8px" }}>{step.title}</h3>
+              <p style={{ fontSize: "15px", color: "#64748B", lineHeight: "1.6", margin: 0 }}>{step.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" style={{ padding: "120px 0" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px" }}>
-          <div style={{ textAlign: "center", marginBottom: "64px" }}>
-            <h2 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628" }}>Simple, transparent pricing.</h2>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "32px" }}>
-            {[
-              { name: "Starter", price: "£19", desc: "Perfect for sole practitioners." },
-              { name: "Plus", price: "£49", desc: "For growing advisory firms.", featured: true },
-              { name: "Pro", price: "£99", desc: "Full terminal for large teams." }
-            ].map((tier, i) => (
-              <div key={i} style={{ padding: "48px", borderRadius: "24px", border: tier.featured ? "2px solid #C9A84C" : "1px solid #F0F2F5", backgroundColor: "#FFFFFF", position: "relative" }}>
-                {tier.featured && (
-                  <span style={{ position: "absolute", top: "-14px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#C9A84C", color: "#FFFFFF", padding: "4px 16px", borderRadius: "99px", fontSize: "12px", fontWeight: "800", textTransform: "uppercase" }}>Most Popular</span>
-                )}
-                <h3 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "8px" }}>{tier.name}</h3>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "4px", marginBottom: "16px" }}>
-                  <span style={{ fontSize: "40px", fontWeight: "800" }}>{tier.price}</span>
-                  <span style={{ color: "#8A94A6" }}>/mo</span>
-                </div>
-                <p style={{ color: "#5F6877", marginBottom: "32px", fontSize: "14px" }}>{tier.desc}</p>
-                <Link href="/signup" style={{ display: "block", textAlign: "center", padding: "14px", borderRadius: "10px", backgroundColor: tier.featured ? "#0A1628" : "#F4F6F9", color: tier.featured ? "#FFFFFF" : "#0A1628", fontWeight: "700", textDecoration: "none" }}>
-                  Get Started
-                </Link>
-              </div>
-            ))}
-          </div>
+      <section style={{ backgroundColor: "#F8FAFC", padding: "80px 48px", textAlign: "center" }}>
+        <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#0A1628", marginBottom: "48px" }}>Simple, transparent pricing.</h2>
+        <div style={{ display: "flex", gap: "24px", maxWidth: "900px", margin: "0 auto", justifyContent: "center" }}>
+          {[
+            { name: "Starter", price: "£19", desc: "Perfect for sole practitioners.", featured: false },
+            { name: "Plus", price: "£49", desc: "For growing advisory firms.", featured: true },
+            { name: "Pro", price: "£99", desc: "Full terminal for large teams.", featured: false }
+          ].map((tier, i) => (
+            <div key={i} style={{ backgroundColor: "#FFFFFF", borderRadius: "16px", padding: "40px", flex: 1, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: tier.featured ? "2px solid #C9A84C" : "1px solid transparent", display: "flex", flexDirection: "column", textAlign: "left" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#6B7280", marginBottom: "8px", textTransform: "uppercase" }}>{tier.name}</h3>
+              <div style={{ fontSize: "48px", fontWeight: "800", color: "#0A1628", marginBottom: "16px" }}>{tier.price}<span style={{ fontSize: "16px", color: "#6B7280", fontWeight: "500" }}>/mo</span></div>
+              <p style={{ fontSize: "14px", color: "#64748B", marginBottom: "auto", lineHeight: "1.5" }}>{tier.desc}</p>
+              <Link href="/signup" style={{ display: "block", textAlign: "center", textDecoration: "none", backgroundColor: "#0A1628", color: "#FFFFFF", padding: "14px", borderRadius: "8px", marginTop: "24px", fontWeight: "600", fontSize: "14px" }}>
+                Get Started
+              </Link>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ padding: "80px 0", borderTop: "1px solid #F0F2F5" }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "32px" }}>
-          <div style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628" }}>Suitance<span style={{ color: "#C9A84C" }}>.</span></div>
-          <div style={{ display: "flex", gap: "32px", color: "#8A94A6", fontSize: "14px" }}>
-            <Link href="/terms" style={{ color: "inherit", textDecoration: "none" }}>Terms</Link>
-            <Link href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>Privacy</Link>
-            <Link href="/contact" style={{ color: "inherit", textDecoration: "none" }}>Contact</Link>
+      <footer style={{ backgroundColor: "#0A1628", padding: "40px 48px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#FFFFFF", fontSize: "14px" }}>
+          <div style={{ fontWeight: "700", fontSize: "18px" }}>Suitance<span style={{ color: "#C9A84C" }}>.</span></div>
+          <div style={{ display: "flex", gap: "32px", opacity: 0.7 }}>
+            <span>© 2026 Suitance</span>
+            <Link href="/terms" style={{ color: "#FFFFFF", textDecoration: "none" }}>Terms</Link>
+            <Link href="/privacy" style={{ color: "#FFFFFF", textDecoration: "none" }}>Privacy</Link>
           </div>
-          <div style={{ color: "#8A94A6", fontSize: "14px" }}>© 2026 Suitance Intelligence.</div>
         </div>
       </footer>
     </main>

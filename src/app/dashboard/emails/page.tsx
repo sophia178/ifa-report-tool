@@ -26,7 +26,6 @@ export default function EmailsPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -37,8 +36,6 @@ export default function EmailsPage() {
         router.push("/login");
         return;
       }
-
-      setUserEmail(user.email);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -58,8 +55,8 @@ export default function EmailsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -87,7 +84,7 @@ export default function EmailsPage() {
 
       setEmailContent(data.emailContent);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsDrafting(false);
     }
@@ -100,121 +97,188 @@ export default function EmailsPage() {
   }
 
   return (
-    <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
-            <div className="p-8 stack gap-6">
-              <div className="stack gap-2">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Mail className="text-[#c1a362]" />
-                  Client Email Drafter
-                </h2>
-                <p className="text-gray-400">
-                  Generate professional, personalized emails for your clients in seconds.
-                </p>
-              </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          Client Email Drafter
+        </h1>
+        <p style={{ color: "#64748B", margin: 0 }}>
+          Generate professional, personalized emails for your clients in seconds.
+        </p>
+      </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="stack gap-2">
-                  <label className="text-sm font-medium text-gray-400">Client Name</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. John Smith"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                  />
-                </div>
-                <div className="stack gap-2">
-                  <label className="text-sm font-medium text-gray-400">Email Purpose</label>
-                  <select
-                    className="input"
-                    value={purpose}
-                    onChange={(e) => setPurpose(e.target.value)}
-                  >
-                    {purposes.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+      <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Client Name</label>
+            <input
+              type="text"
+              style={{
+                border: "1px solid #E5E7EB",
+                borderRadius: "8px",
+                padding: "12px 16px",
+                fontSize: "15px",
+                width: "100%",
+                color: "#1E293B"
+              }}
+              placeholder="e.g. John Smith"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Email Purpose</label>
+            <select
+              style={{
+                border: "1px solid #E5E7EB",
+                borderRadius: "8px",
+                padding: "12px 16px",
+                fontSize: "15px",
+                width: "100%",
+                color: "#1E293B",
+                backgroundColor: "white"
+              }}
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+            >
+              {purposes.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-              <div className="stack gap-2">
-                <label className="text-sm font-medium text-gray-400">Key Points to Include</label>
-                <textarea
-                  className="input min-h-[120px] p-4"
-                  placeholder="e.g. mention the 5% portfolio growth, confirm the next meeting on Tuesday at 10am..."
-                  value={keyPoints}
-                  onChange={(e) => setKeyPoints(e.target.value)}
-                />
-              </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Key Points to Include</label>
+          <textarea
+            style={{
+              border: "1px solid #E5E7EB",
+              borderRadius: "8px",
+              padding: "12px 16px",
+              fontSize: "15px",
+              width: "100%",
+              minHeight: "120px",
+              color: "#1E293B",
+              fontFamily: "inherit"
+            }}
+            placeholder="e.g. mention the 5% portfolio growth, confirm the next meeting on Tuesday at 10am..."
+            value={keyPoints}
+            onChange={(e) => setKeyPoints(e.target.value)}
+          />
+        </div>
 
-              <div className="stack gap-2">
-                <label className="text-sm font-medium text-gray-400">Tone</label>
-                <div className="flex gap-4">
-                  {tones.map((t) => (
-                    <label key={t} className="flex items-center gap-2 cursor-pointer group">
-                      <input
-                        type="radio"
-                        className="hidden"
-                        name="tone"
-                        checked={tone === t}
-                        onChange={() => setTone(t)}
-                      />
-                      <div className={`px-4 py-2 rounded-lg border transition-all ${
-                        tone === t 
-                          ? "bg-[#c1a362] border-[#c1a362] text-white" 
-                          : "border-[rgba(193,163,98,0.2)] text-gray-400 hover:border-[#c1a362]"
-                      }`}>
-                        {t}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {error && <div className="alert alert-error">{error}</div>}
-
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Tone</label>
+          <div style={{ display: "flex", gap: "12px" }}>
+            {tones.map((t) => (
               <button
-                className="btn w-full"
-                disabled={isDrafting || !clientName || !keyPoints}
-                onClick={handleDraft}
+                key={t}
+                onClick={() => setTone(t)}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  border: tone === t ? "2px solid #0A1628" : "1px solid #E5E7EB",
+                  backgroundColor: tone === t ? "#F8FAFC" : "white",
+                  color: "#0A1628"
+                }}
               >
-                {isDrafting ? (
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          disabled={isDrafting || !clientName || !keyPoints}
+          onClick={handleDraft}
+          style={{
+            backgroundColor: "#0A1628",
+            color: "white",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            fontSize: "15px",
+            fontWeight: "600",
+            border: "none",
+            cursor: (isDrafting || !clientName || !keyPoints) ? "not-allowed" : "pointer",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            opacity: (isDrafting || !clientName || !keyPoints) ? 0.7 : 1
+          }}
+        >
+          {isDrafting ? (
+            <>
+              <Loader2 className="animate-spin" size={18} />
+              Drafting Email...
+            </>
+          ) : (
+            "Generate Email Draft"
+          )}
+        </button>
+
+        {emailContent && (
+          <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "16px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", margin: 0 }}>
+                Generated Draft
+              </h3>
+              <button
+                onClick={copyToClipboard}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "8px 16px",
+                  backgroundColor: "#F8FAFC",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: "#0A1628",
+                  cursor: "pointer"
+                }}
+              >
+                {copied ? (
                   <>
-                    <Loader2 className="animate-spin" size={18} />
-                    Drafting Email...
+                    <Check size={16} />
+                    Copied!
                   </>
                 ) : (
-                  "Generate Email Draft"
+                  <>
+                    <Copy size={16} />
+                    Copy to Clipboard
+                  </>
                 )}
               </button>
-
-              {emailContent && (
-                <div className="mt-8 stack gap-4 fade-in">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Generated Draft</h3>
-                    <button
-                      className="btn-light btn-sm flex items-center gap-2"
-                      onClick={copyToClipboard}
-                    >
-                      {copied ? (
-                        <>
-                          <Check size={16} />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={16} />
-                          Copy to Clipboard
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="p-6 rounded-xl bg-[rgba(193,163,98,0.05)] border border-[rgba(193,163,98,0.2)] whitespace-pre-wrap text-gray-300 leading-relaxed font-mono text-sm">
-                    {emailContent}
-                  </div>
-                </div>
-              )}
+            </div>
+            <div style={{ 
+              padding: "24px", 
+              borderRadius: "12px", 
+              backgroundColor: "#F8FAFC", 
+              border: "1px solid #E5E7EB", 
+              whiteSpace: "pre-wrap", 
+              color: "#334155", 
+              lineHeight: "1.8", 
+              fontFamily: "monospace", 
+              fontSize: "14px" 
+            }}>
+              {emailContent}
             </div>
           </div>
+        )}
+      </div>
+    </div>
   );
 }

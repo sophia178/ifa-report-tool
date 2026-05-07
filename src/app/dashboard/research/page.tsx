@@ -19,7 +19,6 @@ export default function ResearchPage() {
   const [result, setResult] = useState<SummaryResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -30,8 +29,6 @@ export default function ResearchPage() {
         router.push("/login");
         return;
       }
-
-      setUserEmail(user.email);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -51,8 +48,8 @@ export default function ResearchPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -74,103 +71,153 @@ export default function ResearchPage() {
 
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsSummarising(false);
     }
   }
 
   return (
-    <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
-            <div className="p-8 stack gap-6">
-              <div className="stack gap-2">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Search className="text-[#c1a362]" />
-                  Research Summariser
-                </h2>
-                <p className="text-gray-400">
-                  Paste any document, article, or research report text to get an AI-powered summary.
-                </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          Research Summariser
+        </h1>
+        <p style={{ color: "#64748B", margin: 0 }}>
+          Paste any document, article, or research report text to get an AI-powered summary.
+        </p>
+      </div>
+
+      <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "24px" }}>
+        <textarea
+          style={{
+            border: "1px solid #E5E7EB",
+            borderRadius: "8px",
+            padding: "16px",
+            fontSize: "15px",
+            width: "100%",
+            minHeight: "300px",
+            resize: "vertical",
+            fontFamily: "inherit",
+            color: "#1E293B",
+            backgroundColor: "#F8FAFC"
+          }}
+          placeholder="Paste research text here..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+
+        {error && (
+          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          disabled={isSummarising || !text.trim()}
+          onClick={handleSummarise}
+          style={{
+            backgroundColor: "#0A1628",
+            color: "white",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            fontSize: "15px",
+            fontWeight: "600",
+            border: "none",
+            cursor: (isSummarising || !text.trim()) ? "not-allowed" : "pointer",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            opacity: (isSummarising || !text.trim()) ? 0.7 : 1
+          }}
+        >
+          {isSummarising ? (
+            <>
+              <Loader2 className="animate-spin" size={18} />
+              Summarising...
+            </>
+          ) : (
+            "Summarise Research"
+          )}
+        </button>
+
+        {result && (
+          <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "32px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
+            <div style={{ padding: "24px", borderRadius: "12px", backgroundColor: "#F8FAFC", border: "1px solid #E5E7EB" }}>
+              <h3 style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", marginBottom: "16px", display: "block" }}>
+                3-Sentence Summary
+              </h3>
+              <p style={{ color: "#334155", lineHeight: "1.8", fontSize: "15px", margin: 0 }}>{result.summary}</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <h3 style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", margin: 0 }}>
+                  Key Points
+                </h3>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {result.keyPoints.map((point: string, i: number) => (
+                    <li key={i} style={{ display: "flex", gap: "12px", fontSize: "14px", color: "#475569", lineHeight: "1.5" }}>
+                      <span style={{ color: "#0A1628", fontWeight: "900" }}>•</span>
+                      {point}
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              <div className="stack gap-4">
-                <textarea
-                  className="input min-h-[300px] resize-y p-4"
-                  placeholder="Paste research text here..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                />
-
-                {error && <div className="alert alert-error">{error}</div>}
-
-                <button
-                  className="btn w-full"
-                  disabled={isSummarising || !text.trim()}
-                  onClick={handleSummarise}
-                >
-                  {isSummarising ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Summarising...
-                    </>
-                  ) : (
-                    "Summarise Research"
-                  )}
-                </button>
-              </div>
-
-              {result && (
-                <div className="mt-8 stack gap-8 fade-in">
-                  <div className="p-6 rounded-xl bg-[rgba(193,163,98,0.05)] border border-[rgba(193,163,98,0.2)]">
-                    <h3 className="text-lg font-semibold mb-3">3-Sentence Summary</h3>
-                    <p className="text-gray-300 leading-relaxed">{result.summary}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="stack gap-4">
-                      <h3 className="text-lg font-semibold">Key Points</h3>
-                      <ul className="stack gap-3">
-                        {result.keyPoints.map((point: string, i: number) => (
-                          <li key={i} className="flex gap-3 text-gray-300">
-                            <span className="text-[#c1a362] font-bold">•</span>
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="stack gap-6">
-                      <div className="stack gap-3">
-                        <h3 className="text-lg font-semibold flex items-center gap-2 text-amber-400">
-                          <AlertTriangle size={18} />
-                          Risks & Concerns
-                        </h3>
-                        <p className="text-gray-300 leading-relaxed">{result.risks}</p>
-                      </div>
-
-                      <div className="stack gap-3">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Star className="text-[#c1a362]" size={18} />
-                          Relevance Rating
-                        </h3>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-3 bg-gray-800 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-[#c1a362]" 
-                              style={{ width: `${result.relevanceRating * 10}%` }}
-                            />
-                          </div>
-                          <span className="text-xl font-bold text-[#c1a362]">
-                            {result.relevanceRating}/10
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-400">Relevance for UK financial advisers</p>
-                      </div>
-                    </div>
-                  </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <h3 style={{ 
+                    fontSize: "12px", 
+                    fontWeight: "800", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.1em", 
+                    color: "#991B1B", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "8px", 
+                    margin: 0 
+                  }}>
+                    <AlertTriangle size={16} />
+                    Risks & Concerns
+                  </h3>
+                  <p style={{ color: "#475569", lineHeight: "1.6", fontSize: "14px", margin: 0 }}>{result.risks}</p>
                 </div>
-              )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <h3 style={{ 
+                    fontSize: "12px", 
+                    fontWeight: "800", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.1em", 
+                    color: "#64748B", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "8px", 
+                    margin: 0 
+                  }}>
+                    <Star size={16} color="#0A1628" />
+                    Relevance Rating
+                  </h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    <div style={{ flex: 1, height: "8px", backgroundColor: "#E2E8F0", borderRadius: "4px", overflow: "hidden" }}>
+                      <div 
+                        style={{ height: "100%", backgroundColor: "#0A1628", width: `${result.relevanceRating * 10}%` }}
+                      />
+                    </div>
+                    <span style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628" }}>
+                      {result.relevanceRating}/10
+                    </span>
+                  </div>
+                  <p style={{ fontSize: "12px", color: "#94A3B8", margin: 0 }}>Relevance for UK financial advisers</p>
+                </div>
+              </div>
             </div>
           </div>
+        )}
+      </div>
+    </div>
   );
 }
