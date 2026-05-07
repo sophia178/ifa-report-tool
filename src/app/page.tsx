@@ -23,15 +23,18 @@ export default async function Home() {
 
       {/* Hero Section */}
       <section style={{ backgroundColor: "#0A1628", padding: "184px 48px 120px 48px", textAlign: "center" }}>
-        <h1 style={{ fontSize: "56px", fontWeight: "800", color: "#FFFFFF", lineHeight: "1.1", maxWidth: "700px", margin: "0 auto 24px" }}>
+        <h1 style={{ fontSize: "56px", fontWeight: "800", color: "#FFFFFF", lineHeight: "1.1", maxWidth: "800px", margin: "0 auto 24px" }}>
           Suitability reports. Written <span style={{ textDecoration: "underline", textDecorationColor: "#C9A84C", textUnderlineOffset: "8px" }}>in seconds.</span>
         </h1>
-        <p style={{ fontSize: "18px", color: "#94A3B8", maxWidth: "500px", margin: "0 auto 40px", lineHeight: "1.5" }}>
-          Suitance turns your client meeting notes into complete FCA-compliant suitability reports. Reviewed by you. Sent with confidence.
+        <p style={{ fontSize: "18px", color: "#94A3B8", maxWidth: "700px", margin: "0 auto 40px", lineHeight: "1.6" }}>
+          Suitance turns your client meeting notes into complete regulatory-compliant suitability reports — for UK (FCA), Australian (ASIC), and US (SEC/FINRA) advisers. Reviewed by you. Sent with confidence.
         </p>
-        <Link href={startHref} style={{ display: "inline-block", textDecoration: "none", backgroundColor: "#C9A84C", color: "#0A1628", fontWeight: "700", fontSize: "16px", padding: "16px 40px", borderRadius: "50px", border: "none", cursor: "pointer" }}>
-          Start free — £19/month
+        <Link href={startHref} style={{ display: "inline-block", textDecoration: "none", backgroundColor: "#C9A84C", color: "#0A1628", fontWeight: "700", fontSize: "16px", padding: "16px 40px", borderRadius: "50px", border: "none", cursor: "pointer", marginBottom: "32px" }}>
+          Start now — £19/month
         </Link>
+        <div style={{ fontSize: "12px", color: "#C9A84C", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>
+          🇬🇧 FCA — 🇦🇺 ASIC — 🇺🇸 SEC/FINRA
+        </div>
       </section>
 
       {/* Social Proof Bar */}
@@ -43,7 +46,7 @@ export default async function Home() {
           <div style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
           <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>All 8 required sections</div>
           <div style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
-          <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>Used by UK advisers</div>
+          <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>Used by global advisers</div>
         </div>
       </section>
 
@@ -52,7 +55,7 @@ export default async function Home() {
         <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", gap: "32px" }}>
           {[
             { num: "1", title: "Paste notes or upload audio", desc: "Start with your raw evidence from client meetings." },
-            { num: "2", title: "AI generates your full FCA report", desc: "Our models build a structured, compliant draft instantly." },
+            { num: "2", title: "AI generates your full report", desc: "Our models build a structured, compliant draft instantly." },
             { num: "3", title: "Download as Word document", desc: "Export your polished report ready for final review." }
           ].map((step, i) => (
             <div key={i} style={{ backgroundColor: "#F8FAFC", padding: "32px", borderRadius: "12px", flex: 1 }}>

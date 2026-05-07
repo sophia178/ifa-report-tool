@@ -9,9 +9,10 @@ type PricingCtaProps = {
   isSubscribed: boolean;
   plan?: "starter" | "plus" | "pro";
   price?: string;
+  style?: React.CSSProperties;
 };
 
-export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price = "£19" }: PricingCtaProps) {
+export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price = "£19", style }: PricingCtaProps) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,7 +49,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price =
 
   if (isSubscribed) {
     return (
-      <Link href="/dashboard" className="btn pricing-cta-button">
+      <Link href="/dashboard" className="btn pricing-cta-button" style={style}>
         Go to dashboard
       </Link>
     );
@@ -56,7 +57,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price =
 
   if (!isLoggedIn) {
     return (
-      <Link href="/signup" className="btn pricing-cta-button">
+      <Link href="/signup" className="btn pricing-cta-button" style={style}>
         Start now — {price}/month
       </Link>
     );
@@ -69,6 +70,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price =
         className="btn pricing-cta-button"
         onClick={handleCheckout}
         disabled={isLoading}
+        style={style}
       >
         {isLoading ? "Redirecting..." : `Start now — ${price}/month`}
       </button>

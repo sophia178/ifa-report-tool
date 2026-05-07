@@ -7,8 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 const jurisdictions = [
   { id: "UK", name: "United Kingdom", regulator: "FCA regulated", flag: "🇬🇧" },
   { id: "Australia", name: "Australia", regulator: "ASIC regulated", flag: "🇦🇺" },
-  { id: "USA", name: "United States", regulator: "SEC/FINRA regulated", flag: "🇺🇸" },
-  { id: "Multiple", name: "Multiple", regulator: "Multiple jurisdictions", flag: "🌍" },
+  { id: "USA", name: "United States", regulator: "SEC·FINRA regulated", flag: "🇺🇸" },
+  { id: "Multiple", name: "Multiple", regulator: "Global practice", flag: "🌍" },
 ];
 
 export default function OnboardingPage() {
@@ -40,13 +40,13 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", color: "#0A1628", fontFamily: "system-ui, -apple-system, sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px" }}>
-      <div style={{ maxWidth: "800px", width: "100%", textAlign: "center" }}>
-        <h1 style={{ fontSize: "40px", fontWeight: "800", marginBottom: "16px", letterSpacing: "-0.02em" }}>
-          Welcome to Suitance. Where do you practise?
+    <main style={{ backgroundColor: "white", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ maxWidth: "600px", width: "100%", textAlign: "center" }}>
+        <h1 style={{ fontSize: "36px", fontWeight: "800", color: "#0A1628", marginBottom: "16px" }}>
+          Welcome to Suitance.
         </h1>
         <p style={{ fontSize: "18px", color: "#64748B", marginBottom: "48px" }}>
-          We&apos;ll tailor your workspace to your regulatory environment.
+          Where do you practise? We&apos;ll tailor your workspace to your regulatory environment.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
@@ -55,26 +55,35 @@ export default function OnboardingPage() {
               key={j.id}
               onClick={() => handleSelection(j.id)}
               disabled={isSubmitting}
+              onMouseEnter={(e) => {
+                if (!isSubmitting && selected !== j.id) {
+                  e.currentTarget.style.border = "2px solid #C9A84C";
+                  e.currentTarget.style.backgroundColor = "#FFFBF0";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSubmitting && selected !== j.id) {
+                  e.currentTarget.style.border = "2px solid #E5E7EB";
+                  e.currentTarget.style.backgroundColor = "white";
+                }
+              }}
               style={{
-                backgroundColor: "#FFFFFF",
-                border: selected === j.id ? "2px solid #C9A84C" : "1px solid #E5E7EB",
+                backgroundColor: selected === j.id ? "#FFFBF0" : "white",
+                border: selected === j.id ? "2px solid #C9A84C" : "2px solid #E5E7EB",
                 borderRadius: "16px",
                 padding: "32px",
-                textAlign: "left",
                 cursor: isSubmitting ? "not-allowed" : "pointer",
+                textAlign: "center",
                 transition: "all 0.2s ease",
                 display: "flex",
                 flexDirection: "column",
-                gap: "12px",
-                boxShadow: selected === j.id ? "0 4px 12px rgba(201, 168, 76, 0.1)" : "none",
-                opacity: isSubmitting && selected !== j.id ? 0.5 : 1
+                alignItems: "center",
+                gap: "8px"
               }}
             >
-              <span style={{ fontSize: "32px" }}>{j.flag}</span>
-              <div>
-                <div style={{ fontSize: "20px", fontWeight: "700", color: "#0A1628" }}>{j.name}</div>
-                <div style={{ fontSize: "14px", color: "#64748B", fontWeight: "500" }}>{j.regulator}</div>
-              </div>
+              <div style={{ fontSize: "48px", marginBottom: "16px" }}>{j.flag}</div>
+              <div style={{ fontSize: "20px", fontWeight: "700", color: "#0A1628" }}>{j.name}</div>
+              <div style={{ fontSize: "14px", color: "#64748B", marginTop: "8px" }}>{j.regulator}</div>
             </button>
           ))}
         </div>
