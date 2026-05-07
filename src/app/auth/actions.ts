@@ -35,7 +35,7 @@ export async function signup(formData: FormData) {
     redirect(
       "/signup?error=" +
         encodeURIComponent(
-          "You must confirm FCA authorisation or supervised status and accept the Terms of Use.",
+          "You must agree to the Terms of Use to create an account.",
         ),
     );
   }

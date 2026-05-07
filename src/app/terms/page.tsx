@@ -37,12 +37,17 @@ const termsSections = [
       "Access to Suitance is provided on a subscription basis. Payment is processed securely by Stripe. Subscription fees are charged monthly in advance. You may cancel your subscription at any time through the customer portal. Cancellation takes effect at the end of the current billing period. No refunds are provided for unused portions of a billing period. Suitance reserves the right to change subscription pricing with reasonable notice.",
   },
   {
-    title: "8. Changes to These Terms",
+    title: "8. Acceptable Use",
+    content:
+      "Suitance may only be used for lawful purposes in connection with legitimate financial advisory activities. You must not use Suitance to generate documents intended to mislead clients, regulators, or any other party. You must not attempt to reverse engineer, copy, resell, or sublicense the Suitance platform or its outputs without written permission. Suitance reserves the right to suspend or terminate accounts that breach these terms without notice.",
+  },
+  {
+    title: "9. Changes to These Terms",
     content:
       "Suitance may update these terms from time to time to reflect changes in law, regulation, or the service. Material changes will be notified to users by email or by notice within the platform. Continued use of the platform following notification of changes constitutes acceptance of the updated terms.",
   },
   {
-    title: "9. Governing Law",
+    title: "10. Governing Law",
     content:
       "These terms are governed by and construed in accordance with the laws of England and Wales. Any disputes arising under these terms shall be subject to the exclusive jurisdiction of the courts of England and Wales.",
   },
@@ -61,7 +66,7 @@ export default function TermsPage() {
               Terms of Use
             </h1>
             <p className="hero-subtitle" style={{ maxWidth: 820 }}>
-              Last updated: April 2026
+              Last updated: May 2026
             </p>
           </div>
         </div>
