@@ -50,7 +50,7 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect("/pricing");
+  redirect("/onboarding");
 }
 
 export async function logout() {

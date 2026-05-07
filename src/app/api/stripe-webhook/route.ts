@@ -10,11 +10,13 @@ async function upsertSubscriptionStatus({
   email,
   subscribed,
   stripePriceId,
+  stripeCustomerId,
 }: {
   userId?: string;
   email?: string | null;
   subscribed: boolean;
   stripePriceId?: string | null;
+  stripeCustomerId?: string | null;
 }) {
   if (!userId) {
     return;
@@ -27,6 +29,7 @@ async function upsertSubscriptionStatus({
       email: email ?? null,
       subscribed,
       stripe_price_id: stripePriceId ?? null,
+      stripe_customer_id: stripeCustomerId ?? null,
     },
     { onConflict: "id" },
   );
@@ -72,6 +75,7 @@ export async function POST(request: Request) {
         email: session.customer_details?.email ?? session.customer_email,
         subscribed: true,
         stripePriceId,
+        stripeCustomerId: session.customer as string,
       });
       break;
     }
@@ -81,6 +85,7 @@ export async function POST(request: Request) {
         userId: subscription.metadata?.userId,
         subscribed: false,
         stripePriceId: null,
+        stripeCustomerId: subscription.customer as string,
       });
       break;
     }

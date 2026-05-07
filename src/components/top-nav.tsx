@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { logout } from "@/app/auth/actions";
 import { LogOut, LayoutDashboard } from "lucide-react";
+import { SuitanceLogo } from "./suitance-logo";
 
 export function TopNav({ email }: { email?: string }) {
   return (
@@ -21,8 +22,8 @@ export function TopNav({ email }: { email?: string }) {
       top: "16px", 
       zIndex: 50 
     }}>
-      <Link href="/" style={{ fontSize: "24px", fontWeight: "900", letterSpacing: "-0.05em", display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "#FFFFFF" }}>
-        Suitance<span style={{ color: "#C9A84C" }}>.</span>
+      <Link href="/" style={{ textDecoration: "none" }}>
+        <SuitanceLogo textColor="#FFFFFF" size={24} />
       </Link>
       
       <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>

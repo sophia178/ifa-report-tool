@@ -7,6 +7,7 @@ import {
   BarChart3, Coffee, Calendar, ShieldAlert, Layout, 
   Bell, Zap, Newspaper, Users, Settings
 } from "lucide-react";
+import { SuitanceLogo } from "./suitance-logo";
 
 const navGroups = [
   {
@@ -64,8 +65,8 @@ export function DashboardNav() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", color: "#FFFFFF", overflowY: "hidden" }}>
       <div style={{ padding: "24px", flexShrink: 0 }}>
-        <Link href="/" style={{ fontSize: "24px", fontWeight: "900", color: "#FFFFFF", display: "flex", alignItems: "center", gap: "8px", textDecoration: "none" }}>
-          Suitance<span style={{ color: "#C9A84C" }}>.</span>
+        <Link href="/" style={{ textDecoration: "none" }}>
+          <SuitanceLogo textColor="#FFFFFF" size={24} />
         </Link>
       </div>
       

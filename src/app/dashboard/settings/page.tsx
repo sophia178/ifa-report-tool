@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Loader2, Upload, Save, Building2, MapPin, Hash, MessageSquare, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -10,19 +9,26 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [userEmail, setUserEmail] = useState<string | undefined>();
+  const [userId, setUserId] = useState<string | undefined>();
+  const [plan, setPlan] = useState<string>("Starter");
   const [isPro, setIsPro] = useState(false);
   
+  // Profile
+  const [displayName, setDisplayName] = useState("");
+  const [jurisdiction, setJurisdiction] = useState("UK");
+
+  // White Label
   const [firmName, setFirmName] = useState("");
-  const [firmAddress, setFirmAddress] = useState("");
-  const [fcaNumber, setFcaNumber] = useState("");
-  const [footerMessage, setFooterMessage] = useState("");
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [regulatorNumber, setRegulatorNumber] = useState("");
+  const [registeredAddress, setRegisteredAddress] = useState("");
+  const [customFooterText, setCustomFooterText] = useState("");
+  const [firmLogoUrl, setFirmLogoUrl] = useState("");
+
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function checkAccess() {
+    async function fetchData() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -31,241 +37,339 @@ export default function SettingsPage() {
         return;
       }
 
+      setUserId(user.id);
       setUserEmail(user.email);
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed, stripe_price_id")
+        .select("*")
         .eq("id", user.id)
         .single();
 
-      if (!profile?.subscribed) {
-        router.push("/pricing?message=subscribe");
-        return;
-      }
-
-      const isProUser = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
-      setIsPro(isProUser);
-
-      // Fetch existing white label settings
-      const { data: settings } = await supabase
-        .from("white_label_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (settings) {
-        setFirmName(settings.firm_name);
-        setFirmAddress(settings.firm_address || "");
-        setFcaNumber(settings.fca_number || "");
-        setFooterMessage(settings.footer_message || "");
-        setLogoUrl(settings.logo_url);
+      if (profile) {
+        setDisplayName(profile.display_name || "");
+        setJurisdiction(profile.jurisdiction || "UK");
+        setFirmName(profile.firm_name || "");
+        setRegulatorNumber(profile.regulator_number || "");
+        setRegisteredAddress(profile.registered_address || "");
+        setCustomFooterText(profile.custom_footer_text || "");
+        setFirmLogoUrl(profile.firm_logo_url || "");
+        
+        // Determine plan
+        if (profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) {
+          setPlan("Pro");
+          setIsPro(true);
+        } else if (profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID) {
+          setPlan("Plus");
+        } else {
+          setPlan("Starter");
+        }
       }
       
       setIsLoading(false);
     }
-    checkAccess();
+    fetchData();
   }, [router]);
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setLogoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setLogoUrl(reader.result as string);
-      reader.readAsDataURL(file);
+  async function handleSaveProfile() {
+    setIsSaving(true);
+    setError("");
+    const supabase = createClient();
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ 
+          display_name: displayName, 
+          jurisdiction 
+        })
+        .eq("id", userId);
+      
+      if (error) throw error;
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSaving(false);
     }
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSaveWhiteLabel() {
     if (!isPro) return;
-    
     setIsSaving(true);
     setError("");
-    setSuccess(false);
-
+    const supabase = createClient();
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Unauthorized");
-
-      let finalLogoUrl = logoUrl;
-
-      if (logoFile) {
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('white-labels')
-          .upload(fileName, logoFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('white-labels')
-          .getPublicUrl(fileName);
-        
-        finalLogoUrl = publicUrl;
-      }
-
-      const { error: upsertError } = await supabase
-        .from('white_label_settings')
-        .upsert({
-          user_id: user.id,
+      const { error } = await supabase
+        .from("profiles")
+        .update({ 
           firm_name: firmName,
-          firm_address: firmAddress,
-          fca_number: fcaNumber,
-          logo_url: finalLogoUrl,
-          footer_message: footerMessage,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (upsertError) throw upsertError;
-
+          regulator_number: regulatorNumber,
+          registered_address: registeredAddress,
+          custom_footer_text: customFooterText,
+          firm_logo_url: firmLogoUrl
+        })
+        .eq("id", userId);
+      
+      if (error) throw error;
       setSuccess(true);
-      setLogoUrl(finalLogoUrl);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save settings");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handlePasswordReset() {
+    if (!userEmail) return;
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/settings`,
+      });
+      if (error) throw error;
+      alert("Password reset email sent!");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!confirm("Are you sure you want to delete your account? This action is irreversible.")) return;
+    
+    setIsSaving(true);
+    const supabase = createClient();
+    try {
+      // Deleting profile and user
+      const { error } = await supabase.rpc('delete_user_account');
+      if (error) throw error;
+      
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (err: any) {
+      // If RPC is not available, we can at least sign out and tell them to contact support
+      // or implement a server action for this.
+      console.error(err);
+      alert("Please contact support to delete your account.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    setIsSaving(true);
+    const supabase = createClient();
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${userId}/logo.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('white-labels')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('white-labels')
+        .getPublicUrl(filePath);
+
+      setFirmLogoUrl(publicUrl);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setIsSaving(false);
     }
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
-      </div>
-    );
+    return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>Loading...</div>;
   }
 
   return (
-    <div className="stack gap-8">
-      <div className="stack gap-2">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Settings className="text-[#c1a362]" />
-          Platform Settings
-        </h2>
-        <p className="text-gray-400">
-          Manage your firm details and white-label preferences.
-        </p>
-      </div>
+    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 20px" }}>
+      <h1 style={{ fontSize: "32px", fontWeight: "bold", color: "#0A1628", marginBottom: "40px" }}>Account Settings</h1>
 
-            {!isPro ? (
-              <div className="card border border-amber-500/20 bg-amber-500/5 p-8 text-center stack gap-4">
-                <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
-                  <Settings size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-gray-200">White Labeling is a Pro Feature</h3>
-                <p className="text-gray-400 max-w-md mx-auto">
-                  Upgrade to the Suitance Pro plan to remove Suitance branding and add your own firm logo, name, and FCA details to all reports.
-                </p>
-                <button onClick={() => router.push("/pricing")} className="btn mx-auto px-8">
-                  View Pro Plan
-                </button>
-              </div>
-            ) : (
-              <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] overflow-hidden">
-                <div className="p-8 border-b border-[rgba(193,163,98,0.1)] bg-gradient-to-r from-[rgba(193,163,98,0.05)] to-transparent">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Building2 className="text-[#c1a362]" size={20} />
-                    White Label Settings
-                  </h3>
-                </div>
+      {success && (
+        <div style={{ backgroundColor: "#ECFDF5", color: "#065F46", padding: "12px 16px", borderRadius: "8px", marginBottom: "24px" }}>
+          Changes saved successfully!
+        </div>
+      )}
 
-                <form onSubmit={handleSave} className="p-8 stack gap-8">
-                  <div className="flex flex-col md:flex-row gap-10 items-start">
-                    <div className="stack gap-3 items-center text-center">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Firm Logo</label>
-                      <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-[rgba(193,163,98,0.2)] flex items-center justify-center overflow-hidden bg-[rgba(15,23,40,0.3)] group relative">
-                        {logoUrl ? (
-                          <img src={logoUrl} alt="Firm Logo" className="w-full h-full object-contain p-2" />
-                        ) : (
-                          <Building2 className="text-gray-700" size={48} />
-                        )}
-                        <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                          <Upload className="text-white" size={24} />
-                          <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                        </label>
-                      </div>
-                      <span className="text-[10px] text-gray-500">Recommended: PNG, 500x500px</span>
-                    </div>
+      {error && (
+        <div style={{ backgroundColor: "#FEF2F2", color: "#991B1B", padding: "12px 16px", borderRadius: "8px", marginBottom: "24px" }}>
+          {error}
+        </div>
+      )}
 
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                          <Building2 size={14} /> Firm Name
-                        </label>
-                        <input
-                          className="input"
-                          placeholder="e.g. Oakwood Financial"
-                          value={firmName}
-                          onChange={(e) => setFirmName(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                          <Hash size={14} /> FCA Number
-                        </label>
-                        <input
-                          className="input"
-                          placeholder="e.g. 123456"
-                          value={fcaNumber}
-                          onChange={(e) => setFcaNumber(e.target.value)}
-                        />
-                      </div>
-                      <div className="field md:col-span-2">
-                        <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                          <MapPin size={14} /> Registered Address
-                        </label>
-                        <textarea
-                          className="textarea min-h-[80px]"
-                          placeholder="Full registered address..."
-                          value={firmAddress}
-                          onChange={(e) => setFirmAddress(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                      <MessageSquare size={14} /> Custom Footer Message
-                    </label>
-                    <textarea
-                      className="textarea min-h-[100px]"
-                      placeholder="e.g. Oakwood Financial is authorised and regulated by the Financial Conduct Authority..."
-                      value={footerMessage}
-                      onChange={(e) => setFooterMessage(e.target.value)}
-                    />
-                  </div>
-
-                  {error && <div className="alert alert-error">{error}</div>}
-                  {success && (
-                    <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-500 flex items-center gap-3 fade-in">
-                      <CheckCircle2 size={18} />
-                      Settings saved successfully. All future reports will use this branding.
-                    </div>
-                  )}
-
-                  <button type="submit" className="btn w-full" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={18} />
-                        Saving Settings...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2" size={18} />
-                        Save White Label Settings
-                      </>
-                    )}
-                  </button>
-                </form>
-              </div>
-            )}
+      {/* Profile Section */}
+      <section style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628", marginBottom: "20px" }}>Profile</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Display name</label>
+            <input 
+              type="text" 
+              value={displayName} 
+              onChange={(e) => setDisplayName(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
+            />
           </div>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Email</label>
+            <input 
+              type="text" 
+              value={userEmail} 
+              readOnly
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px", backgroundColor: "#F9FAFB", color: "#94A3B8" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Jurisdiction</label>
+            <select 
+              value={jurisdiction} 
+              onChange={(e) => setJurisdiction(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
+            >
+              <option value="UK">United Kingdom</option>
+              <option value="Australia">Australia</option>
+              <option value="USA">United States</option>
+              <option value="Multiple">Multiple</option>
+            </select>
+          </div>
+          <button 
+            onClick={handleSaveProfile}
+            disabled={isSaving}
+            style={{ backgroundColor: "#C9A84C", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: isSaving ? "not-allowed" : "pointer", alignSelf: "flex-start" }}
+          >
+            {isSaving ? "Saving..." : "Save changes"}
+          </button>
+        </div>
+      </section>
+
+      {/* Subscription Section */}
+      <section style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628", marginBottom: "20px" }}>Subscription</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "14px", color: "#64748B" }}>Current plan</div>
+            <div style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628" }}>{plan}</div>
+          </div>
+          <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+            <button 
+              onClick={() => router.push("/api/customer-portal")}
+              style={{ backgroundColor: "#0A1628", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: "pointer" }}
+            >
+              Manage subscription
+            </button>
+            <button 
+              onClick={() => router.push("/api/customer-portal")}
+              style={{ background: "none", border: "none", color: "#64748B", textDecoration: "underline", fontSize: "14px", cursor: "pointer" }}
+            >
+              Cancel subscription
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* White Label Section */}
+      <section style={{ backgroundColor: isPro ? "#FFFFFF" : "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", opacity: isPro ? 1 : 0.7 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628" }}>White label</h2>
+          {!isPro && <span style={{ backgroundColor: "#E5E7EB", color: "#64748B", padding: "4px 12px", borderRadius: "9999px", fontSize: "12px", fontWeight: "600" }}>PRO ONLY</span>}
+        </div>
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Firm logo</label>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              {firmLogoUrl && <img src={firmLogoUrl} alt="Firm logo" style={{ height: "48px", width: "auto", objectFit: "contain", borderRadius: "4px" }} />}
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleLogoUpload}
+                disabled={!isPro || isSaving}
+                style={{ fontSize: "14px" }}
+              />
+            </div>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Firm name</label>
+            <input 
+              type="text" 
+              value={firmName} 
+              onChange={(e) => setFirmName(e.target.value)}
+              disabled={!isPro}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>FCA/ASIC/SEC number</label>
+            <input 
+              type="text" 
+              value={regulatorNumber} 
+              onChange={(e) => setRegulatorNumber(e.target.value)}
+              disabled={!isPro}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Registered address</label>
+            <textarea 
+              value={registeredAddress} 
+              onChange={(e) => setRegisteredAddress(e.target.value)}
+              disabled={!isPro}
+              rows={3}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px", resize: "none" }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Custom footer text</label>
+            <input 
+              type="text" 
+              value={customFooterText} 
+              onChange={(e) => setCustomFooterText(e.target.value)}
+              disabled={!isPro}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
+            />
+          </div>
+          <button 
+            onClick={handleSaveWhiteLabel}
+            disabled={!isPro || isSaving}
+            style={{ backgroundColor: "#C9A84C", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: (!isPro || isSaving) ? "not-allowed" : "pointer", alignSelf: "flex-start" }}
+          >
+            {isSaving ? "Saving..." : "Save white label settings"}
+          </button>
+        </div>
+      </section>
+
+      {/* Password Section */}
+      <section style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628", marginBottom: "20px" }}>Password</h2>
+        <button 
+          onClick={handlePasswordReset}
+          style={{ backgroundColor: "#FFFFFF", color: "#0A1628", padding: "10px 20px", borderRadius: "8px", border: "1px solid #E5E7EB", fontWeight: "600", cursor: "pointer" }}
+        >
+          Change password
+        </button>
+        <p style={{ fontSize: "14px", color: "#64748B", marginTop: "12px" }}>We&apos;ll send a password reset link to {userEmail}.</p>
+      </section>
+
+      {/* Danger Zone */}
+      <section style={{ backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#991B1B", marginBottom: "20px" }}>Danger zone</h2>
+        <button 
+          onClick={handleDeleteAccount}
+          disabled={isSaving}
+          style={{ backgroundColor: "#EF4444", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: isSaving ? "not-allowed" : "pointer" }}
+        >
+          Delete account
+        </button>
+        <p style={{ fontSize: "14px", color: "#B91C1C", marginTop: "12px" }}>Once you delete your account, there is no going back. Please be certain.</p>
+      </section>
+    </div>
   );
 }

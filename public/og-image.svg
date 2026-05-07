@@ -1,0 +1,14 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0A1628"/>
+  
+  <!-- Logo Section -->
+  <rect x="60" y="60" width="80" height="80" rx="16" fill="#0A1628" stroke="#C9A84C" stroke-width="4"/>
+  <text x="100" y="105" dominant-baseline="central" text-anchor="middle" fill="#C9A84C" font-family="sans-serif" font-weight="bold" font-size="50">S</text>
+  <text x="160" y="105" dominant-baseline="central" fill="white" font-family="sans-serif" font-weight="bold" font-size="60">Suitance</text>
+  
+  <!-- Main Tagline -->
+  <text x="60" y="250" fill="#94A3B8" font-family="sans-serif" font-size="40">The professional terminal for financial professionals.</text>
+  
+  <!-- Bottom Right Info -->
+  <text x="1140" y="570" dominant-baseline="alphabetic" text-anchor="end" fill="#C9A84C" font-family="sans-serif" font-size="24">96/100 compliance score · FCA aligned · UK · Australia · USA</text>
+</svg>

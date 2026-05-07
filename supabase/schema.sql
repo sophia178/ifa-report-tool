@@ -10,6 +10,14 @@ create table if not exists public.profiles (
 
 alter table public.profiles add column if not exists stripe_price_id text;
 alter table public.profiles add column if not exists subscribed boolean not null default false;
+alter table public.profiles add column if not exists jurisdiction text;
+alter table public.profiles add column if not exists display_name text;
+alter table public.profiles add column if not exists firm_logo_url text;
+alter table public.profiles add column if not exists firm_name text;
+alter table public.profiles add column if not exists regulator_number text;
+alter table public.profiles add column if not exists registered_address text;
+alter table public.profiles add column if not exists custom_footer_text text;
+alter table public.profiles add column if not exists stripe_customer_id text;
 alter table public.profiles enable row level security;
 
 drop policy if exists "Users can view own profile" on public.profiles;
@@ -368,6 +376,17 @@ create policy "Users can update own white_label_settings"
 on public.white_label_settings
 for update
 using (auth.uid() = user_id);
+
+create or replace function public.delete_user_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from auth.users where id = auth.uid();
+end;
+$$;
 
 create table if not exists public.team_members (
   id uuid primary key default gen_random_uuid(),

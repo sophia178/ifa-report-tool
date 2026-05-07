@@ -16,7 +16,24 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Suitance — AI Suitability Reports for Financial Advisers",
   description:
-    "Suitance helps UK independent financial advisers generate FCA-compliant suitability reports in seconds using AI",
+    "Generate FCA-compliant suitability reports in 60 seconds from your meeting notes. Used by UK independent financial advisers and paraplanners.",
+  icons: {
+    icon: "/favicon.svg",
+  },
+  openGraph: {
+    title: "Suitance — AI Suitability Reports for Financial Advisers",
+    description:
+      "Generate FCA-compliant suitability reports in 60 seconds from your meeting notes. Used by UK independent financial advisers and paraplanners.",
+    images: [
+      {
+        url: "/og-image.svg",
+        width: 1200,
+        height: 630,
+        alt: "Suitance Branding",
+      },
+    ],
+    type: "website",
+  },
 };
 
 export default function RootLayout({
