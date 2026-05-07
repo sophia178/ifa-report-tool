@@ -40,13 +40,33 @@ export async function signup(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
   });
 
   if (error) {
+    if (error.message.includes("already registered") || error.status === 422) {
+      redirect(
+        `/signup?error=${encodeURIComponent("This email is already registered. Please log in instead.")}`,
+      );
+    }
     redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  }
+
+  // Attempt to manually create a profile if the trigger fails or hasn't run yet.
+  // Wrapped in try/catch so it never blocks the user's signup flow.
+  if (data.user) {
+    try {
+      await supabase.from("profiles").insert({
+        id: data.user.id,
+        email: data.user.email,
+        subscribed: false,
+      });
+    } catch (e) {
+      console.error("Silent profile creation error:", e);
+      // We continue silently as requested
+    }
   }
 
   revalidatePath("/", "layout");
