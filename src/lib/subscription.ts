@@ -33,9 +33,15 @@ export async function getUserPlan(userId: string): Promise<PlanTier | null> {
 
   const priceId = data.stripe_price_id;
 
-  if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) return "pro";
-  if (priceId === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID) return "plus";
-  if (priceId === process.env.STRIPE_PRICE_ID || priceId === process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID) return "starter";
+  console.log('DEBUG: Plan check for user', userId);
+  console.log('DEBUG: User stripe_price_id from DB:', priceId);
+  console.log('DEBUG: STRIPE_PRO_PRICE_ID env:', process.env.STRIPE_PRO_PRICE_ID);
+  console.log('DEBUG: STRIPE_PLUS_PRICE_ID env:', process.env.STRIPE_PLUS_PRICE_ID);
+  console.log('DEBUG: STRIPE_PRICE_ID env:', process.env.STRIPE_PRICE_ID);
+
+  if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "pro";
+  if (priceId === process.env.STRIPE_PLUS_PRICE_ID) return "plus";
+  if (priceId === process.env.STRIPE_PRICE_ID) return "starter";
 
   return "starter"; // Fallback
 }

@@ -71,34 +71,41 @@ const navGroups: NavGroup[] = [
 
 export function DashboardNav() {
   const pathname = usePathname();
-  const [userProfile, setUserProfile] = useState<{ jurisdiction?: string, stripe_price_id?: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ jurisdiction?: string } | null>(null);
+  const [planTier, setPlanTier] = useState<"Starter" | "Plus" | "Pro">("Starter");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   useEffect(() => {
-    async function getProfile() {
+    async function getProfileAndPlan() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Fetch profile
         const { data } = await supabase
           .from("profiles")
-          .select("jurisdiction, stripe_price_id")
+          .select("jurisdiction")
           .eq("id", user.id)
           .single();
         setUserProfile(data);
+
+        // Fetch plan from API to ensure consistent server-side check
+        try {
+          const res = await fetch('/api/user-plan');
+          const planData = await res.json();
+          if (planData.plan) {
+            setPlanTier(planData.plan.charAt(0).toUpperCase() + planData.plan.slice(1));
+          }
+        } catch (err) {
+          console.error('Failed to fetch plan:', err);
+        }
       }
     }
-    getProfile();
+    getProfileAndPlan();
   }, []);
 
-  const isPlus = userProfile?.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID;
-  const isPro = userProfile?.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+  const isPlus = planTier === "Plus";
+  const isPro = planTier === "Pro";
   const jurisdiction = userProfile?.jurisdiction || "uk";
-
-  const getPlanTier = () => {
-    if (isPro) return "Pro";
-    if (isPlus) return "Plus";
-    return "Starter";
-  };
 
   const canAccess = (item: NavItem) => {
     if (isPro) return true;
@@ -128,7 +135,6 @@ export function DashboardNav() {
   };
 
   const jurInfo = getJurisdictionInfo();
-  const planTier = getPlanTier();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", color: "#FFFFFF", overflowY: "hidden", backgroundColor: "#0A1628" }}>
