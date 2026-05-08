@@ -9,6 +9,7 @@ const REPORT_DISCLAIMER =
   "IMPORTANT DISCLAIMER: This report has been drafted by Suitance AI software as a working draft only. It must be reviewed, verified, and approved by a suitably qualified FCA-authorised financial adviser before being provided to any client. The generating software is not FCA regulated. The adviser firm and individual adviser named in this report are solely responsible for the suitability, accuracy and compliance of all advice given to clients. This draft does not constitute regulated financial advice.";
 
 export async function POST(request: Request) {
+  console.log("ROUTE HIT: /api/generate-report");
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
