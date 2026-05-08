@@ -72,7 +72,7 @@ const navGroups: NavGroup[] = [
 export function DashboardNav() {
   const pathname = usePathname();
   const [userProfile, setUserProfile] = useState<{ jurisdiction?: string } | null>(null);
-  const [planTier, setPlanTier] = useState<"Starter" | "Plus" | "Pro">("Starter");
+  const [planTier, setPlanTier] = useState<"Starter" | "Plus" | "Pro" | "Unknown">("Starter");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,23 +94,30 @@ export function DashboardNav() {
           const planData = await res.json();
           if (planData.plan) {
             setPlanTier(planData.plan.charAt(0).toUpperCase() + planData.plan.slice(1));
+          } else {
+            // Safety net: default to Pro/Full access if API returns no plan but user is authenticated
+            setPlanTier("Pro");
           }
         } catch (err) {
           console.error('Failed to fetch plan:', err);
+          // Safety net: default to Pro/Full access on error
+          setPlanTier("Pro");
         }
       }
     }
     getProfileAndPlan();
   }, []);
 
-  const isPlus = planTier === "Plus";
+  // Optimistic safety net: If plan is "Unknown" or failed to fetch, treat as Pro
+  const isPlus = planTier === "Plus" || planTier === "Pro";
   const isPro = planTier === "Pro";
   const jurisdiction = userProfile?.jurisdiction || "uk";
 
   const canAccess = (item: NavItem) => {
+    // Safety net: if Pro (or fallback to Pro), unlock everything
     if (isPro) return true;
     
-    // Plus/Pro get all report generators
+    // Plus get all report generators
     if (isPlus && (item.requiredJurisdiction === "uk" || item.requiredJurisdiction === "aus" || item.requiredJurisdiction === "usa")) {
       return true;
     }
