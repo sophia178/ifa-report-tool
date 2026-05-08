@@ -1,9 +1,9 @@
 import { DashboardNav } from "@/components/dashboard-nav";
 import { requireUser } from "@/lib/auth";
-import { logout } from "@/app/auth/actions";
 import { LogOut, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ClientLogout } from "@/components/client-logout";
 
 export default async function DashboardLayout({
   children,
@@ -107,21 +107,7 @@ export default async function DashboardLayout({
                 {user.email?.[0].toUpperCase()}
               </div>
               
-              <form action={logout}>
-                <button 
-                  type="submit" 
-                  style={{ 
-                    padding: "8px", 
-                    color: "#8A94A6", 
-                    cursor: "pointer", 
-                    background: "none", 
-                    border: "none" 
-                  }}
-                  title="Sign out"
-                >
-                  <LogOut size={20} />
-                </button>
-              </form>
+              <ClientLogout />
             </div>
           </div>
         </header>

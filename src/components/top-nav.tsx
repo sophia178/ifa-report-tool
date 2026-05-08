@@ -1,11 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { logout } from "@/app/auth/actions";
 import { LogOut, LayoutDashboard } from "lucide-react";
 import { SuitanceLogo } from "./suitance-logo";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export function TopNav({ email }: { email?: string }) {
+  const router = useRouter();
+  const supabase = createClient();
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
   return (
     <nav style={{ 
       backgroundColor: "rgba(10, 22, 40, 0.8)", 
@@ -56,21 +66,19 @@ export function TopNav({ email }: { email?: string }) {
               Dashboard
             </Link>
             <div style={{ height: "24px", width: "1px", backgroundColor: "rgba(255, 255, 255, 0.1)" }}></div>
-            <form action={logout}>
-              <button 
-                type="submit" 
-                style={{ 
-                  color: "rgba(255, 255, 255, 0.5)", 
-                  cursor: "pointer", 
-                  background: "none", 
-                  border: "none", 
-                  padding: "4px" 
-                }}
-                title="Sign out"
-              >
-                <LogOut size={20} />
-              </button>
-            </form>
+            <button 
+              onClick={handleLogout}
+              style={{ 
+                color: "rgba(255, 255, 255, 0.5)", 
+                cursor: "pointer", 
+                background: "none", 
+                border: "none", 
+                padding: "4px" 
+              }}
+              title="Sign out"
+            >
+              <LogOut size={20} />
+            </button>
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>

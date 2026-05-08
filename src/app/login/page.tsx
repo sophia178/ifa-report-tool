@@ -1,13 +1,43 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { login } from "@/app/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import { TopNav } from "@/components/top-nav";
 
-type LoginPageProps = {
-  searchParams: Promise<{ error?: string }>;
-};
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const params = await searchParams;
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "An error occurred during login");
+      setIsLoading(false);
+    }
+  }
 
   return (
     <main style={{ backgroundColor: "#F8FAFC", minHeight: "100vh", padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -30,19 +60,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p style={{ fontSize: "15px", color: "#64748B", margin: 0 }}>Access your dashboard and saved reports</p>
           </div>
 
-          {params.error ? (
+          {error && (
             <div style={{ padding: "12px 16px", backgroundColor: "#FEF2F2", color: "#B91C1C", borderRadius: "8px", marginBottom: "24px", fontSize: "14px", border: "1px solid #FEE2E2" }}>
-              {params.error}
+              {error}
             </div>
-          ) : null}
+          )}
 
-          <form action={login} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <label htmlFor="email" style={{ fontSize: "14px", fontWeight: "600", color: "#374151" }}>Email</label>
               <input 
                 id="email" 
-                name="email" 
                 type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required 
                 placeholder="name@company.com"
                 style={{ 
@@ -61,8 +92,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <label htmlFor="password" style={{ fontSize: "14px", fontWeight: "600", color: "#374151" }}>Password</label>
               <input
                 id="password"
-                name="password"
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 minLength={8}
                 required
                 placeholder="••••••••"
@@ -83,6 +115,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
             <button 
               type="submit" 
+              disabled={isLoading}
               style={{ 
                 width: "100%", 
                 backgroundColor: "#0A1628", 
@@ -92,14 +125,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 fontWeight: "700", 
                 fontSize: "15px",
                 border: "none",
-                cursor: "pointer",
+                cursor: isLoading ? "not-allowed" : "pointer",
                 marginTop: "8px",
-                transition: "opacity 0.2s"
+                transition: "opacity 0.2s",
+                opacity: isLoading ? 0.7 : 1
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              Log in
+              {isLoading ? "Logging in..." : "Log in"}
             </button>
           </form>
 
