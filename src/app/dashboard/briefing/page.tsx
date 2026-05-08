@@ -1,297 +1,273 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Coffee, Loader2, Copy, Check, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Coffee, Loader2, Download, AlertCircle, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { format } from "date-fns";
-
-type Briefing = {
-  id: string;
-  briefing_text: string;
-  created_at: string;
-};
 
 export default function BriefingPage() {
   const router = useRouter();
-  const [briefings, setBriefings] = useState<Briefing[]>([]);
+  const [briefing, setBriefing] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [latestBriefing, setLatestBriefing] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-
-  const fetchBriefings = useCallback(async () => {
-    try {
-      const response = await fetch("/api/briefing");
-      const data = await response.json();
-      if (response.ok) {
-        setBriefings(data);
-        if (data.length > 0 && !latestBriefing) {
-          setLatestBriefing(data[0].briefing_text);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch briefings", err);
-    }
-  }, [latestBriefing]);
 
   useEffect(() => {
-    async function checkAccess() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+    async function fetchLatestBriefing() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("market_briefings")
+          .select("briefing_text")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscribed")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.subscribed) {
-        router.push("/pricing?message=subscribe");
-        return;
+        if (data) setBriefing(data.briefing_text);
+      } catch (err) {
+        console.error("Failed to fetch briefing", err);
       }
-
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
-      
-      if (plan === "starter" || plan === "plus") {
-        router.push("/pricing?message=upgrade-pro");
-        return;
-      }
-      
-      await fetchBriefings();
-      setIsLoading(false);
     }
-    checkAccess();
-  }, [router, fetchBriefings]);
+
+    async function checkAccessAndFetch() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscribed, stripe_price_id")
+          .eq("id", user.id)
+          .single();
+
+        if (!profile?.subscribed) {
+          router.push("/pricing?message=subscribe");
+          return;
+        }
+
+        const planRes = await fetch("/api/user-plan");
+        const planData = await planRes.json();
+        const plan = planData.plan || "starter";
+        
+        if (plan !== "pro") {
+          router.push("/pricing?message=upgrade-pro");
+          return;
+        }
+        
+        await fetchLatestBriefing();
+      } catch (err) {
+        console.error("Briefing page init error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    checkAccessAndFetch();
+  }, [router]);
 
   async function handleGenerate() {
     setIsGenerating(true);
     setError("");
-    setLatestBriefing(null);
 
     try {
-      const response = await fetch("/api/briefing", { method: "POST" });
+      const response = await fetch("/api/briefing", {
+        method: "POST",
+      });
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to generate briefing");
 
-      setLatestBriefing(data.briefingText);
-      await fetchBriefings();
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setBriefing(data.briefingText);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsGenerating(false);
     }
   }
 
-  function copyToClipboard() {
-    if (!latestBriefing) return;
-    navigator.clipboard.writeText(latestBriefing);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function renderFormattedContent(text: string) {
+    // 1. Remove all emojis
+    let cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}]/gu, '');
+    
+    // 2. Remove asterisks and other markdown symbols
+    cleanText = cleanText.replace(/[*_~`]/g, '');
+
+    // 3. Split by sections (handling both ## and ###)
+    const sections = cleanText.split(/^(?:##|###)\s+/m).filter(s => s.trim().length > 0);
+    
+    return (
+      <div style={{ fontFamily: '"Georgia", "Times New Roman", serif', lineHeight: "1.8", color: "#1A202C" }}>
+        {sections.map((section, idx) => {
+          const lines = section.split('\n');
+          const title = lines[0].trim();
+          const content = lines.slice(1).join('\n').trim();
+
+          // 4. Handle tables within content
+          const parts = content.split(/(\|[^\n]+\|\n(?:\|[:\-\s|]+\|\n)?(?:\|[^\n]+\|\n)*)/);
+
+          return (
+            <div key={idx} style={{ marginBottom: "48px" }}>
+              {title && (
+                <h2 style={{ 
+                  fontSize: "26px", 
+                  fontWeight: "700", 
+                  color: "#0A1628", 
+                  marginBottom: "24px",
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  borderBottom: "2px solid #F1F5F9",
+                  paddingBottom: "12px",
+                  letterSpacing: "-0.01em"
+                }}>
+                  {title}
+                </h2>
+              )}
+              
+              {parts.map((part, pIdx) => {
+                if (part.startsWith('|')) {
+                  // Render Table
+                  const rows = part.trim().split('\n').filter(r => !r.match(/^[|:\-\s]+$/));
+                  if (rows.length < 2) return null;
+
+                  const headers = rows[0].split('|').filter(c => c.trim().length > 0);
+                  const body = rows.slice(1).map(r => r.split('|').filter(c => c.trim().length > 0));
+
+                  return (
+                    <div key={pIdx} style={{ overflowX: "auto", marginBottom: "32px", marginTop: "12px" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid #0A1628" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "#0A1628" }}>
+                            {headers.map((h, hIdx) => (
+                              <th key={hIdx} style={{ padding: "14px 16px", border: "1px solid #0A1628", textAlign: "left", fontSize: "12px", fontWeight: "800", textTransform: "uppercase", color: "white", letterSpacing: "0.05em" }}>{h.trim()}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {body.map((row, rIdx) => (
+                            <tr key={rIdx} style={{ backgroundColor: rIdx % 2 === 0 ? "white" : "#F8FAFC" }}>
+                              {row.map((cell, cIdx) => (
+                                <td key={cIdx} style={{ padding: "14px 16px", border: "1px solid #E2E8F0", fontSize: "14px", color: "#1A202C", fontWeight: "500" }}>{cell.trim()}</td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                }
+
+                // Render Paragraphs
+                return part.split('\n\n').map((p, bIdx) => {
+                  if (!p.trim()) return null;
+                  return (
+                    <p key={`${pIdx}-${bIdx}`} style={{ marginBottom: "20px", fontSize: "17px", color: "#374151" }}>
+                      {p.trim()}
+                    </p>
+                  );
+                });
+              })}
+              <div style={{ height: "1px", backgroundColor: "#F1F5F9", width: "100%", marginTop: "32px" }} />
+            </div>
+          );
+        })}
+      </div>
+    );
   }
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "32px", alignItems: "start" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "20px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <Coffee size={32} color="#0A1628" style={{ display: "block", marginBottom: "8px" }} />
-                <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
-                  AI Daily Market Briefing
-                </h1>
-                <p style={{ color: "#64748B", margin: 0 }}>
-                  Get your professional morning briefing generated by AI.
-                </p>
-              </div>
-              <div style={{ flex: "1 1 300px" }}>
-                <button
-                  onClick={handleGenerate}
-                  disabled={isGenerating}
-                  style={{
-                    backgroundColor: "#0A1628",
-                    color: "white",
-                    padding: "14px 28px",
-                    borderRadius: "8px",
-                    fontSize: "15px",
-                    fontWeight: "600",
-                    border: "none",
-                    cursor: isGenerating ? "not-allowed" : "pointer",
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "10px",
-                    opacity: isGenerating ? 0.7 : 1
-                  }}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Generating Briefing...
-                    </>
-                  ) : (
-                    "Generate Today's Briefing"
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
-                {error}
-              </div>
-            )}
-
-            {latestBriefing ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingTop: "24px", borderTop: "1px solid #E5E7EB" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3 style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", margin: 0 }}>
-                    Today&apos;s Insight
-                  </h3>
-                  <button
-                    onClick={copyToClipboard}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "8px 16px",
-                      backgroundColor: "#F8FAFC",
-                      border: "1px solid #E5E7EB",
-                      borderRadius: "6px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      color: "#0A1628",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {copied ? (
-                      <>
-                        <Check size={16} />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={16} />
-                        Copy Briefing
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div style={{ 
-                  backgroundColor: "white", 
-                  borderRadius: "12px", 
-                  padding: "32px", 
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)", 
-                  lineHeight: "1.8",
-                  color: "#1E293B",
-                  maxHeight: "700px",
-                  overflowY: "auto"
-                }}>
-                  {latestBriefing.split('\n').map((line, i) => (
-                    <p key={i} style={{ 
-                      marginBottom: "16px",
-                      fontWeight: line.startsWith('SECTION') ? "800" : "normal",
-                      fontSize: line.startsWith('SECTION') ? "18px" : "15px",
-                      marginTop: line.startsWith('SECTION') ? "32px" : "0",
-                      color: line.startsWith('SECTION') ? "#0A1628" : "#334155",
-                      borderBottom: line.startsWith('SECTION') ? "1px solid #E5E7EB" : "none",
-                      paddingBottom: line.startsWith('SECTION') ? "8px" : "0"
-                    }}>
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            ) : !isGenerating && (
-              <div style={{ 
-                padding: "80px 40px", 
-                textAlign: "center", 
-                border: "2px dashed #E5E7EB", 
-                borderRadius: "12px", 
-                display: "flex", 
-                flexDirection: "column", 
-                gap: "16px", 
-                alignItems: "center" 
-              }}>
-                <div style={{ padding: "16px", borderRadius: "50%", backgroundColor: "#F8FAFC", color: "#0A1628" }}>
-                  <Coffee size={40} />
-                </div>
-                <p style={{ color: "#64748B", maxWidth: "320px", margin: "0 auto", fontSize: "15px" }}>
-                  Click the button above to generate your first AI market briefing.
-                </p>
-              </div>
-            )}
+    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "60px 48px", minHeight: "100vh", backgroundColor: "white" }}>
+      <div style={{ borderBottom: "4px solid #0A1628", paddingBottom: "40px", marginBottom: "60px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#C9A84C", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "13px", marginBottom: "16px" }}>
+            <Coffee size={18} />
+            Market Intelligence
           </div>
+          <h1 style={{ fontSize: "42px", fontWeight: "900", color: "#0A1628", margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            The Daily Briefing
+          </h1>
+        </div>
+        <div style={{ textAlign: "right", color: "#64748B", fontSize: "15px", fontWeight: "500" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "flex-end", marginBottom: "4px" }}>
+            <Calendar size={16} />
+            {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </div>
+          Ref: BRIEF-{new Date().toISOString().slice(0, 10).replace(/-/g, '')}
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        <h3 style={{ 
-          fontSize: "12px", 
-          fontWeight: "800", 
-          textTransform: "uppercase", 
-          letterSpacing: "0.1em", 
-          color: "#64748B", 
-          display: "flex", 
-          flexDirection: "column", 
-          gap: "8px", 
-          margin: 0 
-        }}>
-          <Calendar size={20} style={{ display: "block" }} />
-          Past Briefings
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {briefings.length > 0 ? (
-            briefings.map((b) => (
-              <button
-                key={b.id}
-                onClick={() => setLatestBriefing(b.briefing_text)}
-                style={{
-                  padding: "16px",
-                  borderRadius: "12px",
-                  border: latestBriefing === b.briefing_text ? "2px solid #0A1628" : "1px solid #E5E7EB",
-                  backgroundColor: latestBriefing === b.briefing_text ? "#F8FAFC" : "white",
-                  textAlign: "left",
-                  transition: "all 0.2s ease",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "4px"
-                }}
-              >
-                <div style={{ fontWeight: "700", color: "#0A1628", fontSize: "14px" }}>
-                  {format(new Date(b.created_at), "EEEE, dd MMM yyyy")}
-                </div>
-                <div style={{ fontSize: "12px", color: "#64748B" }}>
-                  {format(new Date(b.created_at), "HH:mm")}
-                </div>
-              </button>
-            ))
-          ) : (
-            <p style={{ fontSize: "13px", color: "#94A3B8", fontStyle: "italic", margin: 0 }}>
-              No history available yet.
-            </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
+        <div style={{ display: "flex", gap: "16px" }}>
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: "#0A1628",
+              color: "white",
+              borderRadius: "8px",
+              border: "none",
+              fontWeight: "700",
+              fontSize: "14px",
+              cursor: isGenerating ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              opacity: isGenerating ? 0.7 : 1
+            }}
+          >
+            {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Coffee size={18} />}
+            {isGenerating ? "Generating Briefing..." : "Generate New Briefing"}
+          </button>
+          
+          {briefing && (
+            <button style={{ padding: "12px 24px", backgroundColor: "#F4F6F9", color: "#0A1628", borderRadius: "8px", border: "1px solid #E2E8F0", fontWeight: "700", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <Download size={18} /> Download PDF
+            </button>
           )}
         </div>
-      </div>
+
+        {error && (
+          <div style={{ padding: "20px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "15px", display: "flex", alignItems: "center", gap: "12px" }}>
+            <AlertCircle size={20} />
+            {error}
+          </div>
+        )}
+
+        {briefing ? (
+          <div style={{ 
+            backgroundColor: "#FFFFFF", 
+            padding: "60px", 
+            borderRadius: "4px", 
+            border: "1px solid #E2E8F0", 
+            boxShadow: "0 10px 25px rgba(0,0,0,0.02)",
+            position: "relative"
+          }}>
+            {renderFormattedContent(briefing)}
+            
+            <div style={{ marginTop: "80px", paddingTop: "40px", borderTop: "1px solid #F1F5F9", textAlign: "center", color: "#94A3B8", fontSize: "13px", fontStyle: "italic" }}>
+              This briefing is intended for professional financial advisers only. All market data is delayed by at least 15 minutes.
+            </div>
+          </div>
+        ) : (
+          !isGenerating && (
+            <div style={{ padding: "120px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "16px", border: "2px dashed #E2E8F0" }}>
+              <Coffee size={64} color="#CBD5E1" style={{ marginBottom: "24px" }} />
+              <h3 style={{ fontSize: "20px", fontWeight: "700", color: "#0A1628", marginBottom: "12px" }}>No Briefing Active</h3>
+              <p style={{ color: "#64748B", maxWidth: "400px", margin: "0 auto" }}>Generate your daily intelligence briefing to see market analysis and strategic advice.</p>
+            </div>
+          )
+        )}
       </div>
     </div>
   );

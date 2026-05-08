@@ -226,12 +226,36 @@ export default function TradeJournalPage() {
             <label style={{ fontSize: "12px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>Rationale / Strategy</label>
             <textarea value={rationale} onChange={e => setRationale(e.target.value)} required rows={4} placeholder="Why did you take this trade?" style={{ padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", resize: "none" }} />
           </div>
-          <button type="submit" disabled={isSubmitting} 
-            onMouseEnter={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
-            onMouseLeave={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#0A1628"; }}
-            style={{ gridColumn: "span 2", padding: "14px", backgroundColor: "#0A1628", color: "white", borderRadius: "8px", border: "none", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer", transition: "background-color 0.2s" }}
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            style={{ 
+              gridColumn: "span 2",
+              padding: "14px", 
+              backgroundColor: "#C9A84C", 
+              color: "#0A1628", 
+              borderRadius: "8px", 
+              border: "none", 
+              fontWeight: "700", 
+              fontSize: "14px", 
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px"
+            }}
           >
-            {isSubmitting ? "Logging..." : "Log Trade"}
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+                Logging...
+              </>
+            ) : (
+              <>
+                <Plus size={16} />
+                Log Trade
+              </>
+            )}
           </button>
           {error && <p style={{ color: "#EF4444", fontSize: "12px", gridColumn: "span 2", margin: 0 }}>{error}</p>}
         </form>

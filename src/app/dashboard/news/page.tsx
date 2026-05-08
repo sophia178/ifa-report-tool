@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Newspaper, Loader2, Search, RefreshCw, Send, AlertTriangle, MessageSquare, TrendingUp } from "lucide-react";
+import { Newspaper, Loader2, Search, Send, AlertTriangle, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,46 +29,72 @@ export default function NewsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function checkAccess() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+    async function checkAccessAndFetch() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          router.push("/login");
+          return;
+        }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscribed, stripe_price_id")
-        .eq("id", user.id)
-        .single();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscribed, stripe_price_id")
+          .eq("id", user.id)
+          .single();
 
-      if (!profile?.subscribed) {
-        router.push("/pricing?message=subscribe");
-        return;
-      }
+        if (!profile?.subscribed) {
+          router.push("/pricing?message=subscribe");
+          return;
+        }
 
-      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
-      
-      if (!isPro) {
-        router.push("/pricing?message=upgrade-pro");
-        return;
+        const planRes = await fetch("/api/user-plan");
+        if (!planRes.ok) {
+          console.error("Failed to fetch user plan");
+          // Fallback to starter plan if fetch fails
+          await fetchBriefings();
+          return;
+        }
+        
+        const planData = await planRes.json();
+        const plan = planData.plan || "starter";
+        
+        if (plan !== "pro") {
+          router.push("/pricing?message=upgrade-pro");
+          return;
+        }
+        
+        await fetchBriefings();
+      } catch (err) {
+        console.error("News page initialization error:", err);
+        // Ensure briefings are fetched even if access check fails partially
+        try {
+          await fetchBriefings();
+        } catch (fetchErr) {
+          console.error("Secondary fetch error:", fetchErr);
+        }
+        setError("Failed to fully load page data. Some features may be limited.");
+      } finally {
+        setIsLoading(false);
       }
-      
-      await fetchBriefings();
-      setIsLoading(false);
     }
-    checkAccess();
+    checkAccessAndFetch();
   }, [router]);
 
   async function fetchBriefings() {
     try {
       const response = await fetch("/api/news");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to fetch briefings");
+      }
       const data = await response.json();
-      if (response.ok) setBriefings(data);
-    } catch (err) {
+      setBriefings(Array.isArray(data) ? data : []);
+    } catch (err: any) {
       console.error("Failed to fetch briefings", err);
+      // Don't set global error here to allow generation
     }
   }
 
@@ -90,6 +116,7 @@ export default function NewsPage() {
       if (!response.ok) throw new Error(data.error || "Failed to generate briefing");
 
       await fetchBriefings();
+      setKeywords("");
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -119,7 +146,6 @@ export default function NewsPage() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "32px", alignItems: "start" }}>
-        {/* Search Card */}
         <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
           <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
             <Search size={18} color="#C9A84C" />
@@ -142,13 +168,11 @@ export default function NewsPage() {
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !keywords.trim()}
-              onMouseEnter={(e) => { if (!isGenerating && keywords.trim()) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
-              onMouseLeave={(e) => { if (!isGenerating && keywords.trim()) e.currentTarget.style.backgroundColor = "#0A1628"; }}
               style={{
                 width: "100%",
                 padding: "12px",
-                backgroundColor: "#0A1628",
-                color: "white",
+                backgroundColor: "#C9A84C",
+                color: "#0A1628",
                 borderRadius: "8px",
                 border: "none",
                 fontWeight: "700",
@@ -159,16 +183,24 @@ export default function NewsPage() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "8px",
-                transition: "background-color 0.2s"
+                transition: "all 0.2s ease"
               }}
             >
-              {isGenerating ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-              {isGenerating ? "Generating..." : "Generate Briefing"}
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Send size={16} />
+                  Generate Briefing
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        {/* Results Section */}
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           {error && (
             <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -198,43 +230,32 @@ export default function NewsPage() {
                         <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: 0 }}>{item.implications}</p>
                       </div>
                       <div style={{ backgroundColor: "#F8FAFC", padding: "16px", borderRadius: "8px" }}>
-                        <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <MessageSquare size={14} />
-                          Adviser Note
-                        </h4>
-                        <p style={{ fontSize: "13px", color: "#475569", lineHeight: "1.5", margin: 0 }}>{item.adviserAdvice}</p>
+                        <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#C9A84C", textTransform: "uppercase", marginBottom: "8px" }}>Adviser Strategy</h4>
+                        <p style={{ fontSize: "14px", color: "#374151", lineHeight: "1.5", margin: 0, fontWeight: "500" }}>{item.adviserAdvice}</p>
                       </div>
                     </div>
-
-                    <div style={{ backgroundColor: "#FFFBEB", padding: "12px 16px", borderRadius: "8px", border: "1px solid #FEF3C7", display: "flex", alignItems: "start", gap: "12px" }}>
-                      <AlertTriangle size={16} color="#D97706" style={{ marginTop: "2px" }} />
-                      <div>
-                        <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#92400E", textTransform: "uppercase", marginBottom: "4px" }}>Risk Flags</h4>
-                        <p style={{ fontSize: "13px", color: "#92400E", margin: 0 }}>{item.riskFlags}</p>
+                    
+                    {item.riskFlags && (
+                      <div style={{ padding: "12px 16px", backgroundColor: "#FEF2F2", borderRadius: "8px", border: "1px solid #FEE2E2", display: "flex", alignItems: "start", gap: "12px" }}>
+                        <AlertTriangle size={16} color="#DC2626" style={{ marginTop: "2px" }} />
+                        <p style={{ fontSize: "13px", color: "#991B1B", margin: 0 }}>{item.riskFlags}</p>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ padding: "80px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px solid #E5E7EB" }}>
-              <Newspaper size={48} color="#CBD5E1" style={{ marginBottom: "16px" }} />
-              <p style={{ color: "#64748B", margin: 0 }}>No briefing generated yet. Enter keywords to start.</p>
-            </div>
+            !error && (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px", color: "#94A3B8", textAlign: "center", border: "2px dashed #E5E7EB", borderRadius: "16px" }}>
+                <Newspaper size={48} style={{ marginBottom: "16px", opacity: 0.5 }} />
+                <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", marginBottom: "8px" }}>No Briefing Active</h3>
+                <p style={{ fontSize: "15px", maxWidth: "300px" }}>Enter keywords on the left to generate your custom financial news briefing.</p>
+              </div>
+            )
           )}
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }

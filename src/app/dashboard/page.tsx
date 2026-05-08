@@ -1,8 +1,9 @@
 import { ReportStudio } from "@/components/report-studio";
 import { requireUser } from "@/lib/auth";
 import type { Report } from "@/types/report";
-import { FileText, Download, Calendar, ArrowRight } from "lucide-react";
+import { FileText, Download, Calendar, ArrowRight, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
+import { ClientReportsList } from "@/components/client-reports-list";
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
 
   const { data } = await supabase
     .from("reports")
-    .select("id, client_name, created_at, report_text")
+    .select("id, client_name, created_at, report_text, source_type")
     .order("created_at", { ascending: false });
 
   const reports: Report[] = (data ?? []).map((report) => ({
@@ -24,6 +25,7 @@ export default async function DashboardPage() {
     client_name: report.client_name,
     created_at: report.created_at,
     content: report.report_text,
+    source_type: report.source_type,
   }));
 
   const displayName = profile?.display_name || user.email?.split('@')[0] || "Adviser";
@@ -113,56 +115,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent Reports Section */}
-      {reports.length > 0 && (
-        <div style={{ marginBottom: "80px" }}>
-          <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Recent Reports
-          </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }}>
-            {reports.slice(0, 5).map((report) => (
-              <div key={report.id} style={{ 
-                backgroundColor: "#FFFFFF", 
-                borderRadius: "16px", 
-                padding: "24px", 
-                border: "1px solid #F0F2F5",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                  <div style={{ width: "48px", height: "48px", borderRadius: "12px", backgroundColor: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", color: "#5F6877" }}>
-                    <FileText size={20} />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", marginBottom: "4px" }}>{report.client_name}</h4>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#8A94A6", fontSize: "13px" }}>
-                      <Calendar size={14} />
-                      {new Date(report.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <button style={{ 
-                    padding: "10px 20px", 
-                    borderRadius: "8px", 
-                    backgroundColor: "#F4F6F9", 
-                    color: "#0A1628", 
-                    fontWeight: "600", 
-                    fontSize: "13px",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px"
-                  }}>
-                    <Download size={16} /> Download
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <ClientReportsList initialReports={reports} />
 
       {/* Full Studio for Action */}
       <div id="studio">

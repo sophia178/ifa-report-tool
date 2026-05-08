@@ -64,7 +64,11 @@ export default function CalendarPage() {
   }, [router]);
 
   async function getExplanation(event: EconomicEvent) {
-    if (event.explanation) return;
+    if (event.explanation) {
+      // Toggle off if already explained
+      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: undefined } : e));
+      return;
+    }
     setExplainingId(event.id);
 
     try {
@@ -77,9 +81,13 @@ export default function CalendarPage() {
       const data = await response.json();
       if (response.ok) {
         setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: data.explanation } : e));
+      } else {
+        console.error("Failed to get explanation:", data.error);
+        setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: `Analysis unavailable: ${data.error || 'Server error'}` } : e));
       }
     } catch (err) {
       console.error("Failed to get explanation", err);
+      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: "Failed to connect to AI analysis service. Please try again." } : e));
     } finally {
       setExplainingId(null);
     }

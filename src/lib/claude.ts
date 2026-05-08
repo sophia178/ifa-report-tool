@@ -83,6 +83,14 @@ function extractTextResponse(
     .join("\n");
 }
 
+function cleanJsonResponse(text: string): string {
+  return text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+}
+
 export async function generateSuitabilityReport(
   input: GenerateReportInput,
   templateContent?: string,
@@ -205,7 +213,7 @@ Return ONLY the JSON object.`;
   });
 
   const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
+  return JSON.parse(cleanJsonResponse(textResponse));
 }
 
 export async function generateRegulatoryUpdates(jurisdictions: string[]): Promise<any[]> {
@@ -225,11 +233,11 @@ Return ONLY a JSON array of objects, where each object has:
     model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
     max_tokens: 2048,
     system: systemPrompt,
-    messages: [{ role: "user", content: "Generate updates" }],
+    messages: [{ role: "user", content: `Generate 3-5 highly realistic and recent regulatory updates (2025-2026) for each of these jurisdictions: ${jurisdictions.join(", ")}. Focus on FCA (UK), SEC/FINRA (USA), and ASIC (Australia) style updates if relevant. Ensure the dates are realistic for the current period (late 2025 or early 2026).` }],
   });
 
   const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
+  return JSON.parse(cleanJsonResponse(textResponse));
 }
 
 export async function generateMarketBriefing(): Promise<string> {
@@ -260,7 +268,7 @@ export async function checkCompliance(text: string): Promise<any> {
   });
 
   const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
+  return JSON.parse(cleanJsonResponse(textResponse));
 }
 
 export async function draftClientEmail(context: any): Promise<string> {
@@ -321,7 +329,7 @@ export async function buildTradeStrategy(idea: string): Promise<any> {
   });
 
   const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
+  return JSON.parse(cleanJsonResponse(textResponse));
 }
 
 export async function analysePortfolioRisk(context: any): Promise<any> {
@@ -337,7 +345,7 @@ export async function analysePortfolioRisk(context: any): Promise<any> {
   });
 
   const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
+  return JSON.parse(cleanJsonResponse(textResponse));
 }
 
 export async function generateNewsBriefing(keywords: string[]): Promise<string> {
@@ -383,5 +391,5 @@ export async function analyseTrades(trades: any[]): Promise<any> {
   });
 
   const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
+  return JSON.parse(cleanJsonResponse(textResponse));
 }

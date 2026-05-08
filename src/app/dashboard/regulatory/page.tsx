@@ -166,14 +166,10 @@ export default function RegulatoryPage() {
           <button
             onClick={handleGenerate}
             disabled={isGenerating || selectedJurisdictions.length === 0}
-            onMouseEnter={(e) => { if (!isGenerating && selectedJurisdictions.length > 0) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
-            onMouseLeave={(e) => { if (!isGenerating && selectedJurisdictions.length > 0) e.currentTarget.style.backgroundColor = "#0A1628"; }}
             style={{
-              width: "100%",
-              marginTop: "24px",
-              padding: "12px",
-              backgroundColor: "#0A1628",
-              color: "white",
+              backgroundColor: "#C9A84C",
+              color: "#0A1628",
+              padding: "16px",
               borderRadius: "8px",
               border: "none",
               fontWeight: "700",
@@ -184,11 +180,20 @@ export default function RegulatoryPage() {
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-              transition: "background-color 0.2s"
+              transition: "all 0.2s ease"
             }}
           >
-            {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
-            {isGenerating ? "Updating..." : "Refresh Updates"}
+            {isGenerating ? (
+              <>
+                <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+                Generating...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={16} />
+                Generate Updates
+              </>
+            )}
           </button>
         </div>
 

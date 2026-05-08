@@ -201,11 +201,9 @@ export default function EmailsPage() {
         <button
           onClick={handleDraft}
           disabled={isDrafting || !clientName || !keyPoints}
-          onMouseEnter={(e) => { if (!isDrafting && clientName && keyPoints) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
-          onMouseLeave={(e) => { if (!isDrafting && clientName && keyPoints) e.currentTarget.style.backgroundColor = "#0A1628"; }}
           style={{
-            backgroundColor: "#0A1628",
-            color: "white",
+            backgroundColor: "#C9A84C",
+            color: "#0A1628",
             padding: "16px",
             borderRadius: "8px",
             border: "none",
@@ -217,11 +215,20 @@ export default function EmailsPage() {
             alignItems: "center",
             justifyContent: "center",
             gap: "8px",
-            transition: "background-color 0.2s"
+            transition: "all 0.2s ease"
           }}
         >
-          {isDrafting ? <Loader2 className="animate-spin" size={20} /> : <Mail size={20} />}
-          {isDrafting ? "Drafting..." : "Draft Professional Email"}
+          {isDrafting ? (
+            <>
+              <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+              Drafting...
+            </>
+          ) : (
+            <>
+              <Mail size={20} />
+              Draft Professional Email
+            </>
+          )}
         </button>
 
         {emailContent && (

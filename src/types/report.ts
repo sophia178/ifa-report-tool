@@ -3,4 +3,5 @@ export type Report = {
   content: string;
   client_name: string;
   created_at: string;
+  source_type?: "notes" | "audio";
 };

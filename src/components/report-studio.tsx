@@ -424,19 +424,14 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
             />
           </div>
 
-          {/* Sticky Footer Button */}
           <div style={{ 
-            position: "fixed", 
-            bottom: "0", 
-            left: "0", 
-            right: "0", 
+            marginTop: "40px",
+            position: "sticky", 
+            bottom: "20px", 
             backgroundColor: "white", 
-            padding: "20px", 
-            borderTop: "1px solid #E5E7EB",
-            boxShadow: "0 -4px 12px rgba(0,0,0,0.05)",
-            zIndex: 100,
-            display: "flex",
-            justifyContent: "center"
+            padding: "20px 0", 
+            borderTop: "1px solid #F1F5F9",
+            zIndex: 10,
           }}>
             <button
               type="submit"
@@ -445,7 +440,6 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
                 backgroundColor: "#C9A84C",
                 color: "#0A1628",
                 width: "100%",
-                maxWidth: "800px",
                 padding: "16px",
                 borderRadius: "12px",
                 fontSize: "16px",
@@ -457,13 +451,14 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
                 justifyContent: "center",
                 gap: "12px",
                 opacity: isSubmitting ? 0.7 : 1,
-                transition: "all 0.2s ease"
+                transition: "all 0.2s ease",
+                boxShadow: "0 10px 15px -3px rgba(201, 168, 76, 0.3)"
               }}
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "transparent", borderRadius: "50%" }} />
-                  {status || "Generating..."}
+                  <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+                  Generating your report...
                 </>
               ) : (
                 <>

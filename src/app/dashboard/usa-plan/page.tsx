@@ -155,8 +155,8 @@ export default function USAPlanPage() {
               onMouseLeave={() => setHoveredBtn(false)}
               style={{ 
                 padding: "16px", 
-                backgroundColor: "#0A1628", 
-                color: "#FFFFFF", 
+                backgroundColor: "#C9A84C", 
+                color: "#0A1628", 
                 borderRadius: "12px", 
                 fontWeight: "700", 
                 fontSize: "16px", 
@@ -168,11 +168,20 @@ export default function USAPlanPage() {
                 gap: "12px",
                 transition: "all 0.2s ease",
                 transform: hoveredBtn && !isGenerating ? "translateY(-1px)" : "none",
-                boxShadow: hoveredBtn && !isGenerating ? "0 4px 12px rgba(10, 22, 40, 0.15)" : "none"
+                boxShadow: hoveredBtn && !isGenerating ? "0 4px 12px rgba(201, 168, 76, 0.2)" : "none"
               }}
             >
-              {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Flag size={20} />}
-              {isGenerating ? "Generating Plan..." : "Generate USA Financial Plan"}
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+                  Generating Plan...
+                </>
+              ) : (
+                <>
+                  <Flag size={20} />
+                  Generate USA Financial Plan
+                </>
+              )}
             </button>
           </form>
         </div>

@@ -148,8 +148,8 @@ export default function CompliancePage() {
             onMouseEnter={() => setHoveredBtn(true)}
             onMouseLeave={() => setHoveredBtn(false)}
             style={{
-              backgroundColor: "#0A1628",
-              color: "white",
+              backgroundColor: "#C9A84C",
+              color: "#0A1628",
               padding: "16px 32px",
               borderRadius: "12px",
               border: "none",
@@ -164,11 +164,20 @@ export default function CompliancePage() {
               opacity: (isChecking || !text.trim()) ? 0.6 : 1,
               transition: "all 0.2s ease",
               transform: hoveredBtn && !isChecking && text.trim() ? "translateY(-1px)" : "none",
-              boxShadow: hoveredBtn && !isChecking && text.trim() ? "0 4px 12px rgba(10, 22, 40, 0.15)" : "none"
+              boxShadow: hoveredBtn && !isChecking && text.trim() ? "0 4px 12px rgba(201, 168, 76, 0.2)" : "none"
             }}
           >
-            {isChecking ? <Loader2 className="animate-spin" size={20} /> : <Shield size={20} />}
-            {isChecking ? "Analysing text..." : "Run Compliance Check"}
+            {isChecking ? (
+              <>
+                <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+                Analysing text...
+              </>
+            ) : (
+              <>
+                <Shield size={20} />
+                Run Compliance Check
+              </>
+            )}
           </button>
         </div>
 

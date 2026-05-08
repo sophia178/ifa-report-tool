@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldAlert, Loader2, Plus, Trash2, PieChart, Globe, AlertCircle, Star, AlertTriangle, TrendingUp } from "lucide-react";
+import { ShieldAlert, Loader2, Plus, Trash2, PieChart, Globe, AlertCircle, Star, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -30,6 +30,7 @@ export default function RiskPage() {
     { assetName: "", assetClass: assetClasses[0], region: regions[0], percentage: "" }
   ]);
   const [isAnalysing, setIsAnalysing] = useState(false);
+  const [hoveredBtn, setHoveredBtn] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -211,12 +212,41 @@ export default function RiskPage() {
 
             <button
               onClick={handleAnalyse}
-              disabled={isAnalysing}
-              onMouseEnter={(e) => { if (!isAnalysing) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
-              onMouseLeave={(e) => { if (!isAnalysing) e.currentTarget.style.backgroundColor = "#0A1628"; }}
-              style={{ width: "100%", padding: "14px", backgroundColor: "#0A1628", color: "white", borderRadius: "8px", border: "none", fontWeight: "700", fontSize: "15px", cursor: isAnalysing ? "not-allowed" : "pointer", marginTop: "12px", transition: "background-color 0.2s" }}
+              disabled={isAnalysing || holdings.some(h => !h.assetName || !h.percentage)}
+              onMouseEnter={() => setHoveredBtn(true)}
+              onMouseLeave={() => setHoveredBtn(false)}
+              style={{
+                backgroundColor: "#C9A84C",
+                color: "#0A1628",
+                width: "100%",
+                padding: "16px",
+                borderRadius: "12px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: (isAnalysing || holdings.some(h => !h.assetName || !h.percentage)) ? "not-allowed" : "pointer",
+                opacity: (isAnalysing || holdings.some(h => !h.assetName || !h.percentage)) ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                transition: "all 0.2s ease",
+                transform: hoveredBtn && !isAnalysing ? "translateY(-1px)" : "none",
+                boxShadow: hoveredBtn && !isAnalysing ? "0 4px 12px rgba(201, 168, 76, 0.2)" : "none",
+                marginTop: "12px"
+              }}
             >
-              {isAnalysing ? "Analysing..." : "Run Risk Assessment"}
+              {isAnalysing ? (
+                <>
+                  <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+                  Analysing...
+                </>
+              ) : (
+                <>
+                  <Activity size={18} />
+                  Analyse Portfolio Risk
+                </>
+              )}
             </button>
 
             {error && <p style={{ color: "#EF4444", fontSize: "12px", textAlign: "center", margin: 0 }}>{error}</p>}

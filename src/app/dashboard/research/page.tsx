@@ -122,11 +122,9 @@ export default function ResearchPage() {
         <button
           onClick={handleSummarise}
           disabled={isSummarising || !text.trim()}
-          onMouseEnter={(e) => { if (!isSummarising && text.trim()) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
-          onMouseLeave={(e) => { if (!isSummarising && text.trim()) e.currentTarget.style.backgroundColor = "#0A1628"; }}
           style={{
-            backgroundColor: "#0A1628",
-            color: "white",
+            backgroundColor: "#C9A84C",
+            color: "#0A1628",
             padding: "16px",
             borderRadius: "8px",
             border: "none",
@@ -138,12 +136,20 @@ export default function ResearchPage() {
             alignItems: "center",
             justifyContent: "center",
             gap: "8px",
-            width: "100%",
-            transition: "background-color 0.2s"
+            transition: "all 0.2s ease"
           }}
         >
-          {isSummarising ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
-          {isSummarising ? "Summarising..." : "Generate Research Summary"}
+          {isSummarising ? (
+            <>
+              <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
+              Summarising...
+            </>
+          ) : (
+            <>
+              <Search size={20} />
+              Summarise Research
+            </>
+          )}
         </button>
 
         {result && (

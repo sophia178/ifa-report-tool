@@ -144,10 +144,15 @@ export default function StrategyPage() {
                     className="btn w-full"
                     disabled={isBuilding || !idea.trim()}
                     onClick={handleBuild}
+                    style={{
+                      backgroundColor: "#C9A84C",
+                      color: "#0A1628",
+                      fontWeight: "700"
+                    }}
                   >
                     {isBuilding ? (
                       <>
-                        <Loader2 className="animate-spin mr-2" size={18} />
+                        <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%", marginRight: "8px" }} />
                         Building Strategy...
                       </>
                     ) : (

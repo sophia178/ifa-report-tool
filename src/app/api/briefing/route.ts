@@ -7,6 +7,11 @@ export const maxDuration = 60;
 
 export async function POST() {
   try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -35,10 +40,9 @@ export async function POST() {
     if (!data) throw new Error("Could not save briefing.");
 
     return NextResponse.json({ briefingText, id: data.id });
-  } catch (error) {
-    console.error("Market briefing error:", error);
-    const message = error instanceof Error ? error.message : "Unexpected error.";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error: any) {
+    console.error("Briefing API error:", error);
+    return NextResponse.json({ error: error.message || "Failed to generate briefing" }, { status: 500 });
   }
 }
 

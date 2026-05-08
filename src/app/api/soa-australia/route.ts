@@ -7,6 +7,11 @@ export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
