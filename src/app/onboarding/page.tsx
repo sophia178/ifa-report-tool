@@ -5,36 +5,44 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const jurisdictions = [
-  { id: "UK", name: "United Kingdom", regulator: "FCA regulated", flag: "🇬🇧" },
-  { id: "Australia", name: "Australia", regulator: "ASIC regulated", flag: "🇦🇺" },
-  { id: "USA", name: "United States", regulator: "SEC·FINRA regulated", flag: "🇺🇸" },
-  { id: "Multiple", name: "Multiple", regulator: "Global practice", flag: "🌍" },
+  { id: "uk", name: "United Kingdom", regulator: "FCA regulated", flag: "🇬🇧" },
+  { id: "aus", name: "Australia", regulator: "ASIC regulated", flag: "🇦🇺" },
+  { id: "usa", name: "United States", regulator: "SEC·FINRA regulated", flag: "🇺🇸" },
+  { id: "global", name: "Multiple", regulator: "Global practice", flag: "🌍" },
 ];
 
 export default function OnboardingPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
   async function handleSelection(id: string) {
     setSelected(id);
+  }
+
+  async function handleContinue() {
+    if (!selected) return;
+    
     setIsSubmitting(true);
+    setError(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+      if (!user) throw new Error("No user found. Please log in again.");
 
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from("profiles")
-        .update({ jurisdiction: id })
+        .update({ jurisdiction: selected })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      router.push("/pricing");
-    } catch (err) {
+      router.push("/dashboard");
+    } catch (err: any) {
       console.error("Failed to save jurisdiction:", err);
+      setError(err.message || "Failed to save your selection. Please try again.");
       setIsSubmitting(false);
     }
   }
@@ -46,8 +54,14 @@ export default function OnboardingPage() {
           Welcome to Suitance.
         </h1>
         <p style={{ fontSize: "18px", color: "#64748B", marginBottom: "48px" }}>
-          Where do you practise? We&apos;ll tailor your workspace to your regulatory environment.
+          Where do you practise? Starter members get the report generator for their jurisdiction. Upgrade to Plus to unlock all three.
         </p>
+
+        {error && (
+          <div style={{ backgroundColor: "#FEF2F2", color: "#B91C1C", padding: "12px", borderRadius: "8px", marginBottom: "24px", fontSize: "14px" }}>
+            {error}
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
           {jurisdictions.map((j) => (
@@ -87,6 +101,26 @@ export default function OnboardingPage() {
             </button>
           ))}
         </div>
+
+        <button
+          onClick={handleContinue}
+          disabled={!selected || isSubmitting}
+          style={{
+            backgroundColor: "#0A1628",
+            color: "white",
+            padding: "16px 48px",
+            borderRadius: "8px",
+            fontSize: "16px",
+            fontWeight: "700",
+            marginTop: "40px",
+            cursor: (!selected || isSubmitting) ? "not-allowed" : "pointer",
+            opacity: (!selected || isSubmitting) ? 0.4 : 1,
+            border: "none",
+            transition: "all 0.2s ease"
+          }}
+        >
+          {isSubmitting ? "Saving..." : "Continue"}
+        </button>
       </div>
     </main>
   );

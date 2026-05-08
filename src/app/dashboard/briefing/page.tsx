@@ -106,7 +106,8 @@ export default function BriefingPage() {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "32px", alignItems: "start" }}>
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "32px", alignItems: "start" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
         <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -290,6 +291,7 @@ export default function BriefingPage() {
             </p>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -15,6 +15,9 @@ type MarketData = {
   indices: MarketItem[];
   fx: MarketItem[];
   commodities: MarketItem[];
+  lastUpdated?: string;
+  warning?: string;
+  isLive?: boolean;
 };
 
 export default function MarketsPage() {
@@ -23,20 +26,20 @@ export default function MarketsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchMarketData = useCallback(async () => {
     setIsRefreshing(true);
+    setError("");
     try {
       const response = await fetch("/api/markets");
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to fetch markets");
       setData(result);
-      setLastUpdated(new Date());
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsRefreshing(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -52,7 +55,7 @@ export default function MarketsPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -61,29 +64,21 @@ export default function MarketsPage() {
         return;
       }
 
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
-      if (plan === "starter" || plan === "plus") {
+      if (!isPro) {
         router.push("/pricing?message=upgrade-pro");
         return;
       }
       
       await fetchMarketData();
-      setIsLoading(false);
     }
     checkAccess();
   }, [router, fetchMarketData]);
 
-  useEffect(() => {
-    if (isLoading) return;
-    const interval = setInterval(fetchMarketData, 60000);
-    return () => clearInterval(interval);
-  }, [isLoading, fetchMarketData]);
-
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
@@ -100,7 +95,7 @@ export default function MarketsPage() {
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         border: "1px solid #F0F2F5"
       }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -130,20 +125,22 @@ export default function MarketsPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "24px" }}>
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "24px", marginBottom: "40px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
             Market Intelligence
           </h1>
           <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
-            Real-time global market data terminal. Refreshes every 60s.
+            Professional market data terminal. Refreshed daily.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "16px", backgroundColor: "white", padding: "12px 20px", borderRadius: "12px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
           <div style={{ display: "flex", flexDirection: "column", textAlign: "right", paddingRight: "16px", borderRight: "1px solid #E5E7EB" }}>
             <span style={{ fontSize: "10px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase" }}>Last Update</span>
-            <span style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>{lastUpdated?.toLocaleTimeString()}</span>
+            <span style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>
+              {data?.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : "---"}
+            </span>
           </div>
           <button 
             onClick={fetchMarketData} 
@@ -164,8 +161,15 @@ export default function MarketsPage() {
         </div>
       </div>
 
+      {data?.warning && (
+        <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+          <ShieldAlert size={18} />
+          {data.warning}
+        </div>
+      )}
+
       {error && (
-        <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <ShieldAlert size={18} />
           {error}
         </div>
@@ -178,18 +182,18 @@ export default function MarketsPage() {
               <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Global Indices</h2>
               <div style={{ height: "1px", flex: 1, backgroundColor: "#E5E7EB" }}></div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
               {data.indices.map(renderCard)}
             </div>
           </section>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "48px" }}>
             <section style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                 <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Foreign Exchange</h2>
                 <div style={{ height: "1px", flex: 1, backgroundColor: "#E5E7EB" }}></div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
                 {data.fx.map(renderCard)}
               </div>
             </section>
@@ -199,21 +203,11 @@ export default function MarketsPage() {
                 <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Commodities</h2>
                 <div style={{ height: "1px", flex: 1, backgroundColor: "#E5E7EB" }}></div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
                 {data.commodities.map(renderCard)}
               </div>
             </section>
           </div>
-        </div>
-      )}
-
-      {!data && !error && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 0", gap: "24px" }}>
-          <div style={{ position: "relative" }}>
-            <div style={{ width: "64px", height: "64px", borderRadius: "50%", border: "4px solid #F1F5F9", borderTopColor: "#0A1628", animation: "spin 1s linear infinite" }}></div>
-            <TrendingUp style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: "#0A1628" }} size={24} />
-          </div>
-          <p style={{ color: "#64748B", fontWeight: "600" }}>Connecting to global data streams...</p>
         </div>
       )}
 

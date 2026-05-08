@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
-export const maxDuration = 60;
+export const maxDuration = 300; // Increased to 5 minutes for delayed fetching
 
 const API_KEY = process.env.NEXT_PUBLIC_ALPHA_VANTAGE_KEY;
 const BASE_URL = "https://www.alphavantage.co/query";
+
+async function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function fetchQuote(symbol: string) {
   const url = `${BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`;
@@ -29,7 +34,7 @@ async function fetchFX(from: string, to: string) {
   return {
     symbol: `${from}/${to}`,
     price: parseFloat(rate["5. Exchange Rate"]),
-    changePercent: "0.00%", // Free API doesn't give daily change easily for FX in this endpoint
+    changePercent: "0.00%",
   };
 }
 
@@ -51,75 +56,117 @@ async function fetchCommodity(func: string) {
 }
 
 export async function GET() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+  const adminSupabase = createAdminClient();
+  const serverSupabase = await createClient();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  try {
+    const { data: { user } } = await serverSupabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const isSubscribed = await checkSubscription(user.id);
-    if (!isSubscribed) {
-      return NextResponse.json({ error: "Subscription required" }, { status: 403 });
+    if (!isSubscribed) return NextResponse.json({ error: "Subscription required" }, { status: 403 });
+
+    // 1. Check Cache First
+    const { data: cache } = await adminSupabase
+      .from("market_data_cache")
+      .select("*")
+      .eq("id", "global_markets")
+      .single();
+
+    const isCacheFresh = cache && (new Date().getTime() - new Date(cache.updated_at).getTime() < 24 * 60 * 60 * 1000);
+
+    if (isCacheFresh) {
+      return NextResponse.json({
+        ...cache.data,
+        lastUpdated: cache.updated_at,
+        isLive: true
+      });
     }
 
-    // Due to free API limits, we'll fetch a subset or use a strategy
-    // For this demo/task, we'll try to fetch them. 
-    // In a real app with free tier, you'd cache this for all users.
-    
+    // 2. Fetch Fresh Data if cache missing or old
     const indicesSymbols = ["SPY", "QQQ", "^FTSE", "^GDAXI", "^N225", "^FCHI", "^HSI", "^AXJO", "DIA", "IWM"];
     const fxPairs = [["GBP", "USD"], ["EUR", "USD"], ["USD", "JPY"], ["GBP", "EUR"]];
 
     try {
-      const indices = await Promise.all(indicesSymbols.map(s => fetchQuote(s)));
-      const fx = await Promise.all(fxPairs.map(p => fetchFX(p[0], p[1])));
-      const oil = await fetchCommodity("WTI");
-      const gold = await fetchCommodity("GOLD");
-
-      const filteredIndices = indices.filter(Boolean);
-      const filteredFx = fx.filter(Boolean);
-      const filteredCommodities = [oil, gold].filter(Boolean);
-
-      // If we got almost nothing, use mock data as fallback
-      if (filteredIndices.length < 2) {
-        throw new Error("API Limit or empty response");
+      const indices: any[] = [];
+      for (const symbol of indicesSymbols) {
+        const quote = await fetchQuote(symbol);
+        if (quote) indices.push(quote);
+        await delay(500); // 500ms delay to avoid rate limit
       }
 
-      return NextResponse.json({
-        indices: filteredIndices,
-        fx: filteredFx,
-        commodities: filteredCommodities
+      const fx: any[] = [];
+      for (const pair of fxPairs) {
+        const rate = await fetchFX(pair[0], pair[1]);
+        if (rate) fx.push(rate);
+        await delay(500);
+      }
+
+      const oil = await fetchCommodity("WTI");
+      await delay(500);
+      const gold = await fetchCommodity("GOLD");
+
+      const marketData = {
+        indices: indices.filter(Boolean),
+        fx: fx.filter(Boolean),
+        commodities: [oil, gold].filter(Boolean)
+      };
+
+      if (marketData.indices.length < 2) throw new Error("API Limit Reached");
+
+      // Update Cache
+      await adminSupabase.from("market_data_cache").upsert({
+        id: "global_markets",
+        data: marketData,
+        updated_at: new Date().toISOString()
       });
-    } catch (e) {
-      console.warn("Alpha Vantage API limit or error, using mock fallback data");
+
       return NextResponse.json({
+        ...marketData,
+        lastUpdated: new Date().toISOString(),
+        isLive: true
+      });
+
+    } catch (e) {
+      console.error("Alpha Vantage fetch failed, using last known cache if available:", e);
+      
+      if (cache) {
+        return NextResponse.json({
+          ...cache.data,
+          lastUpdated: cache.updated_at,
+          isLive: false,
+          warning: "Live data temporarily unavailable — showing last known prices"
+        });
+      }
+
+      // Final fallback if no cache exists
+      const fallbackData = {
         indices: [
           { symbol: "S&P 500", price: 5137.08, changePercent: "+0.80%" },
           { symbol: "Nasdaq 100", price: 18302.91, changePercent: "+1.14%" },
           { symbol: "FTSE 100", price: 7682.50, changePercent: "+0.69%" },
           { symbol: "DAX 40", price: 17735.03, changePercent: "+0.32%" },
-          { symbol: "Nikkei 225", price: 39910.82, changePercent: "+1.90%" },
-          { symbol: "CAC 40", price: 7934.17, changePercent: "+0.09%" },
-          { symbol: "Hang Seng", price: 16589.44, changePercent: "+0.47%" },
-          { symbol: "ASX 200", price: 7745.60, changePercent: "+0.61%" },
-          { symbol: "Dow Jones", price: 39087.38, changePercent: "+0.23%" },
-          { symbol: "Russell 2000", price: 2076.39, changePercent: "+1.05%" }
+          { symbol: "Nikkei 225", price: 39910.82, changePercent: "+1.90%" }
         ],
         fx: [
           { symbol: "GBP/USD", price: 1.2655, changePercent: "-0.04%" },
-          { symbol: "EUR/USD", price: 1.0837, changePercent: "+0.02%" },
-          { symbol: "USD/JPY", price: 150.12, changePercent: "+0.11%" },
-          { symbol: "GBP/EUR", price: 1.1678, changePercent: "-0.06%" }
+          { symbol: "EUR/USD", price: 1.0837, changePercent: "+0.02%" }
         ],
         commodities: [
           { symbol: "Crude Oil (WTI)", price: 79.97, changePercent: "+2.19%" },
           { symbol: "Gold", price: 2082.90, changePercent: "+1.89%" }
         ]
+      };
+
+      return NextResponse.json({
+        ...fallbackData,
+        lastUpdated: new Date().toISOString(),
+        isLive: false,
+        warning: "Live data temporarily unavailable — showing default data"
       });
     }
   } catch (error) {
-    console.error("Market API error:", error);
-    return NextResponse.json({ error: "Failed to fetch market data" }, { status: 500 });
+    console.error("Fatal Market API error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

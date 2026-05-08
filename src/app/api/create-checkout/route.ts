@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     let priceId = process.env.STRIPE_PRICE_ID;
     if (plan === "plus") priceId = process.env.STRIPE_PLUS_PRICE_ID;
-    if (plan === "pro") priceId = process.env.STRIPE_PRO_PRICE_ID;
+    else if (plan === "pro") priceId = process.env.STRIPE_PRO_PRICE_ID;
 
     if (!priceId) {
       return NextResponse.json(

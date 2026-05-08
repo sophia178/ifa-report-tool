@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   const userEmail = user.email || "Adviser";
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 0" }}>
+    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 48px" }}>
       <div style={{ marginBottom: "64px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "8px" }}>
           Good morning, {userEmail.split('@')[0]}

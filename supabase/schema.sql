@@ -377,6 +377,24 @@ on public.white_label_settings
 for update
 using (auth.uid() = user_id);
 
+create table if not exists public.market_data_cache (
+  id text primary key, -- 'global_markets'
+  data jsonb not null,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+alter table public.market_data_cache enable row level security;
+
+create policy "Anyone can view market_data_cache"
+on public.market_data_cache
+for select
+using (true);
+
+create policy "Service role can manage market_data_cache"
+on public.market_data_cache
+for all
+using (true);
+
 create or replace function public.delete_user_account()
 returns void
 language plpgsql

@@ -27,7 +27,6 @@ export default function NewsPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -39,11 +38,9 @@ export default function NewsPage() {
         return;
       }
 
-      setUserEmail(user.email);
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -52,11 +49,9 @@ export default function NewsPage() {
         return;
       }
 
-      // Check if user has Pro plan
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
-      if (plan === "starter" || plan === "plus") {
+      if (!isPro) {
         router.push("/pricing?message=upgrade-pro");
         return;
       }
@@ -95,8 +90,8 @@ export default function NewsPage() {
       if (!response.ok) throw new Error(data.error || "Failed to generate briefing");
 
       await fetchBriefings();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -104,8 +99,8 @@ export default function NewsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -113,140 +108,130 @@ export default function NewsPage() {
   const latestBriefing = briefings[0];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1 stack gap-6">
-              <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] p-8">
-                <div className="stack gap-6">
-                  <div className="stack gap-2">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Newspaper className="text-[#c1a362]" />
-                      Financial News Feed
-                    </h2>
-                    <p className="text-gray-400 text-sm">
-                      Enter up to 5 keywords or assets to generate a structured AI briefing.
-                    </p>
-                  </div>
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "40px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          Financial News Feed
+        </h1>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
+          Generate AI-powered intelligence for your selected assets and topics.
+        </p>
+      </div>
 
-                  <div className="stack gap-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Keywords / Assets</label>
-                    <input
-                      className="input"
-                      placeholder="e.g. FTSE 100, interest rates, gilts..."
-                      value={keywords}
-                      onChange={(e) => setKeywords(e.target.value)}
-                    />
-                    <span className="text-[10px] text-gray-500 italic">Separate with commas (max 5)</span>
-                  </div>
-
-                  {error && <div className="alert alert-error text-sm">{error}</div>}
-
-                  <button
-                    className="btn w-full"
-                    disabled={isGenerating || !keywords.trim()}
-                    onClick={handleGenerate}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={18} />
-                        Generating Briefing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw size={18} className="mr-2" />
-                        Generate Briefing
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="stack gap-4">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-2">Past Briefings</h3>
-                {briefings.map((b) => (
-                  <button
-                    key={b.id}
-                    className="p-4 rounded-xl border border-[rgba(193,163,98,0.1)] bg-[rgba(15,23,40,0.2)] text-left hover:border-[#c1a362]/30 transition-all"
-                  >
-                    <div className="text-xs font-bold text-gray-300">
-                      {new Date(b.created_at).toLocaleDateString()} at {new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                    <div className="text-[10px] text-gray-500 mt-1 line-clamp-1 uppercase tracking-wider">
-                      {b.keywords.join(", ")}
-                    </div>
-                  </button>
-                ))}
-              </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "32px", alignItems: "start" }}>
+        {/* Search Card */}
+        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <Search size={18} color="#C9A84C" />
+            Track Assets
+          </h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>Keywords</label>
+              <input
+                type="text"
+                placeholder="e.g. FTSE 100, S&P 500, Gilts"
+                value={keywords}
+                onChange={(e) => setKeywords(e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "14px" }}
+              />
+              <span style={{ fontSize: "11px", color: "#94A3B8", fontStyle: "italic" }}>Separate with commas (max 5)</span>
             </div>
 
-            <div className="lg:col-span-2">
-              {latestBriefing ? (
-                <div className="stack gap-6 fade-in">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold">Latest Briefing</h3>
-                    <span className="text-[10px] font-bold text-[#c1a362] bg-[#c1a362]/10 px-2 py-1 rounded uppercase tracking-widest">
-                      AI Generated
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-8">
-                    {latestBriefing.briefing_json.map((item, i) => (
-                      <div key={i} className="card border border-[rgba(193,163,98,0.15)] bg-[rgba(15,23,40,0.4)] overflow-hidden">
-                        <div className="p-6 border-b border-[rgba(193,163,98,0.1)] bg-gradient-to-r from-[rgba(193,163,98,0.05)] to-transparent">
-                          <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-[#c1a362]"></div>
-                            <h4 className="text-xl font-bold text-white uppercase tracking-wider">{item.topic}</h4>
-                          </div>
-                        </div>
-                        
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div className="stack gap-6">
-                            <div className="stack gap-2">
-                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                <Search size={12} />
-                                Latest Developments
-                              </span>
-                              <p className="text-sm text-gray-300 leading-relaxed">{item.developments}</p>
-                            </div>
-                            <div className="stack gap-2">
-                              <span className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest flex items-center gap-2">
-                                <TrendingUp size={12} />
-                                Market Implications
-                              </span>
-                              <p className="text-sm text-gray-200 leading-relaxed italic">{item.implications}</p>
-                            </div>
-                          </div>
-
-                          <div className="stack gap-6">
-                            <div className="p-5 rounded-2xl bg-[#c1a362]/5 border border-[#c1a362]/10 stack gap-3">
-                              <span className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest flex items-center gap-2">
-                                <MessageSquare size={14} />
-                                Client Communication Advice
-                              </span>
-                              <p className="text-sm text-gray-300 leading-relaxed">&ldquo;{item.adviserAdvice}&rdquo;</p>
-                            </div>
-                            <div className="p-5 rounded-2xl bg-red-500/5 border border-red-500/10 stack gap-3">
-                              <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest flex items-center gap-2">
-                                <AlertTriangle size={14} />
-                                Urgent Risk Flags
-                              </span>
-                              <p className="text-sm text-gray-300 leading-relaxed">{item.riskFlags}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : !isGenerating ? (
-                <div className="card border border-dashed border-[rgba(193,163,98,0.2)] bg-transparent p-20 text-center stack gap-4 items-center justify-center h-full">
-                  <div className="p-4 rounded-full bg-[rgba(193,163,98,0.05)] text-[#c1a362]">
-                    <Newspaper size={48} />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-300">No News Briefings Yet</h3>
-                  <p className="text-gray-500 max-w-xs mx-auto">Enter keywords on the left and click Generate Briefing to get your first custom report.</p>
-                </div>
-              ) : null}
-            </div>
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || !keywords.trim()}
+              style={{
+                width: "100%",
+                padding: "12px",
+                backgroundColor: "#0A1628",
+                color: "white",
+                borderRadius: "8px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: (isGenerating || !keywords.trim()) ? "not-allowed" : "pointer",
+                opacity: (isGenerating || !keywords.trim()) ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px"
+              }}
+            >
+              {isGenerating ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+              {isGenerating ? "Generating..." : "Generate Briefing"}
+            </button>
           </div>
+        </div>
+
+        {/* Results Section */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {error && (
+            <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+              <AlertTriangle size={18} />
+              {error}
+            </div>
+          )}
+
+          {latestBriefing ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {latestBriefing.briefing_json.map((item, idx) => (
+                <div key={idx} style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+                    <TrendingUp size={18} color="#C9A84C" />
+                    {item.topic}
+                  </h3>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    <div>
+                      <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", marginBottom: "8px" }}>Key Developments</h4>
+                      <p style={{ fontSize: "15px", color: "#374151", lineHeight: "1.6", margin: 0 }}>{item.developments}</p>
+                    </div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                      <div>
+                        <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", marginBottom: "8px" }}>Implications</h4>
+                        <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: 0 }}>{item.implications}</p>
+                      </div>
+                      <div style={{ backgroundColor: "#F8FAFC", padding: "16px", borderRadius: "8px" }}>
+                        <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <MessageSquare size={14} />
+                          Adviser Note
+                        </h4>
+                        <p style={{ fontSize: "13px", color: "#475569", lineHeight: "1.5", margin: 0 }}>{item.adviserAdvice}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ backgroundColor: "#FFFBEB", padding: "12px 16px", borderRadius: "8px", border: "1px solid #FEF3C7", display: "flex", alignItems: "start", gap: "12px" }}>
+                      <AlertTriangle size={16} color="#D97706" style={{ marginTop: "2px" }} />
+                      <div>
+                        <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#92400E", textTransform: "uppercase", marginBottom: "4px" }}>Risk Flags</h4>
+                        <p style={{ fontSize: "13px", color: "#92400E", margin: 0 }}>{item.riskFlags}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: "80px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px solid #E5E7EB" }}>
+              <Newspaper size={48} color="#CBD5E1" style={{ marginBottom: "16px" }} />
+              <p style={{ color: "#64748B", margin: 0 }}>No briefing generated yet. Enter keywords to start.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+    </div>
   );
 }

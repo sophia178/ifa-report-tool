@@ -12,9 +12,9 @@ const tiers = [
     id: "starter",
     name: "STARTER",
     price: "£19",
-    description: "Perfect for sole practitioners and paraplanners.",
+    description: "Perfect for sole practitioners. Get the report generator for your regulatory jurisdiction.",
     features: [
-      "UK FCA suitability reports",
+      "1 jurisdiction report generator (FCA, ASIC, or SEC/FINRA)",
       "Research summariser",
       "Client email drafter",
       "20 reports per month",
@@ -27,12 +27,12 @@ const tiers = [
     id: "plus",
     name: "PLUS",
     price: "£49",
-    description: "Comprehensive tools for professional advisers.",
+    description: "All three jurisdictions unlocked plus compliance tools.",
     features: [
       "Everything in Starter",
-      "Australian SOA generator",
-      "USA financial plan generator",
+      "All 3 report generators (FCA, ASIC, SEC/FINRA)",
       "Compliance checker",
+      "Regulatory Update Alerts",
       "Unlimited reports",
     ],
     isPopular: true,
@@ -67,8 +67,8 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
   const isSubscribed = user ? await checkSubscription(user.id) : false;
 
   return (
-    <main style={{ backgroundColor: "white", minHeight: "100vh" }}>
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "80px 48px" }}>
+    <main style={{ backgroundColor: "white", minHeight: "100vh", paddingTop: "100px" }}>
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 48px" }}>
         <TopNav email={user?.email} />
 
         {params.message === "subscribe" ? (

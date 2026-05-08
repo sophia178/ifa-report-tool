@@ -32,7 +32,6 @@ export default function RegulatoryPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -44,11 +43,9 @@ export default function RegulatoryPage() {
         return;
       }
 
-      setUserEmail(user.email);
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -57,11 +54,10 @@ export default function RegulatoryPage() {
         return;
       }
 
-      // Check if user has at least Plus plan
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
+      const isPlus = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID;
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
-      if (plan === "starter") {
+      if (!isPlus && !isPro) {
         router.push("/pricing?message=upgrade");
         return;
       }
@@ -98,8 +94,8 @@ export default function RegulatoryPage() {
       if (!response.ok) throw new Error(data.error || "Failed to generate updates");
 
       await fetchSummaries();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -113,8 +109,8 @@ export default function RegulatoryPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -122,126 +118,125 @@ export default function RegulatoryPage() {
   const latestSummary = summaries[0];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1 stack gap-6">
-              <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] p-8">
-                <div className="stack gap-6">
-                  <div className="stack gap-2">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Bell className="text-[#c1a362]" />
-                      Regulatory Alerts
-                    </h2>
-                    <p className="text-gray-400 text-sm">
-                      Select your jurisdictions to generate an AI-powered regulatory update.
-                    </p>
-                  </div>
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          Regulatory Alerts
+        </h1>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
+          Monitor global regulatory changes and impact assessments.
+        </p>
+      </div>
 
-                  <div className="stack gap-3">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Jurisdictions</label>
-                    {availableJurisdictions.map((j) => (
-                      <button
-                        key={j.id}
-                        onClick={() => toggleJurisdiction(j.id)}
-                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                          selectedJurisdictions.includes(j.id)
-                            ? "bg-[#c1a362]/10 border-[#c1a362] text-[#c1a362]"
-                            : "border-[rgba(193,163,98,0.1)] bg-[rgba(15,23,40,0.3)] text-gray-500 hover:border-[#c1a362]/30"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Globe size={18} />
-                          <span className="font-medium">{j.label}</span>
-                        </div>
-                        {selectedJurisdictions.includes(j.id) && <CheckCircle2 size={18} />}
-                      </button>
-                    ))}
-                  </div>
-
-                  {error && <div className="alert alert-error text-sm">{error}</div>}
-
-                  <button
-                    className="btn w-full"
-                    disabled={isGenerating || selectedJurisdictions.length === 0}
-                    onClick={handleGenerate}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={18} />
-                        Checking Updates...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw size={18} className="mr-2" />
-                        Check for Updates
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="stack gap-4">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-2">History</h3>
-                {summaries.map((s) => (
-                  <button
-                    key={s.id}
-                    className="p-4 rounded-xl border border-[rgba(193,163,98,0.1)] bg-[rgba(15,23,40,0.2)] text-left hover:border-[#c1a362]/30 transition-all"
-                  >
-                    <div className="text-xs font-bold text-gray-300">
-                      {new Date(s.created_at).toLocaleDateString()} at {new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                    <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider">
-                      {s.jurisdictions.join(", ")}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="lg:col-span-2">
-              {latestSummary ? (
-                <div className="stack gap-6 fade-in">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold">Recent Updates</h3>
-                    <span className="text-xs text-gray-500 italic">Last generated {new Date(latestSummary.created_at).toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div className="stack gap-6">
-                    {latestSummary.updates.map((update, i) => (
-                      <div key={i} className="card border border-[rgba(193,163,98,0.15)] bg-[rgba(15,23,40,0.4)] overflow-hidden">
-                        <div className="p-6 border-b border-[rgba(193,163,98,0.1)] flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="stack gap-1">
-                            <span className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest">Regulation</span>
-                            <h4 className="text-lg font-bold text-gray-100">{update.regulationName}</h4>
-                          </div>
-                          <div className="px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold flex items-center gap-2 shrink-0">
-                            <AlertTriangle size={14} />
-                            Takes effect: {update.effectiveDate}
-                          </div>
-                        </div>
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div className="stack gap-2">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">What Changed</span>
-                            <p className="text-sm text-gray-300 leading-relaxed">{update.whatChanged}</p>
-                          </div>
-                          <div className="stack gap-2">
-                            <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Action Required</span>
-                            <p className="text-sm text-gray-200 leading-relaxed font-medium">{update.actionRequired}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="card border border-dashed border-[rgba(193,163,98,0.2)] bg-transparent p-20 text-center stack gap-4 items-center justify-center h-full">
-                  <div className="p-4 rounded-full bg-[rgba(193,163,98,0.05)] text-[#c1a362]">
-                    <Bell size={48} />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-300">No Updates Generated</h3>
-                  <p className="text-gray-500 max-w-xs mx-auto">Select your jurisdictions on the left and click Check for Updates.</p>
-                </div>
-              )}
-            </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "32px", alignItems: "start" }}>
+        {/* Selection Card */}
+        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <Globe size={18} color="#C9A84C" />
+            Jurisdictions
+          </h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {availableJurisdictions.map((j) => (
+              <button
+                key={j.id}
+                onClick={() => toggleJurisdiction(j.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  borderColor: selectedJurisdictions.includes(j.id) ? "#C9A84C" : "#E5E7EB",
+                  backgroundColor: selectedJurisdictions.includes(j.id) ? "#FFFBF0" : "white",
+                  color: selectedJurisdictions.includes(j.id) ? "#0A1628" : "#64748B",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                {j.label}
+                {selectedJurisdictions.includes(j.id) && <CheckCircle2 size={16} color="#C9A84C" />}
+              </button>
+            ))}
           </div>
+
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating || selectedJurisdictions.length === 0}
+            style={{
+              width: "100%",
+              marginTop: "24px",
+              padding: "12px",
+              backgroundColor: "#0A1628",
+              color: "white",
+              borderRadius: "8px",
+              border: "none",
+              fontWeight: "700",
+              fontSize: "14px",
+              cursor: (isGenerating || selectedJurisdictions.length === 0) ? "not-allowed" : "pointer",
+              opacity: (isGenerating || selectedJurisdictions.length === 0) ? 0.6 : 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px"
+            }}
+          >
+            {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+            {isGenerating ? "Updating..." : "Refresh Updates"}
+          </button>
+        </div>
+
+        {/* Results Section */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {error && (
+            <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+              <AlertTriangle size={18} />
+              {error}
+            </div>
+          )}
+
+          {latestSummary ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {latestSummary.updates.map((update, idx) => (
+                <div key={idx} style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{update.regulationName}</h3>
+                    <span style={{ fontSize: "12px", fontWeight: "700", backgroundColor: "#F1F5F9", color: "#64748B", padding: "4px 10px", borderRadius: "4px" }}>
+                      Effective: {update.effectiveDate}
+                    </span>
+                  </div>
+                  <div style={{ marginBottom: "20px" }}>
+                    <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", marginBottom: "8px" }}>Summary</h4>
+                    <p style={{ fontSize: "15px", color: "#374151", lineHeight: "1.6", margin: 0 }}>{update.whatChanged}</p>
+                  </div>
+                  <div style={{ backgroundColor: "#F8FAFC", padding: "16px", borderRadius: "8px", borderLeft: "4px solid #C9A84C" }}>
+                    <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "8px" }}>Action Required</h4>
+                    <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: 0 }}>{update.actionRequired}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: "80px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px solid #E5E7EB" }}>
+              <Bell size={48} color="#CBD5E1" style={{ marginBottom: "16px" }} />
+              <p style={{ color: "#64748B", margin: 0 }}>No updates generated yet. Click refresh to start.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+    </div>
   );
 }

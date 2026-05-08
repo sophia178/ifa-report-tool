@@ -28,7 +28,7 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh", overflowY: "auto" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh", overflowY: "auto", paddingTop: "0" }}>
         <header style={{ 
           height: "64px", 
           backgroundColor: "#FFFFFF", 

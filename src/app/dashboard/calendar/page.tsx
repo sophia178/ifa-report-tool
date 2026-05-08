@@ -29,7 +29,6 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<EconomicEvent[]>(mockEvents);
   const [isLoading, setIsLoading] = useState(true);
   const [explainingId, setExplainingId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -41,11 +40,9 @@ export default function CalendarPage() {
         return;
       }
 
-      setUserEmail(user.email);
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -54,11 +51,9 @@ export default function CalendarPage() {
         return;
       }
 
-      // Check if user has Pro plan
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
-      if (plan === "starter" || plan === "plus") {
+      if (!isPro) {
         router.push("/pricing?message=upgrade-pro");
         return;
       }
@@ -92,87 +87,123 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case "High": return "bg-red-500/10 text-red-500 border-red-500/20";
-      case "Medium": return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-      case "Low": return "bg-green-500/10 text-green-500 border-green-500/20";
-      default: return "bg-gray-500/10 text-gray-500 border-gray-500/20";
+      case "High": return { bg: "#FEF2F2", text: "#DC2626", border: "#FEE2E2" };
+      case "Medium": return { bg: "#FFFBEB", text: "#D97706", border: "#FEF3C7" };
+      case "Low": return { bg: "#F0FDF4", text: "#16A34A", border: "#DCFCE7" };
+      default: return { bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" };
     }
   };
 
   return (
-    <div className="stack gap-8">
-      <div className="stack gap-2">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Calendar className="text-[#c1a362]" />
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Economic Calendar
-        </h2>
-        <p className="text-gray-400">
-          Major upcoming economic events for the next 30 days with AI-powered adviser insights.
+        </h1>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
+          Major upcoming economic events with AI-powered adviser insights.
         </p>
       </div>
 
-            <div className="stack gap-4">
-              {events.map((event) => (
-                <div key={event.id} className="card border border-[rgba(193,163,98,0.15)] overflow-hidden bg-[rgba(15,23,40,0.4)]">
-                  <div 
-                    className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-[rgba(193,163,98,0.05)] transition-colors"
-                    onClick={() => getExplanation(event)}
-                  >
-                    <div className="stack gap-1">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                        {format(new Date(event.date), "EEEE, dd MMMM yyyy")}
-                      </span>
-                      <h3 className="text-lg font-bold text-gray-200">{event.title}</h3>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getImpactColor(event.impact)}`}>
-                        {event.impact} Impact
-                      </span>
-                      <ChevronRight className={`text-gray-600 transition-transform ${event.explanation ? 'rotate-90' : ''}`} size={20} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {events.map((event) => {
+          const colors = getImpactColor(event.impact);
+          return (
+            <div key={event.id} style={{ backgroundColor: "white", borderRadius: "12px", border: "1px solid #E5E7EB", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+              <div 
+                onClick={() => getExplanation(event)}
+                style={{ 
+                  padding: "24px", 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  cursor: "pointer",
+                  transition: "background-color 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#F8FAFC"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    {format(new Date(event.date), "EEEE, dd MMMM yyyy")}
+                  </span>
+                  <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{event.title}</h3>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <span style={{ 
+                    padding: "4px 12px", 
+                    borderRadius: "9999px", 
+                    fontSize: "12px", 
+                    fontWeight: "700", 
+                    backgroundColor: colors.bg, 
+                    color: colors.text, 
+                    border: `1px solid ${colors.border}` 
+                  }}>
+                    {event.impact} Impact
+                  </span>
+                  <ChevronRight 
+                    size={20} 
+                    color="#94A3B8" 
+                    style={{ 
+                      transition: "transform 0.2s", 
+                      transform: event.explanation ? "rotate(90deg)" : "none" 
+                    }} 
+                  />
+                </div>
+              </div>
+
+              {(event.explanation || explainingId === event.id) && (
+                <div style={{ padding: "0 24px 24px 24px" }}>
+                  <div style={{ backgroundColor: "#F8FAFC", padding: "20px", borderRadius: "8px", border: "1px solid #E5E7EB", display: "flex", gap: "16px" }}>
+                    <Info size={18} color="#C9A84C" style={{ flexShrink: 0, marginTop: "2px" }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", color: "#C9A84C", textTransform: "uppercase" }}>Adviser Insight</span>
+                      {explainingId === event.id ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#64748B", fontSize: "14px" }}>
+                          <Loader2 className="animate-spin" size={14} />
+                          Analysing event...
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: "14px", color: "#374151", lineHeight: "1.6", margin: 0, fontStyle: "italic" }}>
+                          {event.explanation}
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  {(event.explanation || explainingId === event.id) && (
-                    <div className="px-6 pb-6 pt-0 fade-in">
-                      <div className="p-4 rounded-lg bg-[rgba(193,163,98,0.05)] border border-[rgba(193,163,98,0.1)] flex gap-4">
-                        <Info className="text-[#c1a362] shrink-0 mt-1" size={18} />
-                        <div className="stack gap-2">
-                          <span className="text-xs font-bold text-[#c1a362] uppercase tracking-wider">Adviser Insight</span>
-                          {explainingId === event.id ? (
-                            <div className="flex items-center gap-2 text-gray-500 text-sm">
-                              <Loader2 className="animate-spin" size={14} />
-                              Claude is analysing this event...
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-300 leading-relaxed italic">
-                              {event.explanation}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              ))}
+              )}
             </div>
+          );
+        })}
+      </div>
 
-            <div className="p-6 rounded-xl bg-amber-500/5 border border-amber-500/20 flex gap-4 items-start">
-              <AlertTriangle className="text-amber-500 shrink-0" size={20} />
-              <div className="stack gap-1">
-                <span className="text-sm font-bold text-amber-500 uppercase">Pro Tip</span>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  These events often trigger volatility. Ensure your clients are aware of the potential for short-term market moves around these dates, especially for BOE and Fed decisions.
-                </p>
-              </div>
-            </div>
-          </div>
+      <div style={{ padding: "24px", backgroundColor: "#FFFBEB", borderRadius: "12px", border: "1px solid #FEF3C7", display: "flex", gap: "16px", alignItems: "start" }}>
+        <AlertTriangle size={20} color="#D97706" style={{ flexShrink: 0 }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "14px", fontWeight: "800", color: "#D97706", textTransform: "uppercase" }}>Pro Tip</span>
+          <p style={{ fontSize: "13px", color: "#92400E", lineHeight: "1.5", margin: 0 }}>
+            These events often trigger volatility. Ensure your clients are aware of potential short-term market moves around these dates, especially for central bank decisions.
+          </p>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+    </div>
   );
 }

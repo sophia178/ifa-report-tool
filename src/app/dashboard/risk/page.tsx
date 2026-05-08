@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldAlert, Loader2, Plus, Trash2, PieChart, Globe, AlertCircle, Star } from "lucide-react";
+import { ShieldAlert, Loader2, Plus, Trash2, PieChart, Globe, AlertCircle, Star, AlertTriangle, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -33,7 +33,6 @@ export default function RiskPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -45,11 +44,9 @@ export default function RiskPage() {
         return;
       }
 
-      setUserEmail(user.email);
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -58,11 +55,9 @@ export default function RiskPage() {
         return;
       }
 
-      // Check if user has Pro plan
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
-      if (plan === "starter" || plan === "plus") {
+      if (!isPro) {
         router.push("/pricing?message=upgrade-pro");
         return;
       }
@@ -110,8 +105,8 @@ export default function RiskPage() {
       if (!response.ok) throw new Error(data.error || "Failed to analyse risk");
 
       setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
     } finally {
       setIsAnalysing(false);
     }
@@ -119,207 +114,163 @@ export default function RiskPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
 
   const getRiskColor = (score: number) => {
-    if (score <= 3) return "text-green-500";
-    if (score <= 7) return "text-amber-500";
-    return "text-red-500";
+    if (score <= 3) return "#10B981";
+    if (score <= 7) return "#F59E0B";
+    return "#EF4444";
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
-              <div className="p-8 stack gap-6">
-                <div className="stack gap-2">
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <ShieldAlert className="text-[#c1a362]" />
-                    Portfolio Risk Analyser
-                  </h2>
-                  <p className="text-gray-400">
-                    Input up to 10 holdings to get an AI-powered risk and diversification assessment.
-                  </p>
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          Portfolio Risk Analyser
+        </h1>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
+          AI-powered risk and diversification assessment for client portfolios.
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", alignItems: "start" }}>
+        {/* Input Card */}
+        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", marginBottom: "20px" }}>Portfolio Holdings</h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {holdings.map((holding, index) => (
+              <div key={index} style={{ padding: "16px", backgroundColor: "#F8FAFC", borderRadius: "8px", border: "1px solid #E5E7EB", display: "flex", flexDirection: "column", gap: "12px", position: "relative" }}>
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <div style={{ flex: 2 }}>
+                    <label style={{ fontSize: "10px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase" }}>Asset Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. S&P 500 ETF"
+                      value={holding.assetName}
+                      onChange={(e) => updateHolding(index, "assetName", e.target.value)}
+                      style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #E5E7EB", fontSize: "13px" }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: "10px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase" }}>Weight (%)</label>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={holding.percentage}
+                      onChange={(e) => updateHolding(index, "percentage", e.target.value)}
+                      style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #E5E7EB", fontSize: "13px" }}
+                    />
+                  </div>
                 </div>
-
-                <div className="stack gap-4">
-                  {holdings.map((holding, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end p-4 rounded-lg bg-[rgba(15,23,40,0.3)] border border-[rgba(193,163,98,0.1)] relative group">
-                      <div className="stack gap-1 md:col-span-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Asset Name</label>
-                        <input
-                          className="input h-9 text-sm"
-                          placeholder="e.g. S&P 500 ETF"
-                          value={holding.assetName}
-                          onChange={(e) => updateHolding(index, "assetName", e.target.value)}
-                        />
-                      </div>
-                      <div className="stack gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Class</label>
-                        <select
-                          className="input h-9 text-sm"
-                          value={holding.assetClass}
-                          onChange={(e) => updateHolding(index, "assetClass", e.target.value)}
-                        >
-                          {assetClasses.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </div>
-                      <div className="stack gap-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase">Region</label>
-                        <select
-                          className="input h-9 text-sm"
-                          value={holding.region}
-                          onChange={(e) => updateHolding(index, "region", e.target.value)}
-                        >
-                          {regions.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                      </div>
-                      <div className="flex gap-2 items-end">
-                        <div className="stack gap-1 flex-1">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase">%</label>
-                          <input
-                            className="input h-9 text-sm"
-                            type="number"
-                            placeholder="0"
-                            value={holding.percentage}
-                            onChange={(e) => updateHolding(index, "percentage", e.target.value)}
-                          />
-                        </div>
-                        {holdings.length > 1 && (
-                          <button 
-                            onClick={() => removeHolding(index)}
-                            className="h-9 w-9 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  <button
-                    className="btn-secondary w-full border-dashed border-[rgba(193,163,98,0.3)]"
-                    onClick={addHolding}
-                    disabled={holdings.length >= 10}
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: "10px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase" }}>Asset Class</label>
+                    <select
+                      value={holding.assetClass}
+                      onChange={(e) => updateHolding(index, "assetClass", e.target.value)}
+                      style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #E5E7EB", fontSize: "13px" }}
+                    >
+                      {assetClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: "10px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase" }}>Region</label>
+                    <select
+                      value={holding.region}
+                      onChange={(e) => updateHolding(index, "region", e.target.value)}
+                      style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #E5E7EB", fontSize: "13px" }}
+                    >
+                      {regions.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {holdings.length > 1 && (
+                  <button 
+                    onClick={() => removeHolding(index)}
+                    style={{ position: "absolute", top: "-8px", right: "-8px", width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#EF4444", color: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                   >
-                    <Plus size={16} className="mr-2 inline" />
-                    Add Holding
+                    <Trash2 size={12} />
                   </button>
+                )}
+              </div>
+            ))}
+            
+            <button
+              onClick={addHolding}
+              disabled={holdings.length >= 10}
+              style={{ padding: "12px", border: "2px dashed #E5E7EB", borderRadius: "8px", color: "#64748B", backgroundColor: "transparent", cursor: "pointer", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+            >
+              <Plus size={16} />
+              Add Holding
+            </button>
 
-                  {error && <div className="alert alert-error text-sm">{error}</div>}
+            <button
+              onClick={handleAnalyse}
+              disabled={isAnalysing}
+              style={{ width: "100%", padding: "14px", backgroundColor: "#0A1628", color: "white", borderRadius: "8px", border: "none", fontWeight: "700", fontSize: "15px", cursor: isAnalysing ? "not-allowed" : "pointer", marginTop: "12px" }}
+            >
+              {isAnalysing ? "Analysing..." : "Run Risk Assessment"}
+            </button>
 
-                  <button
-                    className="btn w-full mt-4"
-                    disabled={isAnalysing}
-                    onClick={handleAnalyse}
-                  >
-                    {isAnalysing ? (
-                      <>
-                        <Loader2 className="animate-spin" size={18} />
-                        Analysing Risk...
-                      </>
-                    ) : (
-                      "Analyse Portfolio Risk"
-                    )}
-                  </button>
+            {error && <p style={{ color: "#EF4444", fontSize: "12px", textAlign: "center", margin: 0 }}>{error}</p>}
+          </div>
+        </div>
+
+        {/* Results Section */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {result ? (
+            <>
+              <div style={{ backgroundColor: "#0A1628", color: "white", borderRadius: "12px", padding: "32px", textAlign: "center" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", marginBottom: "8px" }}>Overall Risk Score</h3>
+                <div style={{ fontSize: "64px", fontWeight: "800", color: getRiskColor(result.overallRiskScore) }}>
+                  {result.overallRiskScore}<span style={{ fontSize: "24px", color: "#64748B" }}>/10</span>
                 </div>
               </div>
-            </div>
 
-            <div className="stack gap-6">
-              {result ? (
-                <div className="stack gap-6 fade-in">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="card p-6 border border-[rgba(193,163,98,0.2)] bg-[rgba(15,23,40,0.3)] text-center stack gap-2">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Overall Risk Score</span>
-                      <div className={`text-5xl font-bold ${getRiskColor(result.overallRiskScore)}`}>
-                        {result.overallRiskScore}/10
-                      </div>
-                    </div>
-                    <div className="card p-6 border border-[rgba(193,163,98,0.2)] bg-[rgba(15,23,40,0.3)] stack gap-2">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                        <AlertCircle size={12} className="text-red-500" />
-                        Concentration Warnings
-                      </span>
-                      <ul className="stack gap-1">
-                        {result.concentrationWarnings.map((w, i) => (
-                          <li key={i} className="text-xs text-gray-300">• {w}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="card p-6 border border-[rgba(193,163,98,0.2)] bg-[rgba(15,23,40,0.3)] stack gap-4">
-                      <span className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest flex items-center gap-2">
-                        <Globe size={14} />
-                        Geographic Exposure
-                      </span>
-                      <div className="stack gap-3">
-                        {result.geographicExposure.map((g, i) => (
-                          <div key={i} className="stack gap-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-300">{g.region}</span>
-                              <span className="font-bold text-[#c1a362]">{g.percentage}%</span>
-                            </div>
-                            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#c1a362]" style={{ width: `${g.percentage}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="card p-6 border border-[rgba(193,163,98,0.2)] bg-[rgba(15,23,40,0.3)] stack gap-4">
-                      <span className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest flex items-center gap-2">
-                        <PieChart size={14} />
-                        Asset Class Breakdown
-                      </span>
-                      <div className="stack gap-3">
-                        {result.assetClassBreakdown.map((a, i) => (
-                          <div key={i} className="stack gap-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-gray-300">{a.class}</span>
-                              <span className="font-bold text-[#c1a362]">{a.percentage}%</span>
-                            </div>
-                            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#c1a362]" style={{ width: `${a.percentage}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="card p-6 border border-[rgba(193,163,98,0.2)] bg-[rgba(15,23,40,0.3)] stack gap-3">
-                    <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest flex items-center gap-2">
-                      <ShieldAlert size={14} />
-                      Correlation & Systemic Risks
-                    </span>
-                    <p className="text-sm text-gray-300 leading-relaxed italic">
-                      &ldquo;{result.correlationRisks}&rdquo;
-                    </p>
-                  </div>
-
-                  <div className="card p-6 border border-[rgba(193,163,98,0.2)] bg-[rgba(15,23,40,0.3)] stack gap-4">
-                    <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest flex items-center gap-2">
-                      <Star size={14} />
-                      Diversification Recommendations
-                    </span>
-                    <ul className="stack gap-3">
-                      {result.recommendations.map((r, i) => (
-                        <li key={i} className="flex gap-3 text-sm text-gray-200 bg-[rgba(193,163,98,0.05)] p-3 rounded-lg border border-[rgba(193,163,98,0.1)]">
-                          <span className="text-[#c1a362] font-bold shrink-0">{i + 1}.</span>
-                          {r}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB" }}>
+                  <h4 style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <AlertTriangle size={16} color="#F59E0B" />
+                    Concentration Warnings
+                  </h4>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {result.concentrationWarnings.map((w, i) => (
+                      <li key={i} style={{ fontSize: "14px", color: "#374151", paddingLeft: "20px", position: "relative" }}>
+                        <span style={{ position: "absolute", left: 0, top: "8px", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#E5E7EB" }}></span>
+                        {w}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              ) : null}
+
+                <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB" }}>
+                  <h4 style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <TrendingUp size={16} color="#C9A84C" />
+                    Recommendations
+                  </h4>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {result.recommendations.map((r, i) => (
+                      <li key={i} style={{ fontSize: "14px", color: "#374151", fontStyle: "italic" }}>
+                        &quot;{r}&quot;
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: "80px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px solid #E5E7EB", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+              <ShieldAlert size={48} color="#CBD5E1" />
+              <p style={{ color: "#64748B", margin: 0 }}>Input your portfolio holdings to begin analysis.</p>
             </div>
-          </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

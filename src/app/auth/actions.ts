@@ -56,21 +56,37 @@ export async function signup(formData: FormData) {
 
   // Attempt to manually create a profile if the trigger fails or hasn't run yet.
   // Wrapped in try/catch so it never blocks the user's signup flow.
+  let hasJurisdiction = false;
   if (data.user) {
     try {
-      await supabase.from("profiles").insert({
-        id: data.user.id,
-        email: data.user.email,
-        subscribed: false,
-      });
+      // Check if user already exists and has a jurisdiction
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("jurisdiction")
+        .eq("id", data.user.id)
+        .single();
+      
+      if (profile?.jurisdiction) {
+        hasJurisdiction = true;
+      } else {
+        await supabase.from("profiles").insert({
+          id: data.user.id,
+          email: data.user.email,
+          subscribed: false,
+        });
+      }
     } catch (e) {
-      console.error("Silent profile creation error:", e);
+      console.error("Silent profile handling error:", e);
       // We continue silently as requested
     }
   }
 
   revalidatePath("/", "layout");
-  redirect("/onboarding");
+  if (hasJurisdiction) {
+    redirect("/dashboard");
+  } else {
+    redirect("/onboarding");
+  }
 }
 
 export async function logout() {
