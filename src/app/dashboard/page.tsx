@@ -166,7 +166,7 @@ export default async function DashboardPage() {
 
       {/* Full Studio for Action */}
       <div id="studio">
-        <ReportStudio reports={reports} />
+        <ReportStudio reports={reports} adviserName={displayName} />
       </div>
     </div>
   );

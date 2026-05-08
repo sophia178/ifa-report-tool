@@ -40,7 +40,7 @@ export async function POST(request: Request) {
             .from("profiles")
             .update({
               stripe_customer_id: stripeCustomerId,
-              stripe_price_id: stripePriceId,
+              stripe_price_id: stripePriceId?.trim(),
               subscribed: true,
             })
             .eq("email", customerEmail);
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         const { error } = await supabaseAdmin
           .from("profiles")
           .update({
-            stripe_price_id: stripePriceId,
+            stripe_price_id: stripePriceId.trim(),
             subscribed: true,
           })
           .eq("stripe_customer_id", stripeCustomerId);

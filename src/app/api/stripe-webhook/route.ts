@@ -28,7 +28,7 @@ async function upsertSubscriptionStatus({
       id: userId,
       email: email ?? null,
       subscribed,
-      stripe_price_id: stripePriceId ?? null,
+      stripe_price_id: stripePriceId ? stripePriceId.trim() : null,
       stripe_customer_id: stripeCustomerId ?? null,
     },
     { onConflict: "id" },

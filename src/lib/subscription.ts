@@ -86,7 +86,7 @@ export async function updateUserPlan(userId: string, stripePriceId: string) {
     .from("profiles")
     .update({ 
       subscribed: true,
-      stripe_price_id: stripePriceId 
+      stripe_price_id: stripePriceId.trim() 
     })
     .eq("id", userId);
 }

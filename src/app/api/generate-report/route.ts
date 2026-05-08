@@ -25,41 +25,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const {
-      clientName,
-      clientEmail,
-      dateOfBirth,
-      adviserName,
-      adviserFirm,
-      platformName,
-      fundName,
-      fundSrriRiskRating,
-      fundIsinNumber,
-      meetingDate,
-      objectives,
-      sourceType,
-      meetingNotes,
-      transcript,
-      audioPath,
-      templateContent,
-    } = body;
-    const input = generateReportInputSchema.parse({
-      clientName,
-      clientEmail,
-      dateOfBirth,
-      adviserName,
-      adviserFirm,
-      platformName,
-      fundName,
-      fundSrriRiskRating,
-      fundIsinNumber,
-      meetingDate,
-      objectives,
-      sourceType,
-      meetingNotes,
-      transcript,
-      audioPath,
-    });
+    const { templateContent, ...formData } = body;
+    
+    // Parse input with new structured schema
+    const input = generateReportInputSchema.parse(formData);
+    
     const nextReviewDate = getNextReviewDate(input.meetingDate);
 
     let report;
@@ -106,6 +76,7 @@ export async function POST(request: Request) {
       reportId: data.id,
     });
   } catch (error) {
+    console.error("Report generation API error:", error);
     const message = error instanceof Error ? error.message : "Unexpected error.";
     return NextResponse.json({ error: message }, { status: 500 });
   }

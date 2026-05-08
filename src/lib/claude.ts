@@ -74,11 +74,6 @@ Include all agreed actions with the responsible party and target date, the ongoi
 
 Complete every relevant section fully before finishing. Use the client's name throughout. Every figure mentioned in the notes must appear somewhere in the report. Every recommendation must be justified specifically for this client — never generic. If critical information is missing use [INFORMATION REQUIRED: description] placeholders so the adviser knows what to add. If platform name, fund name, fund SRRI risk rating, or fund ISIN are not provided, use [INFORMATION REQUIRED: Platform name], [INFORMATION REQUIRED: Fund name], [INFORMATION REQUIRED: Fund SRRI rating], and [INFORMATION REQUIRED: Fund ISIN] where relevant. Minimum 1,500 words for simple cases. Minimum 3,000 words for complex cases involving pension transfers, IHT, or multiple recommendations. Never truncate any section. After the final section, always append this exact text verbatim as the final paragraph of the report: "${REPORT_DISCLAIMER}"`;
 
-function getPromptValue(value: string | undefined, placeholder: string) {
-  const normalized = value?.trim();
-  return normalized ? normalized : placeholder;
-}
-
 function extractTextResponse(
   content: Anthropic.Messages.Message["content"],
 ): string {
@@ -108,8 +103,8 @@ ${templateContent}`
     : "";
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 16000,
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 8192,
     system: SYSTEM_PROMPT,
     messages: [
       {
@@ -119,22 +114,46 @@ ${templateContent}`
 Known client facts:
 - Client name: ${input.clientName}
 - Client email: ${input.clientEmail}
-- Date of birth: ${input.dateOfBirth || "Not provided"}
-- Adviser name: ${input.adviserName}
-- Adviser firm: ${input.adviserFirm}
-- Platform name: ${getPromptValue(input.platformName, "[INFORMATION REQUIRED: Platform name]")}
-- Fund name: ${getPromptValue(input.fundName, "[INFORMATION REQUIRED: Fund name]")}
-- Fund SRRI rating: ${getPromptValue(input.fundSrriRiskRating, "[INFORMATION REQUIRED: Fund SRRI rating]")}
-- Fund ISIN: ${getPromptValue(input.fundIsinNumber, "[INFORMATION REQUIRED: Fund ISIN]")}
+- Client age: ${input.clientAge || "Not provided"}
 - Meeting date: ${input.meetingDate}
-- Stated objectives: ${input.objectives}
-- Input type: ${input.sourceType}
+- Adviser name: ${input.adviserName}
+
+Financial Profile:
+- Annual Income: ${input.annualIncome || "Not provided"}
+- Total Assets: ${input.totalAssets || "Not provided"}
+- Existing Investments: ${input.existingInvestments || "Not provided"}
+- Outstanding Debts: ${input.outstandingDebts || "Not provided"}
+- Property Owned: ${input.propertyOwned ? "Yes" : "No"}
+
+Risk Profile:
+- Risk Score: ${input.riskScore}/10
+- Risk Category: ${input.riskCategory || "Not provided"}
+- Attitude to Loss: ${input.attitudeToLoss || "Not provided"}
+
+Objectives:
+- Primary Objective: ${input.primaryObjective || "Not provided"}
+- Time Horizon: ${input.timeHorizon}
+- Specific Goals: ${input.specificGoals || "Not provided"}
+
+Recommendation:
+- Recommended Product/Strategy: ${input.recommendedProduct || "Not provided"}
+- Initial Advice Charge: ${input.initialAdviceCharge || "Not provided"}
+- Ongoing Advice Charge: ${input.ongoingAdviceCharge || "Not provided"}
+- Product Charge: ${input.productCharge || "Not provided"}
+- Total Ongoing Charge: ${input.totalOngoingCharge || "Not provided"}
+
+Special Considerations:
+- Vulnerable Client: ${input.isVulnerable ? "Yes" : "No"}
+${input.isVulnerable ? `- Vulnerability Details: ${input.vulnerabilityDetails}` : ""}
+- Pension Transfer Involved: ${input.isPensionTransfer ? "Yes" : "No"}
+- IHT Planning Required: ${input.isIhtPlanning ? "Yes" : "No"}
+- Consumer Duty Notes: ${input.consumerDutyNotes || "Not provided"}
 
 Meeting evidence:
 ${meetingContext}
 
 Requirements:
-- Detect the case complexity from the meeting evidence before writing.
+- Detect the case complexity from the meeting evidence and structured facts before writing.
 - Always include the 9 core sections from the system prompt.
 - Include additional relevant sections only when the facts support them.
 - Number every section sequentially in the final output.
@@ -142,9 +161,8 @@ Requirements:
 - Never return JSON.
 - Never return markdown code fences.
 - Use the client's name throughout the report.
-- Make sure every figure from the notes appears somewhere in the report.
+- Make sure every figure from the facts and notes appears somewhere in the report.
 - If information is missing, use [INFORMATION REQUIRED: description] placeholders rather than guessing.
-- Make sure the NEXT STEPS AND REVIEW DATE section includes the agreed next review date in YYYY-MM-DD format where possible.
 - Scale the level of detail to the case complexity and never truncate any section.
 - After the final section, append this exact disclaimer verbatim as the final paragraph: ${REPORT_DISCLAIMER}`,
       },
@@ -180,7 +198,7 @@ Analyse the provided text and return a JSON object with:
 Return ONLY the JSON object.`;
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
     max_tokens: 1024,
     system: systemPrompt,
     messages: [{ role: "user", content: text }],
@@ -197,76 +215,17 @@ export async function generateRegulatoryUpdates(jurisdictions: string[]): Promis
 
   const systemPrompt = `You are a global financial regulatory expert. 
 Generate a summary of recent regulatory changes for the following jurisdictions: ${jurisdictions.join(", ")}.
-For each update, provide:
-- regulationName: The name of the regulation.
-- whatChanged: A concise description of the change.
-- effectiveDate: When it takes effect.
-- actionRequired: What action advisers should take.
-
-Return a JSON array of objects.`;
+Return ONLY a JSON array of objects, where each object has:
+- title: Short update title
+- description: Detailed summary
+- impact: Impact level (High/Medium/Low)
+- date: Date of change`;
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 4096,
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 2048,
     system: systemPrompt,
-    messages: [{ role: "user", content: "Generate recent regulatory updates." }],
-  });
-
-  const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
-}
-
-export async function buildTradeStrategy(idea: string): Promise<any> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
-  const anthropic = new Anthropic({ apiKey });
-
-  const systemPrompt = `You are an expert quantitative trading strategist. 
-Turn the following trading idea into a formal strategy: "${idea}"
-Provide a JSON object with:
-- strategyName: A professional name for the strategy.
-- entryRules: Specific rules for entering a trade.
-- exitRules: Specific rules for exiting a trade.
-- risks: Key risks and failure modes.
-- positionSizing: Suggested approach for sizing.
-- invalidationConditions: Market conditions that invalidate the strategy.
-- viabilityRating: A score out of 10.
-- reasoning: Professional reasoning for the rating.
-
-Return ONLY the JSON object.`;
-
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: "user", content: idea }],
-  });
-
-  const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
-}
-
-export async function generateNewsBriefing(keywords: string[]): Promise<any[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
-  const anthropic = new Anthropic({ apiKey });
-
-  const systemPrompt = `You are a financial news editor. 
-Generate a structured daily news briefing for these topics: ${keywords.join(", ")}.
-For each topic, provide a JSON object with:
-- topic: The keyword/asset name.
-- developments: Latest key developments.
-- implications: Market implications.
-- adviserAdvice: What advisers should tell their clients.
-- riskFlags: Any urgent risk flags.
-
-Return a JSON array of objects.`;
-
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: "user", content: "Generate news briefing." }],
+    messages: [{ role: "user", content: "Generate updates" }],
   });
 
   const textResponse = extractTextResponse(response.content);
@@ -278,190 +237,25 @@ export async function generateMarketBriefing(): Promise<string> {
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
   const anthropic = new Anthropic({ apiKey });
 
-  const systemPrompt = `You are a world-class financial market analyst writing for professional financial advisers. 
-Generate a comprehensive daily market briefing in professional plain English.
-The briefing must include:
-- OVERNIGHT MARKET MOVES: Summary of US, Asian and European performance.
-- KEY ECONOMIC EVENTS TODAY: What's happening on the economic calendar.
-- WHAT TO WATCH THIS WEEK: Major upcoming data releases or central bank moves.
-- SECTOR HIGHLIGHTS: Notable moves in specific sectors (e.g., Tech, Energy).
-- KEY RISKS FOR ADVISERS: Exactly 3 specific risks advisers should be aware of today.
-
-Format the briefing with clear section headers like "SECTION 1 - OVERNIGHT MARKET MOVES".
-Do not use markdown code fences. Return only the briefing text.`;
-
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: "user", content: "Generate today's market briefing." }],
-  });
-
-  return extractTextResponse(response.content);
-}
-
-export async function explainEconomicEvent(event: {
-  title: string;
-  date: string;
-  impact: string;
-}): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
-  const anthropic = new Anthropic({ apiKey });
-
-  const systemPrompt = `You are a professional financial market analyst. 
-Provide a concise one-paragraph explanation of why the following economic event matters specifically for UK financial advisers and their clients.
-Event: ${event.title}
-Date: ${event.date}
-Expected Impact: ${event.impact}
-
-Focus on the implications for UK inflation, interest rates, portfolio returns, and client sentiment.`;
-
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 512,
-    system: systemPrompt,
-    messages: [{ role: "user", content: `Explain why ${event.title} matters.` }],
-  });
-
-  return extractTextResponse(response.content);
-}
-
-export async function analysePortfolioRisk(holdings: any[]): Promise<{
-  overallRiskScore: number;
-  concentrationWarnings: string[];
-  geographicExposure: { region: string; percentage: number }[];
-  assetClassBreakdown: { class: string; percentage: number }[];
-  correlationRisks: string;
-  recommendations: string[];
-}> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
-  const anthropic = new Anthropic({ apiKey });
-
-  const systemPrompt = `You are an expert portfolio risk manager. 
-Analyse the provided portfolio holdings and return a detailed risk assessment.
-Holdings: ${JSON.stringify(holdings)}
-
-Return a JSON object with:
-- overallRiskScore: A score from 1 to 10.
-- concentrationWarnings: A list of specific concentration risks found.
-- geographicExposure: An array of { region, percentage } objects.
-- assetClassBreakdown: An array of { class, percentage } objects.
-- correlationRisks: A concise explanation of potential correlation risks.
-- recommendations: Exactly 3 specific, actionable recommendations to improve diversification.
-
-Return ONLY the JSON object.`;
-
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
     max_tokens: 2048,
-    system: systemPrompt,
-    messages: [{ role: "user", content: "Analyse my portfolio risk." }],
-  });
-
-  const textResponse = extractTextResponse(response.content);
-  return JSON.parse(textResponse);
-}
-
-export async function draftClientEmail(input: {
-  clientName: string;
-  purpose: string;
-  keyPoints: string;
-  tone: "formal" | "friendly" | "concise";
-}): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
-  const anthropic = new Anthropic({ apiKey });
-
-  const systemPrompt = `You are a professional financial adviser writing to a client. 
-Draft a complete, ready-to-send email based on the inputs provided.
-The email should be professional, clear, and follow UK financial services best practices for communication.
-Tone: ${input.tone}
-Purpose: ${input.purpose}
-Client Name: ${input.clientName}
-Key Points: ${input.keyPoints}
-
-Return ONLY the email body text, including a professional subject line at the top.`;
-
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: `Draft an email for ${input.clientName} about ${input.purpose}. Include these points: ${input.keyPoints}`,
-      },
-    ],
+    system: "You are a market analyst. Generate a professional market briefing.",
+    messages: [{ role: "user", content: "Generate briefing" }],
   });
 
   return extractTextResponse(response.content);
 }
 
-export async function generateAustralianSOA(input: {
-  clientName: string;
-  meetingNotes: string;
-}): Promise<string> {
+export async function checkCompliance(text: string): Promise<any> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
   const anthropic = new Anthropic({ apiKey });
 
-  const systemPrompt = `You are a senior Australian financial planner and compliance expert. 
-Generate a complete Australian Statement of Advice (SOA) compliant with ASIC RG 175.
-The SOA must include:
-- Client Profile
-- Needs Analysis
-- Strategic Recommendations
-- Product Recommendations with Justification
-- Fees and Costs Disclosure
-- Risks
-- Authority to Proceed
-
-Use professional Australian English. Use the client name: ${input.clientName}.
-Write the SOA as plain structured text with clear section headers like "SECTION 1 - CLIENT PROFILE".
-
-Return ONLY the SOA text.`;
-
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 8192,
-    system: systemPrompt,
-    messages: [{ role: "user", content: input.meetingNotes }],
-  });
-
-  return extractTextResponse(response.content);
-}
-
-export async function checkCompliance(text: string): Promise<{
-  score: number;
-  issues: { issue: string; rule: string; fix: string }[];
-  recommendation: "Pass" | "Fail";
-}> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
-  const anthropic = new Anthropic({ apiKey });
-
-  const systemPrompt = `You are an expert UK financial services compliance officer. 
-Analyse the provided text against:
-- FCA Consumer Duty rules (July 2023)
-- COBS 9 suitability requirements
-- FCA communication standards (clear, fair, and not misleading)
-
-Return a JSON object with:
-- score: A compliance score out of 100.
-- issues: An array of objects, each with:
-  - issue: A specific compliance issue found.
-  - rule: The relevant FCA rule or principle referenced (e.g., PRIN 2A, COBS 9.2.1R).
-  - fix: A suggested fix to make the text compliant.
-- recommendation: Either "Pass" or "Fail".
-
-Return ONLY the JSON object.`;
-
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
     max_tokens: 2048,
-    system: systemPrompt,
+    system: "You are a compliance officer. Analyse the text for compliance.",
     messages: [{ role: "user", content: text }],
   });
 
@@ -469,72 +263,123 @@ Return ONLY the JSON object.`;
   return JSON.parse(textResponse);
 }
 
-export async function generateUSAPlan(input: {
-  clientName: string;
-  meetingNotes: string;
-}): Promise<string> {
+export async function draftClientEmail(context: any): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
   const anthropic = new Anthropic({ apiKey });
 
-  const systemPrompt = `You are a senior US Certified Financial Planner (CFP). 
-Generate a complete US Financial Plan compliant with CFP Board standards.
-The plan must include:
-- Client Profile
-- Net Worth Statement
-- Cash Flow Analysis
-- Risk Tolerance Assessment
-- Investment Policy Statement (IPS)
-- Retirement Projections
-- Tax Planning Considerations
-- Form ADV-aligned Disclosure Summary
-
-Use professional US English. Use the client name: ${input.clientName}.
-Write the plan as plain structured text with clear section headers like "SECTION 1 - CLIENT PROFILE".
-
-Return ONLY the financial plan text.`;
-
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    max_tokens: 8192,
-    system: systemPrompt,
-    messages: [{ role: "user", content: input.meetingNotes }],
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 2048,
+    system: "You are a professional financial adviser drafting an email.",
+    messages: [{ role: "user", content: JSON.stringify(context) }],
   });
 
   return extractTextResponse(response.content);
 }
 
-export async function analyseTrades(trades: any[]): Promise<{
-  winRate: string;
-  avgProfitLoss: string;
-  bestAssets: string[];
-  worstAssets: string[];
-  patterns: string;
-  recommendations: string[];
-}> {
+export async function generateAustralianSOA(context: any): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
   const anthropic = new Anthropic({ apiKey });
 
-  const systemPrompt = `You are an expert trading performance analyst. 
-Analyse the provided trade log and identify performance patterns.
-Trades provided: ${JSON.stringify(trades)}
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 4096,
+    system: "You are an Australian financial adviser. Generate a Statement of Advice (SOA).",
+    messages: [{ role: "user", content: JSON.stringify(context) }],
+  });
 
-Return a JSON object with:
-- winRate: The percentage of profitable trades.
-- avgProfitLoss: The average profit or loss per trade (as a string with currency).
-- bestAssets: Top 2 performing assets.
-- worstAssets: Bottom 2 performing assets.
-- patterns: Identification of patterns in losing trades (e.g., size, time of day, rationale).
-- recommendations: Exactly 3 specific, actionable recommendations to improve performance.
+  return extractTextResponse(response.content);
+}
 
-Return ONLY the JSON object.`;
+export async function generateUSAPlan(context: any): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 4096,
+    system: "You are a US financial planner. Generate a comprehensive financial plan.",
+    messages: [{ role: "user", content: JSON.stringify(context) }],
+  });
+
+  return extractTextResponse(response.content);
+}
+
+export async function buildTradeStrategy(idea: string): Promise<any> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
     max_tokens: 2048,
-    system: systemPrompt,
-    messages: [{ role: "user", content: "Analyse my trades" }],
+    system: "You are a quantitative trade strategist. Return ONLY a JSON object.",
+    messages: [{ role: "user", content: idea }],
+  });
+
+  const textResponse = extractTextResponse(response.content);
+  return JSON.parse(textResponse);
+}
+
+export async function analysePortfolioRisk(context: any): Promise<any> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 2048,
+    system: "You are a risk management expert. Return ONLY a JSON object.",
+    messages: [{ role: "user", content: JSON.stringify(context) }],
+  });
+
+  const textResponse = extractTextResponse(response.content);
+  return JSON.parse(textResponse);
+}
+
+export async function generateNewsBriefing(keywords: string[]): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 2048,
+    system: "You are a financial news editor. Generate a concise daily briefing based on the provided keywords.",
+    messages: [{ role: "user", content: `Generate news for: ${keywords.join(", ")}` }],
+  });
+
+  return extractTextResponse(response.content);
+}
+
+export async function explainEconomicEvent(event: string): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 1024,
+    system: "You are an economist. Explain the event in plain English.",
+    messages: [{ role: "user", content: event }],
+  });
+
+  return extractTextResponse(response.content);
+}
+
+export async function analyseTrades(trades: any[]): Promise<any> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
+  const anthropic = new Anthropic({ apiKey });
+
+  const response = await anthropic.messages.create({
+    model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20240620",
+    max_tokens: 2048,
+    system: "You are a trade journal analyst. Return ONLY a JSON object.",
+    messages: [{ role: "user", content: JSON.stringify(trades) }],
   });
 
   const textResponse = extractTextResponse(response.content);
