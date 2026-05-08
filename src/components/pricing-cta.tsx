@@ -7,12 +7,13 @@ import { useState } from "react";
 type PricingCtaProps = {
   isLoggedIn: boolean;
   isSubscribed: boolean;
-  plan?: "starter" | "plus" | "pro";
+  currentPlan?: "starter" | "plus" | "pro" | null;
+  tierPlan: "starter" | "plus" | "pro";
   price?: string;
   style?: React.CSSProperties;
 };
 
-export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price = "£19", style }: PricingCtaProps) {
+export function PricingCta({ isLoggedIn, isSubscribed, currentPlan, tierPlan, price = "£19", style }: PricingCtaProps) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,7 +31,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price =
       const response = await fetch("/api/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan: tierPlan }),
       });
       const json = (await response.json()) as { error?: string; url?: string };
 
@@ -47,14 +48,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price =
     }
   }
 
-  if (isSubscribed) {
-    return (
-      <Link href="/dashboard" className="btn pricing-cta-button" style={style}>
-        Go to dashboard
-      </Link>
-    );
-  }
-
+  // 1. Not logged in
   if (!isLoggedIn) {
     return (
       <Link href="/signup" className="btn pricing-cta-button" style={style}>
@@ -62,6 +56,57 @@ export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price =
       </Link>
     );
   }
+
+  // 2. Logged in and this is the current plan
+  if (isSubscribed && currentPlan === tierPlan) {
+    return (
+      <button
+        type="button"
+        disabled
+        style={{
+          ...style,
+          backgroundColor: "#F1F5F9",
+          color: "#94A3B8",
+          cursor: "not-allowed",
+          border: "1px solid #E2E8F0"
+        }}
+      >
+        Current plan
+      </button>
+    );
+  }
+
+  // 3. Logged in and this is a downgrade
+  const planOrder = { "starter": 0, "plus": 1, "pro": 2 };
+  const currentRank = currentPlan ? planOrder[currentPlan] : -1;
+  const tierRank = planOrder[tierPlan];
+
+  if (isSubscribed && tierRank < currentRank) {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <Link 
+          href="/api/customer-portal" 
+          style={{ 
+            fontSize: "13px", 
+            color: "#64748B", 
+            textDecoration: "underline",
+            fontWeight: "500"
+          }}
+        >
+          Downgrade
+        </Link>
+      </div>
+    );
+  }
+
+  // 4. Upgrade or First Subscription
+  const getButtonText = () => {
+    if (isLoading) return "Redirecting...";
+    if (currentPlan) {
+      return `Upgrade to ${tierPlan.charAt(0).toUpperCase() + tierPlan.slice(1)}`;
+    }
+    return `Start now — ${price}/month`;
+  };
 
   return (
     <div className="stack" style={{ gap: 12 }}>
@@ -72,9 +117,9 @@ export function PricingCta({ isLoggedIn, isSubscribed, plan = "starter", price =
         disabled={isLoading}
         style={style}
       >
-        {isLoading ? "Redirecting..." : `Start now — ${price}/month`}
+        {getButtonText()}
       </button>
-      {error ? <div className="alert alert-error">{error}</div> : null}
+      {error ? <div style={{ color: "#EF4444", fontSize: "12px", marginTop: "8px", textAlign: "center" }}>{error}</div> : null}
     </div>
   );
 }

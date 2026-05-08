@@ -35,7 +35,7 @@ export async function getUserPlan(userId: string): Promise<PlanTier | null> {
 
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) return "pro";
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID) return "plus";
-  if (priceId === process.env.STRIPE_PRICE_ID) return "starter";
+  if (priceId === process.env.STRIPE_PRICE_ID || priceId === process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID) return "starter";
 
   return "starter"; // Fallback
 }

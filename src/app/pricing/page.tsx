@@ -1,6 +1,6 @@
 import { TopNav } from "@/components/top-nav";
 import { PricingCta } from "@/components/pricing-cta";
-import { checkSubscription } from "@/lib/subscription";
+import { checkSubscription, getUserPlan } from "@/lib/subscription";
 import { createClient } from "@/lib/supabase/server";
 
 type PricingPageProps = {
@@ -65,9 +65,10 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
   const isSubscribed = user ? await checkSubscription(user.id) : false;
+  const currentPlan = user ? await getUserPlan(user.id) : null;
 
   return (
-    <main style={{ backgroundColor: "white", minHeight: "100vh", paddingTop: "100px" }}>
+    <main style={{ backgroundColor: "white", minHeight: "100vh", paddingTop: "120px" }}>
       <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 48px" }}>
         <TopNav email={user?.email} />
 
@@ -150,7 +151,8 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                 <PricingCta 
                   isLoggedIn={Boolean(user)} 
                   isSubscribed={isSubscribed} 
-                  plan={tier.id as any}
+                  currentPlan={currentPlan}
+                  tierPlan={tier.id as any}
                   price={tier.price}
                   style={{
                     width: "100%",
