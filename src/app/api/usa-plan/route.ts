@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -34,11 +33,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const prompt = `You are a US financial planner. Generate a comprehensive financial plan for:
+    const prompt = `You are a US financial planner. Generate a concise comprehensive financial plan for:
     Client: ${clientName}
     Notes: ${meetingNotes}
     
-    Return the plan as plain structured text.`;
+    Ensure you cover exactly these 8 core sections:
+    1. Executive Summary
+    2. Client Profile and Objectives
+    3. Risk Assessment
+    4. Suitability Analysis
+    5. Recommendation and Rationale
+    6. Charges and Value Assessment
+    7. Fiduciary Duty Outcomes
+    8. Disclaimer
+    
+    Return the plan as plain structured text. Maximum 8 sections.`;
 
     const planText = await callClaude(prompt);
 

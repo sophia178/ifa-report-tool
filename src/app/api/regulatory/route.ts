@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -33,10 +32,10 @@ export async function POST(request: Request) {
     }
 
     const prompt = `You are a global financial regulatory expert. 
-    Generate a summary of 3-5 recent (2025-2026) regulatory changes for these jurisdictions: ${jurisdictions.join(", ")}.
+    Generate a summary of exactly 3 recent (2025-2026) regulatory changes for these jurisdictions: ${jurisdictions.join(", ")}.
     Return ONLY a JSON array of objects, where each object has:
     - title: Short update title
-    - description: Detailed summary
+    - description: Detailed summary (maximum 200 words each)
     - impact: Impact level (High/Medium/Low)
     - date: Date of change
     

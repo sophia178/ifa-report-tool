@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 
-export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const REPORT_DISCLAIMER =
@@ -47,34 +46,67 @@ export async function POST(request: Request) {
 
     const meetingContext = sourceType === "audio" ? transcript : meetingNotes;
     
-    const prompt = `You are a Chartered Financial Planner. Write a full FCA-compliant suitability report as plain text.
+    const prompt = `You are a Chartered Financial Planner. Write a comprehensive, detailed, and full FCA-compliant suitability report as plain text. 
+    Be extremely thorough and professional.
     
-    Client: ${clientName}
-    Meeting Date: ${meetingDate}
-    Adviser: ${adviserName}
+    Client Details:
+    - Name: ${clientName}
+    - Age: ${clientAge}
+    - Meeting Date: ${meetingDate}
+    - Adviser: ${adviserName}
     
-    Context:
+    Financial Profile:
+    - Annual Income: ${annualIncome}
+    - Total Assets: ${totalAssets}
+    - Existing Investments: ${existingInvestments}
+    - Outstanding Debts: ${outstandingDebts}
+    - Property Owned: ${propertyOwned ? "Yes" : "No"}
+    
+    Risk Profile:
+    - Risk Score: ${riskScore}/10
+    - Risk Category: ${riskCategory}
+    - Attitude to Loss: ${attitudeToLoss}
+    
+    Objectives & Recommendation:
+    - Primary Objective: ${primaryObjective}
+    - Time Horizon: ${timeHorizon}
+    - Specific Goals: ${specificGoals}
+    - Recommended Product: ${recommendedProduct}
+    
+    Charges:
+    - Initial Advice Charge: ${initialAdviceCharge}
+    - Ongoing Advice Charge: ${ongoingAdviceCharge}
+    - Product Charge: ${productCharge}
+    - Total Ongoing Charge: ${totalOngoingCharge}
+    
+    Special Considerations:
+    - Vulnerable Client: ${isVulnerable ? "Yes (" + vulnerabilityDetails + ")" : "No"}
+    - Pension Transfer: ${isPensionTransfer ? "Yes" : "No"}
+    - IHT Planning: ${isIhtPlanning ? "Yes" : "No"}
+    - Consumer Duty Notes: ${consumerDutyNotes}
+    
+    Context from Meeting:
     ${meetingContext}
-    
-    Objectives: ${primaryObjective}
-    Recommendation: ${recommendedProduct}
     
     ${templateContent ? `Use this template structure: ${templateContent}` : ""}
     
-    Ensure you cover all 9 standard sections:
-    1. Cover Summary
-    2. Client Details and Objectives
-    3. Financial Situation Analysis
-    4. Attitude to Risk
-    5. Capacity for Loss
-    6. Recommendation and Suitability Justification
-    7. Charges Disclosure
-    8. Risks and Warnings
-    9. Next Steps
-    
-    Append this disclaimer at the end: ${REPORT_DISCLAIMER}`;
+    Ensure you cover all 14 standard sections in depth:
+    1. Executive Summary
+    2. Client Personal Circumstances & Objectives
+    3. Current Financial Situation Analysis
+    4. Attitude to Investment Risk & Capacity for Loss
+    5. Investment Strategy & Asset Allocation
+    6. Recommendation & Suitability Justification
+    7. Product Features & Benefits
+    8. Alternative Options Considered & Discarded
+    9. Detailed Charges & Value for Money Assessment
+    10. Consumer Duty: Good Outcomes Assessment
+    11. Tax Implications & Planning
+    12. Risk Warnings & Disclosures
+    13. Implementation & Next Steps
+    14. Formal FCA Disclaimer: ${REPORT_DISCLAIMER}`;
 
-    const report = await callClaude(prompt);
+    const report = await callClaude(prompt, 4000);
 
     // Save to Supabase
     const { data, error: dbError } = await supabase

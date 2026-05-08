@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "src/app/api/generate-report/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/soa-australia/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/usa-plan/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/compliance/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/briefing/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/research/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/emails/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/regulatory/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
-export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     - issues: An array of objects with { issue, rule, fix }.
     - recommendation: Either "Pass" or "Fail".
     
-    Return ONLY the raw JSON object. Do not use markdown code fences.`;
+    Return ONLY the raw JSON object. Do not use markdown code fences. Maximum 500 word analysis total.`;
 
     const rawResult = await callClaude(prompt);
     

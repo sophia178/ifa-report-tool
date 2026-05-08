@@ -6,25 +6,26 @@ import Anthropic from "@anthropic-ai/sdk";
  * It is designed to be extremely robust and always return plain text or throw a clear error.
  */
 
-if (!process.env.ANTHROPIC_API_KEY) {
+const apiKey = process.env.ANTHROPIC_API_KEY;
+if (!apiKey) {
   console.warn("WARNING: ANTHROPIC_API_KEY is missing from environment variables.");
 }
 
-export async function callClaude(prompt: string): Promise<string> {
+// Initialise the Anthropic client once at the module level for better performance
+const anthropic = new Anthropic({
+  apiKey: apiKey || "dummy-key",
+});
+
+export async function callClaude(prompt: string, maxTokens: number = 1500): Promise<string> {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       throw new Error("ANTHROPIC_API_KEY is not configured in the environment.");
     }
 
-    const anthropic = new Anthropic({ apiKey });
-
-    // Use the specific model version requested by the user
-    // Note: If this version is not yet available, the API will return a 404/400 error
-    // which will be caught by our try/catch block.
+    // Use the specific model version requested by the user or fallback to claude-sonnet-4-5
     const response = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
-      max_tokens: 4000,
+      max_tokens: maxTokens,
       messages: [
         {
           role: "user",

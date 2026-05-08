@@ -3,7 +3,6 @@ import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
-export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
     Key Points: ${keyPoints}
     Tone: ${tone}
     
-    Return the email content as plain text.`;
+    Return the email content as plain text. Maximum 300 words.`;
 
     const emailContent = await callClaude(prompt);
 

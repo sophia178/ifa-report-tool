@@ -3,7 +3,7 @@ import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
-export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
@@ -33,7 +33,7 @@ export async function POST() {
     - Regulatory Highlights
     - Key Economic Events
     
-    Return the briefing as plain structured text with clear headings.`;
+    Return the briefing as plain structured text with clear headings. Maximum 600 words.`;
 
     const briefingText = await callClaude(prompt);
 
