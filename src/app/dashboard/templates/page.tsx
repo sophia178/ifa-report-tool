@@ -65,6 +65,7 @@ export default function TemplatesPage() {
 
   async function handleCreateTemplate(e: React.FormEvent) {
     e.preventDefault();
+    if (!newName || !newContent) return;
     setIsSaving(true);
     setError("");
 
@@ -75,8 +76,10 @@ export default function TemplatesPage() {
         body: JSON.stringify({ name: newName, content: newContent }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to save template");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to save template");
+      }
 
       setNewName("");
       setNewContent("");
@@ -93,9 +96,8 @@ export default function TemplatesPage() {
     if (!confirm("Are you sure you want to delete this template?")) return;
     
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from("report_templates").delete().eq("id", id);
-      if (error) throw error;
+      const res = await fetch(`/api/templates?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
       await fetchTemplates();
     } catch (err) {
       console.error("Delete failed", err);

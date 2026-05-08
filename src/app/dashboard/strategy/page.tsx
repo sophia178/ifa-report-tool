@@ -74,8 +74,12 @@ export default function StrategyPage() {
   async function fetchStrategies() {
     try {
       const response = await fetch("/api/strategy");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to fetch strategies");
+      }
       const data = await response.json();
-      if (response.ok) setSavedStrategies(data);
+      setSavedStrategies(data);
     } catch (err) {
       console.error("Failed to fetch strategies", err);
     }
@@ -94,10 +98,13 @@ export default function StrategyPage() {
         body: JSON.stringify({ idea }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to build strategy");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to build strategy");
+      }
 
-      setCurrentStrategy(data.strategy_json);
+      const data = await response.json();
+      setCurrentStrategy(data.result); // Use .result as per our new API pattern
       await fetchStrategies();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

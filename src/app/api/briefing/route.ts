@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateMarketBriefing } from "@/lib/claude";
+import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -7,9 +7,11 @@ export const maxDuration = 60;
 
 export async function POST() {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
     }
 
     const supabase = await createClient();
@@ -24,7 +26,16 @@ export async function POST() {
       return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
-    const briefingText = await generateMarketBriefing();
+    const prompt = `You are a market analyst. Generate a professional daily market briefing for a UK financial adviser. 
+    Include sections on:
+    - UK Market Overview
+    - Global Markets
+    - Regulatory Highlights
+    - Key Economic Events
+    
+    Return the briefing as plain structured text with clear headings.`;
+
+    const briefingText = await callClaude(prompt);
 
     // Save to Supabase
     const { data, error: dbError } = await supabase
@@ -36,13 +47,17 @@ export async function POST() {
       .select()
       .maybeSingle();
 
-    if (dbError) throw dbError;
-    if (!data) throw new Error("Could not save briefing.");
+    if (dbError || !data) {
+      return NextResponse.json({ error: "Could not save briefing" }, { status: 500 });
+    }
 
-    return NextResponse.json({ briefingText, id: data.id });
-  } catch (error: any) {
-    console.error("Briefing API error:", error);
-    return NextResponse.json({ error: error.message || "Failed to generate briefing" }, { status: 500 });
+    return NextResponse.json({ result: briefingText, id: data.id });
+  } catch (error) {
+    console.error("API route error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }
 
@@ -64,7 +79,7 @@ export async function GET() {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Market briefing list error:", error);
+    console.error("API route error:", error);
     return NextResponse.json({ error: "Failed to fetch briefings" }, { status: 500 });
   }
 }

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Loader2, Globe, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Bell, Loader2, Globe, CheckCircle2, AlertTriangle, RefreshCw, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type Update = {
   regulationName: string;
@@ -90,12 +92,14 @@ export default function RegulatoryPage() {
         body: JSON.stringify({ jurisdictions: selectedJurisdictions }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to generate updates");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to generate updates");
+      }
 
       await fetchSummaries();
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -119,7 +123,16 @@ export default function RegulatoryPage() {
 
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {isGenerating && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isGenerating} />
+        </div>
+      )}
+      
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Regulatory Alerts
         </h1>

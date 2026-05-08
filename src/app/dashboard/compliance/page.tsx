@@ -5,6 +5,7 @@ import { Shield, Loader2, CheckCircle, XCircle, AlertCircle, ArrowLeft } from "l
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type ComplianceIssue = {
   issue: string;
@@ -73,6 +74,7 @@ export default function CompliancePage() {
     if (!text.trim()) return;
     setIsChecking(true);
     setError("");
+    setResult(null);
 
     try {
       const response = await fetch("/api/compliance", {
@@ -81,12 +83,15 @@ export default function CompliancePage() {
         body: JSON.stringify({ text }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to check compliance");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to check compliance");
+      }
 
-      setResult(data);
+      const data = await response.json();
+      setResult(data.result); // Use .result as per our new API pattern
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsChecking(false);
     }
@@ -106,6 +111,12 @@ export default function CompliancePage() {
 
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {isChecking && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isChecking} />
+        </div>
+      )}
+
       <div style={{ marginBottom: "40px" }}>
         <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
           <ArrowLeft size={16} /> Back to Dashboard

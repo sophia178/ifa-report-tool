@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkCompliance } from "@/lib/claude";
+import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -7,9 +7,11 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
     }
 
     const supabase = await createClient();
@@ -29,7 +31,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    const result = await checkCompliance(text);
+    const prompt = `You are a compliance officer. Analyse the following text for compliance with FCA Consumer Duty and COBS 9 rules.
+    Text: ${text}
+    
+    Return a JSON object with:
+    - score: A number from 1 to 100.
+    - issues: An array of objects with { issue, rule, fix }.
+    - recommendation: Either "Pass" or "Fail".
+    
+    Return ONLY the raw JSON object. Do not use markdown code fences.`;
+
+    const rawResult = await callClaude(prompt);
+    
+    // Clean and parse JSON safely
+    const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    const result = JSON.parse(cleanJson);
 
     // Save to Supabase
     const { error: dbError } = await supabase
@@ -42,11 +58,16 @@ export async function POST(request: Request) {
         recommendation: result.recommendation,
       });
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      console.error("DB Error:", dbError);
+    }
 
-    return NextResponse.json(result);
-  } catch (error: any) {
-    console.error("Compliance API error:", error);
-    return NextResponse.json({ error: error.message || "Failed to check compliance" }, { status: 500 });
+    return NextResponse.json({ result });
+  } catch (error) {
+    console.error("API route error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }

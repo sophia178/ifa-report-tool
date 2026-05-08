@@ -33,17 +33,21 @@ export function PricingCta({ isLoggedIn, isSubscribed, currentPlan, tierPlan, pr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: tierPlan }),
       });
-      const json = (await response.json()) as { error?: string; url?: string };
 
-      if (!response.ok || !json.url) {
-        throw new Error(json.error || "Unable to start checkout.");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Unable to start checkout.");
       }
+
+      const json = (await response.json()) as { error?: string; url?: string };
+      if (!json.url) throw new Error("Checkout URL missing.");
 
       window.location.assign(json.url);
     } catch (caughtError) {
       const message =
         caughtError instanceof Error ? caughtError.message : "Unable to start checkout.";
       setError(message);
+    } finally {
       setIsLoading(false);
     }
   }

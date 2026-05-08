@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Loader2, Star, AlertTriangle } from "lucide-react";
+import { Search, Loader2, Star, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type SummaryResult = {
   summary: string;
@@ -64,6 +66,7 @@ export default function ResearchPage() {
     if (!text.trim()) return;
     setIsSummarising(true);
     setError("");
+    setResult(null);
 
     try {
       const response = await fetch("/api/research", {
@@ -72,12 +75,15 @@ export default function ResearchPage() {
         body: JSON.stringify({ text }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to summarise");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to summarise");
+      }
 
-      setResult(data);
+      const data = await response.json();
+      setResult(data.result); // Use .result as per our new API pattern
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsSummarising(false);
     }
@@ -85,6 +91,12 @@ export default function ResearchPage() {
 
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {isSummarising && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isSummarising} />
+        </div>
+      )}
+      
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Research Summariser

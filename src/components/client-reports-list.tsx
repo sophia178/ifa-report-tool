@@ -9,6 +9,7 @@ export function ClientReportsList({ initialReports }: { initialReports: Report[]
   const [reports, setReports] = useState<Report[]>(initialReports);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this report?")) return;
@@ -24,6 +25,36 @@ export function ClientReportsList({ initialReports }: { initialReports: Report[]
       alert("Failed to delete report. Please try again.");
     } finally {
       setIsDeleting(null);
+    }
+  }
+
+  async function handleDownload(report: Report) {
+    setIsDownloading(report.id);
+    try {
+      const response = await fetch("/api/download-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportId: report.id }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Download failed");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Suitability_Report_${report.client_name.replace(/\s+/g, '_')}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      alert(err instanceof Error ? err.message : "Failed to download report.");
+    } finally {
+      setIsDownloading(null);
     }
   }
 
@@ -46,7 +77,8 @@ export function ClientReportsList({ initialReports }: { initialReports: Report[]
             borderRadius: "12px", 
             border: "1px solid #E5E7EB",
             overflow: "hidden",
-            marginBottom: "12px"
+            marginBottom: "12px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
           }}>
             <div 
               style={{ 
@@ -107,20 +139,26 @@ export function ClientReportsList({ initialReports }: { initialReports: Report[]
                   {report.content}
                 </div>
                 <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-                  <button style={{ 
-                    padding: "10px 20px", 
-                    borderRadius: "8px", 
-                    backgroundColor: "#0A1628", 
-                    color: "#FFFFFF", 
-                    fontWeight: "600", 
-                    fontSize: "13px",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px"
-                  }}>
-                    <Download size={16} /> Download Word
+                  <button 
+                    onClick={() => handleDownload(report)}
+                    disabled={isDownloading === report.id}
+                    style={{ 
+                      padding: "10px 20px", 
+                      borderRadius: "8px", 
+                      backgroundColor: "#0A1628", 
+                      color: "#FFFFFF", 
+                      fontWeight: "600", 
+                      fontSize: "13px",
+                      border: "none",
+                      cursor: isDownloading === report.id ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      opacity: isDownloading === report.id ? 0.7 : 1
+                    }}
+                  >
+                    {isDownloading === report.id ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                    Download Word
                   </button>
                 </div>
               </div>

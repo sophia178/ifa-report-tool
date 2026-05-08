@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildTradeStrategy } from "@/lib/claude";
+import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -8,9 +8,11 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
     }
 
     const supabase = await createClient();
@@ -30,7 +32,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Idea is required" }, { status: 400 });
     }
 
-    const strategyJson = await buildTradeStrategy(idea);
+    const prompt = `You are a quantitative trade strategist. Convert the following trading idea into a formal structured strategy.
+    Idea: ${idea}
+    
+    Return a JSON object with:
+    - strategyName: Professional name
+    - summary: 2-sentence summary
+    - entryCriteria: Array of strings
+    - exitCriteria: Array of strings
+    - riskManagement: Detailed text
+    - viabilityRating: 1-10
+    
+    Return ONLY the raw JSON object. Do not use markdown code fences.`;
+
+    const rawResult = await callClaude(prompt);
+    
+    // Clean and parse JSON safely
+    const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    const strategyJson = JSON.parse(cleanJson);
 
     // Save to Supabase
     const { data, error: dbError } = await supabase
@@ -43,14 +62,17 @@ export async function POST(request: Request) {
       .select()
       .maybeSingle();
 
-    if (dbError) throw dbError;
-    if (!data) throw new Error("Could not save strategy.");
+    if (dbError || !data) {
+      console.error("DB Error:", dbError);
+    }
 
-    return NextResponse.json(data);
+    return NextResponse.json({ result: strategyJson });
   } catch (error) {
-    console.error("Trade strategy error:", error);
-    const message = error instanceof Error ? error.message : "Unexpected error.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("API route error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }
 
@@ -72,7 +94,7 @@ export async function GET() {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Strategy fetch error:", error);
+    console.error("API route error:", error);
     return NextResponse.json({ error: "Failed to fetch strategies" }, { status: 500 });
   }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { draftClientEmail } from "@/lib/claude";
+import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -8,9 +8,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
     }
 
     const supabase = await createClient();
@@ -25,12 +27,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
-    const { clientName, purpose, keyPoints, tone } = await request.json();
+    const body = await request.json();
+    const { clientName, purpose, keyPoints, tone } = body;
+    
     if (!clientName || !purpose || !keyPoints || !tone) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const emailContent = await draftClientEmail({ clientName, purpose, keyPoints, tone });
+    const prompt = `You are a professional financial adviser drafting an email to a client.
+    Client: ${clientName}
+    Purpose: ${purpose}
+    Key Points: ${keyPoints}
+    Tone: ${tone}
+    
+    Return the email content as plain text.`;
+
+    const emailContent = await callClaude(prompt);
 
     // Save to Supabase
     const { error: dbError } = await supabase
@@ -44,12 +56,16 @@ export async function POST(request: Request) {
         email_content: emailContent,
       });
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      console.error("DB Error:", dbError);
+    }
 
-    return NextResponse.json({ emailContent });
+    return NextResponse.json({ result: emailContent });
   } catch (error) {
-    console.error("Email drafter error:", error);
-    const message = error instanceof Error ? error.message : "Unexpected error.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("API route error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }

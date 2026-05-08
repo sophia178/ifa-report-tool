@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateUSAPlan } from "@/lib/claude";
+import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -8,9 +8,11 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
     }
 
     const supabase = await createClient();
@@ -32,10 +34,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const planText = await generateUSAPlan({ 
-      clientName, 
-      meetingNotes: JSON.stringify(payload, null, 2)
-    });
+    const prompt = `You are a US financial planner. Generate a comprehensive financial plan for:
+    Client: ${clientName}
+    Notes: ${meetingNotes}
+    
+    Return the plan as plain structured text.`;
+
+    const planText = await callClaude(prompt);
 
     // Save to Supabase
     const { data, error: dbError } = await supabase
@@ -49,13 +54,16 @@ export async function POST(request: Request) {
       .select()
       .maybeSingle();
 
-    if (dbError) throw dbError;
-    if (!data) throw new Error("Could not save plan.");
+    if (dbError || !data) {
+      return NextResponse.json({ error: "Could not save plan" }, { status: 500 });
+    }
 
-    return NextResponse.json({ planText, planId: data.id });
+    return NextResponse.json({ result: planText, planId: data.id });
   } catch (error) {
-    console.error("USA plan generator error:", error);
-    const message = error instanceof Error ? error.message : "Unexpected error.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("API route error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }

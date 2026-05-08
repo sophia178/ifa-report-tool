@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { explainEconomicEvent } from "@/lib/claude";
+import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -8,9 +8,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
     }
 
     const supabase = await createClient();
@@ -30,12 +32,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const explanation = await explainEconomicEvent(event);
+    const prompt = `You are an economist. Explain the following economic event and its potential impact on financial markets in plain English for a financial adviser to use with clients.
+    Event: ${event.title}
+    Date: ${event.date}
+    Impact: ${event.impact}
+    
+    Return the explanation as plain text.`;
 
-    return NextResponse.json({ explanation });
+    const explanation = await callClaude(prompt);
+
+    return NextResponse.json({ result: explanation });
   } catch (error) {
-    console.error("Economic event explanation error:", error);
-    const message = error instanceof Error ? error.message : "Unexpected error.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("API route error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }

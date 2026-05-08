@@ -78,16 +78,17 @@ export default function CalendarPage() {
         body: JSON.stringify({ title: event.title, date: event.date, impact: event.impact }),
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: data.explanation } : e));
-      } else {
-        console.error("Failed to get explanation:", data.error);
-        setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: `Analysis unavailable: ${data.error || 'Server error'}` } : e));
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to get explanation");
       }
+
+      const data = await response.json();
+      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: data.result } : e));
     } catch (err) {
       console.error("Failed to get explanation", err);
-      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: "Failed to connect to AI analysis service. Please try again." } : e));
+      const errorMessage = err instanceof Error ? err.message : "Failed to connect to AI analysis service. Please try again.";
+      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: `Analysis unavailable: ${errorMessage}` } : e));
     } finally {
       setExplainingId(null);
     }

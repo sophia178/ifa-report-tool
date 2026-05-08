@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Flag, Loader2, FileDown, ArrowLeft } from "lucide-react";
+import { Flag, Loader2, FileDown, ArrowLeft, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { LoadingProgress } from "@/components/loading-progress";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -92,11 +93,14 @@ export default function USAPlanPage() {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to generate USA plan");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to generate USA plan");
+      }
 
+      const data = await response.json();
       setPlanId(data.planId);
-      setPlanText(data.planText);
+      setPlanText(data.result); // Use .result as per our new API pattern
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -106,6 +110,29 @@ export default function USAPlanPage() {
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px" }}>
+      {isGenerating && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isGenerating} />
+        </div>
+      )}
+
+      {error && (
+        <div style={{ 
+          backgroundColor: "#FEF2F2", 
+          border: "1px solid #FCA5A5", 
+          padding: "16px", 
+          borderRadius: "12px", 
+          color: "#991B1B", 
+          marginBottom: "24px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px"
+        }}>
+          <AlertCircle size={20} />
+          <span style={{ fontSize: "14px", fontWeight: "600" }}>{error}</span>
+        </div>
+      )}
+
       <div style={{ marginBottom: "40px" }}>
         <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
           <ArrowLeft size={16} /> Back to Dashboard

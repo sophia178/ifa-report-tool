@@ -61,8 +61,12 @@ export default function TeamPage() {
   async function fetchTeam() {
     try {
       const response = await fetch("/api/team");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to fetch team");
+      }
       const data = await response.json();
-      if (response.ok) setTeam(data);
+      setTeam(data);
     } catch (err) {
       console.error("Failed to fetch team", err);
     }
@@ -80,8 +84,10 @@ export default function TeamPage() {
         body: JSON.stringify({ email: inviteEmail }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to invite member");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to invite member");
+      }
 
       setInviteEmail("");
       await fetchTeam();
@@ -97,9 +103,13 @@ export default function TeamPage() {
 
     try {
       const response = await fetch(`/api/team?id=${id}`, { method: "DELETE" });
-      if (response.ok) await fetchTeam();
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to remove member");
+      }
+      await fetchTeam();
     } catch (err) {
-      console.error("Remove failed", err);
+      console.error("Failed to remove member", err);
     }
   }
 

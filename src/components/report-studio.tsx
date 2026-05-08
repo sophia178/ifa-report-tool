@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   FileText, Download, Zap, User, 
   Mic, Calculator, AlertCircle,
-  ShieldCheck, Target, TrendingUp, Wallet
+  ShieldCheck, Target, TrendingUp, Wallet,
+  Loader2
 } from "lucide-react";
 
 import type { Report } from "@/types/report";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type ReportStudioProps = {
   reports: Report[];
@@ -215,9 +217,12 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
           body: uploadFormData,
         });
 
-        const uploadJson = await uploadResponse.json();
-        if (!uploadResponse.ok) throw new Error(uploadJson.error || "Audio upload failed.");
+        if (!uploadResponse.ok) {
+          const err = await uploadResponse.json();
+          throw new Error(err.error || "Audio upload failed.");
+        }
 
+        const uploadJson = await uploadResponse.json();
         transcript = uploadJson.transcript;
         audioPath = uploadJson.audioPath;
       }
@@ -265,9 +270,12 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
         body: JSON.stringify(payload),
       });
 
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error || "Report generation failed.");
+      if (!response.ok) {
+        const json = await response.json();
+        throw new Error(json.error || "Report generation failed.");
+      }
 
+      const json = await response.json();
       setLatestReport(json.report);
       setLatestReportId(json.reportId);
       setStatus("Report generated successfully.");
@@ -283,6 +291,29 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", paddingBottom: "120px" }}>
+      {isSubmitting && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isSubmitting} />
+        </div>
+      )}
+      
+      {error && (
+        <div style={{ 
+          backgroundColor: "#FEF2F2", 
+          border: "1px solid #FCA5A5", 
+          padding: "16px", 
+          borderRadius: "12px", 
+          color: "#991B1B", 
+          marginBottom: "24px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px"
+        }}>
+          <AlertCircle size={20} />
+          <span style={{ fontSize: "14px", fontWeight: "600" }}>{error}</span>
+        </div>
+      )}
+
       <div style={{ backgroundColor: "white", borderRadius: "24px", padding: "48px", border: "1px solid #E5E7EB", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
         <div style={{ marginBottom: "40px" }}>
           <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", marginBottom: "8px" }}>Report Studio</h2>

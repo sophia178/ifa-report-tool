@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { analyseTrades } from "@/lib/claude";
+import { callClaude } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -8,9 +8,11 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Anthropic API key is not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured" },
+        { status: 500 }
+      );
     }
 
     const supabase = await createClient();
@@ -26,11 +28,34 @@ export async function POST(request: Request) {
     }
 
     const { trades } = await request.json();
-    const result = await analyseTrades(trades);
-    return NextResponse.json(result);
+    if (!trades || !Array.isArray(trades) || trades.length === 0) {
+      return NextResponse.json({ error: "Trades are required" }, { status: 400 });
+    }
+
+    const prompt = `You are a trading performance coach. Analyse the following trade journal entries for psychological patterns, technical mistakes, and improvement areas.
+    Trades: ${JSON.stringify(trades)}
+    
+    Return a JSON object with:
+    - winRate: String percentage
+    - profitFactor: Number
+    - psychologicalAnalysis: Detailed text
+    - technicalPatterns: Array of strings
+    - coachRecommendations: Array of strings
+    
+    Return ONLY the raw JSON object. Do not use markdown code fences.`;
+
+    const rawResult = await callClaude(prompt);
+    
+    // Clean and parse JSON safely
+    const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    const result = JSON.parse(cleanJson);
+
+    return NextResponse.json({ result });
   } catch (error) {
-    console.error("Trade analysis error:", error);
-    const message = error instanceof Error ? error.message : "Unexpected error.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("API route error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }

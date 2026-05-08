@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Mail, Loader2, Copy, Check } from "lucide-react";
+import { Mail, Loader2, Copy, Check, AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingProgress } from "@/components/loading-progress";
 
 const purposes = [
   "Annual review reminder",
@@ -79,12 +80,15 @@ export default function EmailsPage() {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to draft email");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to draft email");
+      }
 
-      setEmailContent(data.emailContent);
+      const data = await response.json();
+      setEmailContent(data.result); // Use .result as per our new API pattern
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsDrafting(false);
     }
@@ -98,6 +102,12 @@ export default function EmailsPage() {
 
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {isDrafting && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isDrafting} />
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Client Email Drafter

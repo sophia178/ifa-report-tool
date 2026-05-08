@@ -91,16 +91,16 @@ export function DashboardNav() {
         // Fetch plan from API to ensure consistent server-side check
         try {
           const res = await fetch('/api/user-plan');
-          const planData = await res.json();
-          if (planData.plan) {
-            setPlanTier(planData.plan.charAt(0).toUpperCase() + planData.plan.slice(1));
-          } else {
-            // Safety net: default to Pro/Full access if API returns no plan but user is authenticated
-            setPlanTier("Pro");
+          if (res.ok) {
+            const planData = await res.json();
+            if (planData.plan) {
+              setPlanTier(planData.plan.charAt(0).toUpperCase() + planData.plan.slice(1));
+            } else {
+              setPlanTier("Pro");
+            }
           }
         } catch (err) {
-          console.error('Failed to fetch plan:', err);
-          // Safety net: default to Pro/Full access on error
+          console.error("Nav plan fetch error:", err);
           setPlanTier("Pro");
         }
       }

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldAlert, Loader2, Plus, Trash2, PieChart, Globe, AlertCircle, Star, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { ShieldAlert, Loader2, Plus, Trash2, PieChart, Globe, AlertCircle, Star, AlertTriangle, TrendingUp, Activity, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type Holding = {
   assetName: string;
@@ -102,12 +104,15 @@ export default function RiskPage() {
         body: JSON.stringify({ holdings }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to analyse risk");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to analyse risk");
+      }
 
-      setResult(data);
+      const data = await response.json();
+      setResult(data.result); // Use .result as per our new API pattern
     } catch (err: any) {
-      setError(err.message || "Something went wrong");
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setIsAnalysing(false);
     }
@@ -129,7 +134,16 @@ export default function RiskPage() {
 
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {isAnalysing && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isAnalysing} />
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Portfolio Risk Analyser
         </h1>

@@ -79,8 +79,12 @@ export default function TradeJournalPage() {
   async function fetchTrades() {
     try {
       const response = await fetch("/api/trades");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to fetch trades");
+      }
       const data = await response.json();
-      if (response.ok) setTrades(data);
+      setTrades(data);
     } catch (err) {
       console.error("Failed to fetch trades", err);
     }
@@ -105,7 +109,10 @@ export default function TradeJournalPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to log trade");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to log trade");
+      }
 
       setAssetName("");
       setEntryPrice("");
@@ -115,7 +122,7 @@ export default function TradeJournalPage() {
       await fetchTrades();
       setActiveTab("history");
     } catch (err: any) {
-      setError(err.message || "Failed to log trade");
+      setError(err instanceof Error ? err.message : "Failed to log trade");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,6 +132,7 @@ export default function TradeJournalPage() {
     if (trades.length === 0) return;
     setIsAnalysing(true);
     setAnalysis(null);
+    setError("");
 
     try {
       const response = await fetch("/api/trades/analyse", {
@@ -133,10 +141,16 @@ export default function TradeJournalPage() {
         body: JSON.stringify({ trades }),
       });
 
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to analyse trades");
+      }
+
       const data = await response.json();
-      if (response.ok) setAnalysis(data);
+      setAnalysis(data.result); // Use .result as per our new API pattern
     } catch (err) {
       console.error("Failed to analyse trades", err);
+      setError(err instanceof Error ? err.message : "Analysis failed");
     } finally {
       setIsAnalysing(false);
     }
@@ -145,7 +159,8 @@ export default function TradeJournalPage() {
   async function deleteTrade(id: string) {
     if (!confirm("Delete this trade?")) return;
     try {
-      await fetch(`/api/trades?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/trades?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
       await fetchTrades();
     } catch (err) {
       console.error("Failed to delete", err);

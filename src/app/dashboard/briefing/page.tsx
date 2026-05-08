@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Coffee, Loader2, Download, AlertCircle, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingProgress } from "@/components/loading-progress";
 
 export default function BriefingPage() {
   const router = useRouter();
@@ -72,16 +73,20 @@ export default function BriefingPage() {
   async function handleGenerate() {
     setIsGenerating(true);
     setError("");
+    setBriefing(null);
 
     try {
       const response = await fetch("/api/briefing", {
         method: "POST",
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to generate briefing");
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to generate briefing");
+      }
 
-      setBriefing(data.briefingText);
+      const data = await response.json();
+      setBriefing(data.result); // Use .result as per our new API pattern
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -187,6 +192,12 @@ export default function BriefingPage() {
 
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "60px 48px", minHeight: "100vh", backgroundColor: "white" }}>
+      {isGenerating && (
+        <div style={{ marginBottom: "24px" }}>
+          <LoadingProgress isLoading={isGenerating} />
+        </div>
+      )}
+      
       <div style={{ borderBottom: "4px solid #0A1628", paddingBottom: "40px", marginBottom: "60px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#C9A84C", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "13px", marginBottom: "16px" }}>
