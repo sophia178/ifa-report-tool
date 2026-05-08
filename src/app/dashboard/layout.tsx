@@ -1,7 +1,7 @@
 import { DashboardNav } from "@/components/dashboard-nav";
 import { requireUser } from "@/lib/auth";
 import { logout } from "@/app/auth/actions";
-import { LogOut, Bell, Search } from "lucide-react";
+import { LogOut, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,14 +31,14 @@ export default async function DashboardLayout({
   const displayName = profile?.display_name || user.email?.split('@')[0] || "Adviser";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <div style={{ display: "flex", height: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif", overflow: "hidden" }}>
       {/* Sidebar */}
       <aside style={{ 
         width: "240px", 
         minWidth: "240px",
         flexShrink: 0,
         backgroundColor: "#0A1628", 
-        minHeight: "100vh", 
+        height: "100%", 
         display: "flex",
         flexDirection: "column",
         zIndex: 50, 
@@ -47,24 +47,24 @@ export default async function DashboardLayout({
         <DashboardNav />
       </aside>
 
-      {/* Main Content */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh", overflowY: "auto", paddingTop: "0" }}>
+      {/* Main Content Container */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+        {/* Top Navigation Bar */}
         <header style={{ 
           height: "64px", 
+          minHeight: "64px",
           backgroundColor: "#FFFFFF", 
           borderBottom: "1px solid rgba(10, 22, 40, 0.08)", 
           display: "flex", 
           alignItems: "center", 
           justifyContent: "space-between", 
           padding: "0 32px", 
-          position: "sticky", 
-          top: 0, 
           zIndex: 40 
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
             <h1 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628" }}>Workspace</h1>
             <div style={{ 
-              display: "none", // Hide on mobile if this were responsive
+              display: "none", 
               alignItems: "center", 
               gap: "8px", 
               padding: "6px 12px", 
@@ -79,9 +79,7 @@ export default async function DashboardLayout({
           </div>
           
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <button style={{ padding: "8px", color: "#8A94A6", cursor: "pointer", background: "none", border: "none" }}>
-              <Bell size={20} />
-            </button>
+            {/* Notification bell removed as no system is built */}
             
             <div style={{ height: "32px", width: "1px", backgroundColor: "rgba(10, 22, 40, 0.08)", margin: "0 8px" }}></div>
 
@@ -128,10 +126,11 @@ export default async function DashboardLayout({
           </div>
         </header>
 
-        <div style={{ padding: "32px", flex: 1 }}>
+        {/* Scrollable Content Area */}
+        <main style={{ flex: 1, overflowY: "auto", padding: "32px" }}>
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, User, Shield, Lock, Trash2, Save, Upload, Loader2 } from "lucide-react";
+import { ArrowLeft, User, Shield, Lock, Trash2, Save, Upload, Loader2, ExternalLink, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<string | undefined>();
   const [plan, setPlan] = useState<string>("Starter");
   const [isPro, setIsPro] = useState(false);
+  const [isPlus, setIsPlus] = useState(false);
   const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
   
   // Profile
@@ -64,6 +65,7 @@ export default function SettingsPage() {
           setIsPro(true);
         } else if (profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID) {
           setPlan("Plus");
+          setIsPlus(true);
         } else {
           setPlan("Starter");
         }
@@ -97,33 +99,6 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleSaveWhiteLabel() {
-    if (!isPro) return;
-    setIsSaving(true);
-    setError("");
-    const supabase = createClient();
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ 
-          firm_name: firmName,
-          regulator_number: regulatorNumber,
-          registered_address: registeredAddress,
-          custom_footer_text: customFooterText,
-          firm_logo_url: firmLogoUrl
-        })
-        .eq("id", userId);
-      
-      if (error) throw error;
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
   async function handlePasswordReset() {
     if (!userEmail) return;
     const supabase = createClient();
@@ -137,6 +112,14 @@ export default function SettingsPage() {
       alert(err.message);
     }
   }
+
+  const getPlanPrice = () => {
+    switch (plan) {
+      case "Pro": return "£99/month";
+      case "Plus": return "£49/month";
+      default: return "£19/month";
+    }
+  };
 
   if (isLoading) {
     return (
@@ -226,7 +209,7 @@ export default function SettingsPage() {
         {/* Security Section */}
         <section style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
-            <Shield size={24} color="#0A1628" />
+            <Lock size={24} color="#0A1628" />
             <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Security</h2>
           </div>
 
@@ -256,8 +239,94 @@ export default function SettingsPage() {
                 backgroundColor: hoveredBtn === "password" ? "#E5E7EB" : "#F4F6F9"
               }}
             >
-              <Lock size={18} /> Reset Password via Email
+              <Shield size={18} /> Reset Password via Email
             </button>
+          </div>
+        </section>
+
+        {/* Subscription Section */}
+        <section style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
+            <Shield size={24} color="#0A1628" />
+            <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Subscription</h2>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <p style={{ fontSize: "13px", fontWeight: "700", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Current Plan</p>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                  <span style={{ fontSize: "24px", fontWeight: "800", color: "#0A1628" }}>{plan}</span>
+                  <span style={{ fontSize: "16px", color: "#64748B" }}>{getPlanPrice()}</span>
+                </div>
+              </div>
+              
+              {!isPro && (
+                <Link 
+                  href="/pricing"
+                  onMouseEnter={() => setHoveredBtn("upgrade")}
+                  onMouseLeave={() => setHoveredBtn(null)}
+                  style={{
+                    backgroundColor: "#C9A84C",
+                    color: "#0A1628",
+                    padding: "12px 24px",
+                    borderRadius: "10px",
+                    textDecoration: "none",
+                    fontWeight: "700",
+                    fontSize: "14px",
+                    transition: "all 0.2s ease",
+                    transform: hoveredBtn === "upgrade" ? "translateY(-1px)" : "none",
+                    boxShadow: hoveredBtn === "upgrade" ? "0 4px 12px rgba(201, 168, 76, 0.2)" : "none"
+                  }}
+                >
+                  Upgrade Plan
+                </Link>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <Link 
+                  href="/api/customer-portal"
+                  onMouseEnter={() => setHoveredBtn("portal")}
+                  onMouseLeave={() => setHoveredBtn(null)}
+                  style={{
+                    backgroundColor: "#0A1628",
+                    color: "white",
+                    padding: "12px 24px",
+                    borderRadius: "10px",
+                    textDecoration: "none",
+                    fontWeight: "700",
+                    fontSize: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    transition: "all 0.2s ease",
+                    transform: hoveredBtn === "portal" ? "translateY(-1px)" : "none"
+                  }}
+                >
+                  <CreditCard size={18} /> Manage subscription
+                </Link>
+                
+                <Link 
+                  href="/api/customer-portal"
+                  style={{ 
+                    fontSize: "13px", 
+                    color: "#EF4444", 
+                    textDecoration: "none", 
+                    fontWeight: "600" 
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                >
+                  Cancel subscription
+                </Link>
+              </div>
+
+              <p style={{ fontSize: "13px", color: "#64748B", fontStyle: "italic" }}>
+                Changes take effect immediately. Cancellations apply at end of billing period.
+              </p>
+            </div>
           </div>
         </section>
       </div>
