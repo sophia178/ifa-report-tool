@@ -20,7 +20,23 @@ export async function login(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
+  // 1. Check for jurisdiction and subscription server-side after login
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("jurisdiction, subscribed")
+    .eq("id", (await supabase.auth.getUser()).data.user?.id)
+    .single();
+
   revalidatePath("/", "layout");
+
+  if (!profile?.jurisdiction) {
+    redirect("/onboarding");
+  }
+
+  if (!profile?.subscribed) {
+    redirect("/pricing?message=subscribe");
+  }
+
   redirect("/dashboard");
 }
 

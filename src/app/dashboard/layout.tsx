@@ -2,6 +2,8 @@ import { DashboardNav } from "@/components/dashboard-nav";
 import { requireUser } from "@/lib/auth";
 import { logout } from "@/app/auth/actions";
 import { LogOut, Bell, Search } from "lucide-react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({
   children,
@@ -9,6 +11,22 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user } = await requireUser();
+  const supabase = await createClient();
+
+  // 1. Perform server-side subscription and onboarding checks
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscribed, jurisdiction")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.subscribed) {
+    redirect("/pricing?message=subscribe");
+  }
+
+  if (!profile?.jurisdiction) {
+    redirect("/onboarding");
+  }
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif" }}>

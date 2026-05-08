@@ -8,11 +8,6 @@ import Link from "next/link";
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
-  const isSubscribed = await checkSubscription(user.id);
-
-  if (!isSubscribed) {
-    redirect("/pricing?message=subscribe");
-  }
 
   const { data } = await supabase
     .from("reports")
