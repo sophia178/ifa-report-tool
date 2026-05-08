@@ -40,6 +40,12 @@ export default function ResearchPage() {
         router.push("/pricing?message=subscribe");
         return;
       }
+
+      const planRes = await fetch("/api/user-plan");
+      const { plan } = await planRes.json();
+      
+      // Research is available for all plans as long as subscribed
+      // But let's check if there are any specific restrictions
       
       setIsLoading(false);
     }
@@ -114,33 +120,30 @@ export default function ResearchPage() {
         )}
 
         <button
-          disabled={isSummarising || !text.trim()}
           onClick={handleSummarise}
+          disabled={isSummarising || !text.trim()}
+          onMouseEnter={(e) => { if (!isSummarising && text.trim()) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
+          onMouseLeave={(e) => { if (!isSummarising && text.trim()) e.currentTarget.style.backgroundColor = "#0A1628"; }}
           style={{
             backgroundColor: "#0A1628",
             color: "white",
-            padding: "12px 24px",
+            padding: "16px",
             borderRadius: "8px",
-            fontSize: "15px",
-            fontWeight: "600",
             border: "none",
+            fontWeight: "700",
+            fontSize: "15px",
             cursor: (isSummarising || !text.trim()) ? "not-allowed" : "pointer",
-            width: "100%",
+            opacity: (isSummarising || !text.trim()) ? 0.6 : 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "10px",
-            opacity: (isSummarising || !text.trim()) ? 0.7 : 1
+            gap: "8px",
+            width: "100%",
+            transition: "background-color 0.2s"
           }}
         >
-          {isSummarising ? (
-            <>
-              <Loader2 className="animate-spin" size={18} />
-              Summarising...
-            </>
-          ) : (
-            "Summarise Research"
-          )}
+          {isSummarising ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
+          {isSummarising ? "Summarising..." : "Generate Research Summary"}
         </button>
 
         {result && (

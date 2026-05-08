@@ -31,7 +31,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <input className="input" id="email" name="email" type="email" required />
             </div>
             <div className="field">
-              <label htmlFor="password">Password</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label htmlFor="password">Password</label>
+                <Link href="/forgot-password" style={{ fontSize: "12px", color: "#C9A84C", textDecoration: "none", fontWeight: "600" }}>Forgot password?</Link>
+              </div>
               <input
                 className="input"
                 id="password"

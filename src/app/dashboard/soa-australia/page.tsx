@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Map, Loader2, FileDown } from "lucide-react";
+import { Map, Loader2, FileDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -26,7 +27,7 @@ export default function SOAAustraliaPage() {
   const [soaText, setSoaText] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
+  const [hoveredBtn, setHoveredBtn] = useState(false);
 
   useEffect(() => {
     async function checkAccess() {
@@ -38,11 +39,9 @@ export default function SOAAustraliaPage() {
         return;
       }
 
-      setUserEmail(user.email);
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, jurisdiction, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -51,12 +50,12 @@ export default function SOAAustraliaPage() {
         return;
       }
 
-      // Check if user has at least Plus plan
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
-      
-      if (plan === "starter") {
-        router.push("/pricing?message=upgrade");
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+      const isPlus = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID;
+      const isAusStarter = profile.jurisdiction === "aus"; // Starter is fallback
+
+      if (!isPro && !isPlus && !isAusStarter) {
+        router.push("/dashboard?error=access-denied");
         return;
       }
       
@@ -67,8 +66,8 @@ export default function SOAAustraliaPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
   }
@@ -114,196 +113,105 @@ export default function SOAAustraliaPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)]">
-              <div className="p-8 stack gap-6">
-                <div className="stack gap-2">
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <Map className="text-[#c1a362]" />
-                    Australian SOA Generator
-                  </h2>
-                  <p className="text-gray-400">
-                    Generate an ASIC RG 175 compliant Statement of Advice from meeting notes.
-                  </p>
-                </div>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px" }}>
+      <div style={{ marginBottom: "40px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
+        <h1 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "8px" }}>Australian SOA Generator</h1>
+        <p style={{ color: "#5F6877", fontSize: "16px" }}>Generate an ASIC RG 175 compliant Statement of Advice from meeting notes.</p>
+      </div>
 
-                <form onSubmit={handleGenerate} className="stack gap-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Client Name</label>
-                      <input
-                        className="input"
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Client Email</label>
-                      <input
-                        className="input"
-                        type="email"
-                        value={clientEmail}
-                        onChange={(e) => setClientEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Date of Birth</label>
-                      <input
-                        className="input"
-                        type="date"
-                        value={dateOfBirth}
-                        onChange={(e) => setDateOfBirth(e.target.value)}
-                      />
-                    </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Meeting Date</label>
-                      <input
-                        className="input"
-                        type="date"
-                        value={meetingDate}
-                        onChange={(e) => setMeetingDate(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Adviser Name</label>
-                      <input
-                        className="input"
-                        value={adviserName}
-                        onChange={(e) => setAdviserName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="field">
-                      <label className="text-sm font-medium text-gray-400">Adviser Firm</label>
-                      <input
-                        className="input"
-                        value={adviserFirm}
-                        onChange={(e) => setAdviserFirm(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="stack gap-2">
-                    <h3 className="text-sm font-semibold border-b border-[rgba(193,163,98,0.2)] pb-2">Investment Details (optional)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Platform Name</label>
-                        <input
-                          className="input"
-                          value={platformName}
-                          onChange={(e) => setPlatformName(e.target.value)}
-                        />
-                      </div>
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Fund Name</label>
-                        <input
-                          className="input"
-                          value={fundName}
-                          onChange={(e) => setFundName(e.target.value)}
-                        />
-                      </div>
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Fund SRRI Rating</label>
-                        <input
-                          className="input"
-                          type="number"
-                          min="1"
-                          max="7"
-                          value={fundSrriRiskRating}
-                          onChange={(e) => setFundSrriRiskRating(e.target.value)}
-                        />
-                      </div>
-                      <div className="field">
-                        <label className="text-sm font-medium text-gray-400">Fund ISIN</label>
-                        <input
-                          className="input"
-                          value={fundIsinNumber}
-                          onChange={(e) => setFundIsinNumber(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label className="text-sm font-medium text-gray-400">Client Objectives</label>
-                    <textarea
-                      className="textarea min-h-[100px]"
-                      value={objectives}
-                      onChange={(e) => setObjectives(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label className="text-sm font-medium text-gray-400">Meeting Notes</label>
-                    <textarea
-                      className="textarea min-h-[300px]"
-                      value={meetingNotes}
-                      onChange={(e) => setMeetingNotes(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {error && <div className="alert alert-error">{error}</div>}
-
-                  <button
-                    type="submit"
-                    className="btn w-full"
-                    disabled={isGenerating}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="animate-spin" size={18} />
-                        Generating SOA...
-                      </>
-                    ) : (
-                      "Generate Statement of Advice"
-                    )}
-                  </button>
-                </form>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px", alignItems: "start" }}>
+        {/* Input Panel */}
+        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+          <form onSubmit={handleGenerate} style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Client Name</label>
+                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} value={clientName} onChange={(e) => setClientName(e.target.value)} required />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Client Email</label>
+                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Date of Birth</label>
+                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Meeting Date</label>
+                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} required />
               </div>
             </div>
 
-            <div className="stack gap-6">
-              {soaText ? (
-                <div className="card shadow-xl overflow-hidden border border-[rgba(193,163,98,0.2)] fade-in">
-                  <div className="p-8 stack gap-6">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-xl font-bold">Generated SOA</h3>
-                      <a
-                        href={`/api/download-soa?id=${soaId}`}
-                        className="btn-light btn-sm flex items-center gap-2"
-                        download
-                      >
-                        <FileDown size={18} />
-                        Download Word
-                      </a>
-                    </div>
-                    <div className="p-6 rounded-xl bg-white text-gray-900 h-[800px] overflow-y-auto">
-                      {soaText.split('\n').map((line, i) => (
-                        <p key={i} className={`mb-3 ${line.startsWith('SECTION') ? 'font-bold text-lg mt-6' : ''}`}>
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="card border border-dashed border-[rgba(193,163,98,0.2)] bg-transparent p-12 text-center stack gap-4 items-center">
-                  <div className="p-4 rounded-full bg-[rgba(193,163,98,0.05)] text-[#c1a362]">
-                    <Map size={48} />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-300">No SOA Generated Yet</h3>
-                  <p className="text-gray-500 max-w-xs mx-auto">
-                    Fill in the client details and meeting notes to generate a compliant Statement of Advice.
-                  </p>
-                </div>
-              )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Meeting Notes</label>
+              <textarea style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px", minHeight: "200px", resize: "vertical" }} placeholder="Paste your meeting notes here..." value={meetingNotes} onChange={(e) => setMeetingNotes(e.target.value)} required />
             </div>
-          </div>
+
+            {error && (
+              <div style={{ padding: "12px 16px", backgroundColor: "#FEF2F2", color: "#991B1B", borderRadius: "8px", fontSize: "14px", border: "1px solid #FEE2E2" }}>
+                {error}
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={isGenerating}
+              onMouseEnter={() => setHoveredBtn(true)}
+              onMouseLeave={() => setHoveredBtn(false)}
+              style={{ 
+                padding: "16px", 
+                backgroundColor: "#0A1628", 
+                color: "#FFFFFF", 
+                borderRadius: "12px", 
+                fontWeight: "700", 
+                fontSize: "16px", 
+                cursor: isGenerating ? "not-allowed" : "pointer",
+                opacity: isGenerating ? 0.7 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "12px",
+                transition: "all 0.2s ease",
+                transform: hoveredBtn && !isGenerating ? "translateY(-1px)" : "none",
+                boxShadow: hoveredBtn && !isGenerating ? "0 4px 12px rgba(10, 22, 40, 0.15)" : "none"
+              }}
+            >
+              {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Map size={20} />}
+              {isGenerating ? "Generating SOA..." : "Generate Australian SOA"}
+            </button>
+          </form>
+        </div>
+
+        {/* Output Panel */}
+        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", minHeight: "600px", display: "flex", flexDirection: "column", gap: "24px" }}>
+          {soaText ? (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628" }}>Generated SOA</h3>
+                <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", backgroundColor: "#F4F6F9", borderRadius: "8px", fontSize: "13px", fontWeight: "600", color: "#0A1628" }}>
+                  <FileDown size={16} /> Download Word
+                </button>
+              </div>
+              <div style={{ whiteSpace: "pre-wrap", color: "#374151", fontSize: "15px", lineHeight: "1.7", padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px", flex: 1 }}>
+                {soaText}
+              </div>
+            </>
+          ) : (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#8A94A6", textAlign: "center", gap: "16px" }}>
+              <div style={{ width: "64px", height: "64px", borderRadius: "16px", backgroundColor: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Map size={32} />
+              </div>
+              <div>
+                <p style={{ fontWeight: "700", color: "#0A1628", marginBottom: "4px" }}>No SOA Generated Yet</p>
+                <p style={{ fontSize: "14px" }}>Fill out the form to generate a compliant Statement of Advice.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

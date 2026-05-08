@@ -11,9 +11,18 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("jurisdiction")
+      .eq("id", user.id)
+      .single();
+
     const plan = await getUserPlan(user.id);
 
-    return NextResponse.json({ plan });
+    return NextResponse.json({ 
+      plan,
+      jurisdiction: profile?.jurisdiction
+    });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch user plan" }, { status: 500 });
   }

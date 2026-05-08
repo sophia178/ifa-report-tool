@@ -72,8 +72,12 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
         <TopNav email={user?.email} />
 
         {params.message === "subscribe" ? (
-          <div style={{ backgroundColor: "#0A1628", color: "white", padding: "12px", textAlign: "center", borderRadius: "8px", marginBottom: "32px", marginTop: "32px" }}>
-            Please subscribe to access your dashboard
+          <div style={{ backgroundColor: "#0A1628", color: "white", padding: "16px", textAlign: "center", borderRadius: "12px", marginBottom: "32px", marginTop: "32px", fontWeight: "600" }}>
+            Please subscribe to a plan to access the Suitance dashboard.
+          </div>
+        ) : params.message === "upgrade" ? (
+          <div style={{ backgroundColor: "#C9A84C", color: "#0A1628", padding: "16px", textAlign: "center", borderRadius: "12px", marginBottom: "32px", marginTop: "32px", fontWeight: "700" }}>
+            Upgrade your plan to unlock this tool and more advanced features.
           </div>
         ) : null}
 
@@ -82,7 +86,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             Simple, transparent pricing.
           </h1>
           <p style={{ fontSize: "18px", color: "#64748B", textAlign: "center", marginBottom: "64px" }}>
-            Start free. Scale as you grow.
+            Start today from £19/month. Scale as you grow.
           </p>
         </header>
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Shield, Loader2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Shield, Loader2, CheckCircle, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 type ComplianceIssue = {
   issue: string;
@@ -24,6 +25,7 @@ export default function CompliancePage() {
   const [result, setResult] = useState<ComplianceResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [hoveredBtn, setHoveredBtn] = useState(false);
 
   useEffect(() => {
     async function checkAccess() {
@@ -37,7 +39,7 @@ export default function CompliancePage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -46,10 +48,10 @@ export default function CompliancePage() {
         return;
       }
 
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+      const isPlus = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID;
       
-      if (plan === "starter") {
+      if (!isPro && !isPlus) {
         router.push("/pricing?message=upgrade");
         return;
       }
@@ -61,7 +63,7 @@ export default function CompliancePage() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Loader2 className="animate-spin text-[#0A1628]" size={48} />
       </div>
     );
@@ -91,9 +93,9 @@ export default function CompliancePage() {
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "#059669"; // Emerald 600
-    if (score >= 50) return "#D97706"; // Amber 600
-    return "#DC2626"; // Red 600
+    if (score >= 80) return "#059669";
+    if (score >= 50) return "#D97706";
+    return "#DC2626";
   };
 
   const getRecommendationStyles = (rec: string) => {
@@ -103,75 +105,77 @@ export default function CompliancePage() {
   };
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
-          Compliance Checker
-        </h1>
-        <p style={{ color: "#64748B", margin: 0 }}>
-          Analyse advice text against FCA Consumer Duty and COBS 9 rules.
-        </p>
+    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ marginBottom: "40px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
+        <h1 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "8px" }}>Compliance Checker</h1>
+        <p style={{ color: "#5F6877", fontSize: "16px" }}>Analyse advice text against FCA Consumer Duty and COBS 9 rules.</p>
       </div>
 
-      <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "24px" }}>
-        <textarea
-          style={{
-            border: "1px solid #E5E7EB",
-            borderRadius: "8px",
-            padding: "16px",
-            fontSize: "15px",
-            width: "100%",
-            minHeight: "250px",
-            resize: "vertical",
-            fontFamily: "inherit",
-            color: "#1E293B",
-            backgroundColor: "#F8FAFC"
-          }}
-          placeholder="Paste advice text, report section, or client communication here..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "32px" }}>
+        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+          <textarea
+            style={{
+              border: "1px solid #E2E8F0",
+              borderRadius: "12px",
+              padding: "20px",
+              fontSize: "15px",
+              width: "100%",
+              minHeight: "300px",
+              resize: "vertical",
+              fontFamily: "inherit",
+              color: "#1E293B",
+              backgroundColor: "#F8FAFC",
+              marginBottom: "24px",
+              transition: "all 0.2s ease"
+            }}
+            placeholder="Paste advice text, report section, or client communication here..."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
 
-        {error && (
-          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
-            {error}
-          </div>
-        )}
-
-        <button
-          disabled={isChecking || !text.trim()}
-          onClick={handleCheck}
-          style={{
-            backgroundColor: "#0A1628",
-            color: "white",
-            padding: "12px 24px",
-            borderRadius: "8px",
-            fontSize: "15px",
-            fontWeight: "600",
-            border: "none",
-            cursor: (isChecking || !text.trim()) ? "not-allowed" : "pointer",
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "10px",
-            opacity: (isChecking || !text.trim()) ? 0.7 : 1
-          }}
-        >
-          {isChecking ? (
-            <>
-              <Loader2 className="animate-spin" size={18} />
-              Analysing Compliance...
-            </>
-          ) : (
-            "Check Compliance"
+          {error && (
+            <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px", marginBottom: "24px" }}>
+              {error}
+            </div>
           )}
-        </button>
+
+          <button
+            onClick={handleCheck}
+            disabled={isChecking || !text.trim()}
+            onMouseEnter={() => setHoveredBtn(true)}
+            onMouseLeave={() => setHoveredBtn(false)}
+            style={{
+              backgroundColor: "#0A1628",
+              color: "white",
+              padding: "16px 32px",
+              borderRadius: "12px",
+              border: "none",
+              fontWeight: "700",
+              fontSize: "16px",
+              cursor: (isChecking || !text.trim()) ? "not-allowed" : "pointer",
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "12px",
+              opacity: (isChecking || !text.trim()) ? 0.6 : 1,
+              transition: "all 0.2s ease",
+              transform: hoveredBtn && !isChecking && text.trim() ? "translateY(-1px)" : "none",
+              boxShadow: hoveredBtn && !isChecking && text.trim() ? "0 4px 12px rgba(10, 22, 40, 0.15)" : "none"
+            }}
+          >
+            {isChecking ? <Loader2 className="animate-spin" size={20} /> : <Shield size={20} />}
+            {isChecking ? "Analysing text..." : "Run Compliance Check"}
+          </button>
+        </div>
 
         {result && (
-          <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "32px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-              <div style={{ padding: "32px", borderRadius: "12px", backgroundColor: "#F8FAFC", border: "1px solid #E5E7EB", textAlign: "center" }}>
+          <div style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "48px" }}>
+              <div style={{ padding: "32px", borderRadius: "16px", backgroundColor: "#F8FAFC", border: "1px solid #E5E7EB", textAlign: "center" }}>
                 <h3 style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", marginBottom: "8px" }}>Compliance Score</h3>
                 <div style={{ fontSize: "48px", fontWeight: "900", color: getScoreColor(result.score) }}>
                   {result.score}/100
@@ -179,7 +183,7 @@ export default function CompliancePage() {
               </div>
               <div style={{ 
                 padding: "32px", 
-                borderRadius: "12px", 
+                borderRadius: "16px", 
                 display: "flex", 
                 flexDirection: "column", 
                 alignItems: "center", 
@@ -195,37 +199,31 @@ export default function CompliancePage() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", display: "flex", alignItems: "center", gap: "12px", margin: 0 }}>
-                <AlertCircle size={20} color="#0A1628" />
+              <h3 style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628", display: "flex", alignItems: "center", gap: "12px", margin: 0 }}>
+                <AlertCircle size={24} color="#0A1628" />
                 Identified Issues & Fixes
               </h3>
               
-              {result.issues.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  {result.issues.map((item, i) => (
-                    <div key={i} style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", display: "flex", flexDirection: "column", gap: "16px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
-                          <span style={{ fontSize: "11px", fontWeight: "800", color: "#DC2626", textTransform: "uppercase" }}>Issue</span>
-                          <p style={{ color: "#1E293B", fontWeight: "600", fontSize: "15px", margin: 0 }}>{item.issue}</p>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px", textAlign: "right" }}>
-                          <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase" }}>Relevant Rule</span>
-                          <p style={{ fontSize: "13px", fontFamily: "monospace", color: "#0A1628", backgroundColor: "#F1F5F9", padding: "4px 8px", borderRadius: "4px", margin: 0 }}>{item.rule}</p>
-                        </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {result.issues.map((issue, i) => (
+                  <div key={i} style={{ padding: "24px", borderRadius: "16px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <div>
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#C9A84C", textTransform: "uppercase", letterSpacing: "0.05em" }}>Issue</span>
+                        <p style={{ fontSize: "15px", fontWeight: "700", color: "#0A1628", margin: "4px 0 0" }}>{issue.issue}</p>
                       </div>
-                      <div style={{ paddingTop: "16px", borderTop: "1px solid #F1F5F9" }}>
-                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#059669", textTransform: "uppercase" }}>Suggested Fix</span>
-                        <p style={{ color: "#475569", fontSize: "14px", marginTop: "4px", fontStyle: "italic", margin: 0 }}>&ldquo;{item.fix}&rdquo;</p>
+                      <div>
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>Rule Reference</span>
+                        <p style={{ fontSize: "14px", color: "#475569", margin: "4px 0 0" }}>{issue.rule}</p>
+                      </div>
+                      <div style={{ marginTop: "8px", padding: "16px", backgroundColor: "#FFFFFF", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#059669", textTransform: "uppercase", letterSpacing: "0.05em" }}>Recommended Fix</span>
+                        <p style={{ fontSize: "14px", color: "#065F46", margin: "4px 0 0", fontWeight: "500" }}>{issue.fix}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ padding: "48px", textAlign: "center", border: "2px dashed #E5E7EB", borderRadius: "12px" }}>
-                  <p style={{ color: "#94A3B8", margin: 0 }}>No major compliance issues identified.</p>
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

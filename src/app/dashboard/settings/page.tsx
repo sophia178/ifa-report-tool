@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ArrowLeft, User, Shield, Lock, Trash2, Save, Upload, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -12,10 +14,11 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<string | undefined>();
   const [plan, setPlan] = useState<string>("Starter");
   const [isPro, setIsPro] = useState(false);
+  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
   
   // Profile
   const [displayName, setDisplayName] = useState("");
-  const [jurisdiction, setJurisdiction] = useState("UK");
+  const [jurisdiction, setJurisdiction] = useState("uk");
 
   // White Label
   const [firmName, setFirmName] = useState("");
@@ -48,7 +51,7 @@ export default function SettingsPage() {
 
       if (profile) {
         setDisplayName(profile.display_name || "");
-        setJurisdiction(profile.jurisdiction || "UK");
+        setJurisdiction(profile.jurisdiction || "uk");
         setFirmName(profile.firm_name || "");
         setRegulatorNumber(profile.regulator_number || "");
         setRegisteredAddress(profile.registered_address || "");
@@ -126,7 +129,7 @@ export default function SettingsPage() {
     const supabase = createClient();
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/settings`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
       alert("Password reset email sent!");
@@ -135,241 +138,129 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleDeleteAccount() {
-    if (!confirm("Are you sure you want to delete your account? This action is irreversible.")) return;
-    
-    setIsSaving(true);
-    const supabase = createClient();
-    try {
-      // Deleting profile and user
-      const { error } = await supabase.rpc('delete_user_account');
-      if (error) throw error;
-      
-      await supabase.auth.signOut();
-      router.push("/");
-    } catch (err: any) {
-      // If RPC is not available, we can at least sign out and tell them to contact support
-      // or implement a server action for this.
-      console.error(err);
-      alert("Please contact support to delete your account.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
-
-    setIsSaving(true);
-    const supabase = createClient();
-    try {
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/logo.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('white-labels')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('white-labels')
-        .getPublicUrl(filePath);
-
-      setFirmLogoUrl(publicUrl);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
   if (isLoading) {
-    return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>Loading...</div>;
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 20px" }}>
-      <h1 style={{ fontSize: "32px", fontWeight: "bold", color: "#0A1628", marginBottom: "40px" }}>Account Settings</h1>
+    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ marginBottom: "40px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
+        <h1 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "8px" }}>Account Settings</h1>
+        <p style={{ color: "#5F6877", fontSize: "16px" }}>Manage your profile, jurisdiction, and firm preferences.</p>
+      </div>
 
       {success && (
-        <div style={{ backgroundColor: "#ECFDF5", color: "#065F46", padding: "12px 16px", borderRadius: "8px", marginBottom: "24px" }}>
+        <div style={{ backgroundColor: "#ECFDF5", color: "#065F46", padding: "16px 24px", borderRadius: "12px", marginBottom: "32px", border: "1px solid #D1FAE5", fontWeight: "600" }}>
           Changes saved successfully!
         </div>
       )}
 
-      {error && (
-        <div style={{ backgroundColor: "#FEF2F2", color: "#991B1B", padding: "12px 16px", borderRadius: "8px", marginBottom: "24px" }}>
-          {error}
-        </div>
-      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "32px" }}>
+        {/* Profile Section */}
+        <section style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
+            <User size={24} color="#0A1628" />
+            <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Personal Profile</h2>
+          </div>
 
-      {/* Profile Section */}
-      <section style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628", marginBottom: "20px" }}>Profile</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Display name</label>
-            <input 
-              type="text" 
-              value={displayName} 
-              onChange={(e) => setDisplayName(e.target.value)}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Email</label>
-            <input 
-              type="text" 
-              value={userEmail} 
-              readOnly
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px", backgroundColor: "#F9FAFB", color: "#94A3B8" }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Jurisdiction</label>
-            <select 
-              value={jurisdiction} 
-              onChange={(e) => setJurisdiction(e.target.value)}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
-            >
-              <option value="UK">United Kingdom</option>
-              <option value="Australia">Australia</option>
-              <option value="USA">United States</option>
-              <option value="Multiple">Multiple</option>
-            </select>
-          </div>
-          <button 
-            onClick={handleSaveProfile}
-            disabled={isSaving}
-            style={{ backgroundColor: "#C9A84C", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: isSaving ? "not-allowed" : "pointer", alignSelf: "flex-start" }}
-          >
-            {isSaving ? "Saving..." : "Save changes"}
-          </button>
-        </div>
-      </section>
-
-      {/* Subscription Section */}
-      <section style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628", marginBottom: "20px" }}>Subscription</h2>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "14px", color: "#64748B" }}>Current plan</div>
-            <div style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628" }}>{plan}</div>
-          </div>
-          <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-            <button 
-              onClick={() => router.push("/api/customer-portal")}
-              style={{ backgroundColor: "#0A1628", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: "pointer" }}
-            >
-              Manage subscription
-            </button>
-            <button 
-              onClick={() => router.push("/api/customer-portal")}
-              style={{ background: "none", border: "none", color: "#64748B", textDecoration: "underline", fontSize: "14px", cursor: "pointer" }}
-            >
-              Cancel subscription
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* White Label Section */}
-      <section style={{ backgroundColor: isPro ? "#FFFFFF" : "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", opacity: isPro ? 1 : 0.7 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628" }}>White label</h2>
-          {!isPro && <span style={{ backgroundColor: "#E5E7EB", color: "#64748B", padding: "4px 12px", borderRadius: "9999px", fontSize: "12px", fontWeight: "600" }}>PRO ONLY</span>}
-        </div>
-        
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Firm logo</label>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              {firmLogoUrl && <img src={firmLogoUrl} alt="Firm logo" style={{ height: "48px", width: "auto", objectFit: "contain", borderRadius: "4px" }} />}
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleLogoUpload}
-                disabled={!isPro || isSaving}
-                style={{ fontSize: "14px" }}
-              />
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Display Name</label>
+                <input 
+                  style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} 
+                  value={displayName} 
+                  onChange={(e) => setDisplayName(e.target.value)} 
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Primary Jurisdiction</label>
+                <select 
+                  style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px", backgroundColor: "white" }} 
+                  value={jurisdiction} 
+                  onChange={(e) => setJurisdiction(e.target.value)}
+                >
+                  <option value="uk">United Kingdom (FCA)</option>
+                  <option value="aus">Australia (ASIC)</option>
+                  <option value="usa">United States (SEC/FINRA)</option>
+                </select>
+              </div>
             </div>
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Firm name</label>
-            <input 
-              type="text" 
-              value={firmName} 
-              onChange={(e) => setFirmName(e.target.value)}
-              disabled={!isPro}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>FCA/ASIC/SEC number</label>
-            <input 
-              type="text" 
-              value={regulatorNumber} 
-              onChange={(e) => setRegulatorNumber(e.target.value)}
-              disabled={!isPro}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Registered address</label>
-            <textarea 
-              value={registeredAddress} 
-              onChange={(e) => setRegisteredAddress(e.target.value)}
-              disabled={!isPro}
-              rows={3}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px", resize: "none" }}
-            />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#64748B", marginBottom: "8px" }}>Custom footer text</label>
-            <input 
-              type="text" 
-              value={customFooterText} 
-              onChange={(e) => setCustomFooterText(e.target.value)}
-              disabled={!isPro}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "16px" }}
-            />
-          </div>
-          <button 
-            onClick={handleSaveWhiteLabel}
-            disabled={!isPro || isSaving}
-            style={{ backgroundColor: "#C9A84C", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: (!isPro || isSaving) ? "not-allowed" : "pointer", alignSelf: "flex-start" }}
-          >
-            {isSaving ? "Saving..." : "Save white label settings"}
-          </button>
-        </div>
-      </section>
 
-      {/* Password Section */}
-      <section style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "24px", marginBottom: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0A1628", marginBottom: "20px" }}>Password</h2>
-        <button 
-          onClick={handlePasswordReset}
-          style={{ backgroundColor: "#FFFFFF", color: "#0A1628", padding: "10px 20px", borderRadius: "8px", border: "1px solid #E5E7EB", fontWeight: "600", cursor: "pointer" }}
-        >
-          Change password
-        </button>
-        <p style={{ fontSize: "14px", color: "#64748B", marginTop: "12px" }}>We&apos;ll send a password reset link to {userEmail}.</p>
-      </section>
+            <button
+              onClick={handleSaveProfile}
+              disabled={isSaving}
+              onMouseEnter={() => setHoveredBtn("profile")}
+              onMouseLeave={() => setHoveredBtn(null)}
+              style={{
+                backgroundColor: "#0A1628",
+                color: "white",
+                padding: "14px 28px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: isSaving ? "not-allowed" : "pointer",
+                width: "fit-content",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                transition: "all 0.2s ease",
+                transform: hoveredBtn === "profile" && !isSaving ? "translateY(-1px)" : "none",
+                boxShadow: hoveredBtn === "profile" && !isSaving ? "0 4px 12px rgba(10, 22, 40, 0.15)" : "none"
+              }}
+            >
+              <Save size={18} /> Save Profile Changes
+            </button>
+          </div>
+        </section>
 
-      {/* Danger Zone */}
-      <section style={{ backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
-        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#991B1B", marginBottom: "20px" }}>Danger zone</h2>
-        <button 
-          onClick={handleDeleteAccount}
-          disabled={isSaving}
-          style={{ backgroundColor: "#EF4444", color: "#FFFFFF", padding: "10px 20px", borderRadius: "8px", border: "none", fontWeight: "600", cursor: isSaving ? "not-allowed" : "pointer" }}
-        >
-          Delete account
-        </button>
-        <p style={{ fontSize: "14px", color: "#B91C1C", marginTop: "12px" }}>Once you delete your account, there is no going back. Please be certain.</p>
-      </section>
+        {/* Security Section */}
+        <section style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
+            <Shield size={24} color="#0A1628" />
+            <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Security</h2>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div>
+              <p style={{ fontSize: "14px", fontWeight: "600", color: "#0A1628", marginBottom: "4px" }}>Email Address</p>
+              <p style={{ fontSize: "14px", color: "#64748B" }}>{userEmail}</p>
+            </div>
+
+            <button
+              onClick={handlePasswordReset}
+              onMouseEnter={() => setHoveredBtn("password")}
+              onMouseLeave={() => setHoveredBtn(null)}
+              style={{
+                color: "#0A1628",
+                padding: "14px 28px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: "pointer",
+                width: "fit-content",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                transition: "all 0.2s ease",
+                backgroundColor: hoveredBtn === "password" ? "#E5E7EB" : "#F4F6F9"
+              }}
+            >
+              <Lock size={18} /> Reset Password via Email
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

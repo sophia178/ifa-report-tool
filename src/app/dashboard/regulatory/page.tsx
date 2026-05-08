@@ -58,7 +58,7 @@ export default function RegulatoryPage() {
       const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
       if (!isPlus && !isPro) {
-        router.push("/pricing?message=upgrade");
+        router.push("/pricing?message=upgrade-plus");
         return;
       }
       
@@ -166,6 +166,8 @@ export default function RegulatoryPage() {
           <button
             onClick={handleGenerate}
             disabled={isGenerating || selectedJurisdictions.length === 0}
+            onMouseEnter={(e) => { if (!isGenerating && selectedJurisdictions.length > 0) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
+            onMouseLeave={(e) => { if (!isGenerating && selectedJurisdictions.length > 0) e.currentTarget.style.backgroundColor = "#0A1628"; }}
             style={{
               width: "100%",
               marginTop: "24px",
@@ -181,7 +183,8 @@ export default function RegulatoryPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "8px"
+              gap: "8px",
+              transition: "background-color 0.2s"
             }}
           >
             {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}

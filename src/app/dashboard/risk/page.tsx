@@ -212,7 +212,9 @@ export default function RiskPage() {
             <button
               onClick={handleAnalyse}
               disabled={isAnalysing}
-              style={{ width: "100%", padding: "14px", backgroundColor: "#0A1628", color: "white", borderRadius: "8px", border: "none", fontWeight: "700", fontSize: "15px", cursor: isAnalysing ? "not-allowed" : "pointer", marginTop: "12px" }}
+              onMouseEnter={(e) => { if (!isAnalysing) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
+              onMouseLeave={(e) => { if (!isAnalysing) e.currentTarget.style.backgroundColor = "#0A1628"; }}
+              style={{ width: "100%", padding: "14px", backgroundColor: "#0A1628", color: "white", borderRadius: "8px", border: "none", fontWeight: "700", fontSize: "15px", cursor: isAnalysing ? "not-allowed" : "pointer", marginTop: "12px", transition: "background-color 0.2s" }}
             >
               {isAnalysing ? "Analysing..." : "Run Risk Assessment"}
             </button>

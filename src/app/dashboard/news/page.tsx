@@ -142,6 +142,8 @@ export default function NewsPage() {
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !keywords.trim()}
+              onMouseEnter={(e) => { if (!isGenerating && keywords.trim()) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
+              onMouseLeave={(e) => { if (!isGenerating && keywords.trim()) e.currentTarget.style.backgroundColor = "#0A1628"; }}
               style={{
                 width: "100%",
                 padding: "12px",
@@ -156,7 +158,8 @@ export default function NewsPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "8px"
+                gap: "8px",
+                transition: "background-color 0.2s"
               }}
             >
               {isGenerating ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}

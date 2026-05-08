@@ -111,93 +111,132 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="stack gap-8">
-      <div className="flex justify-between items-center">
-        <div className="stack gap-2">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Layout className="text-[#c1a362]" />
-            Report Templates
-          </h2>
-          <p className="text-gray-400">
-            Manage your custom report structures and boilerplate text.
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+            Custom Templates
+          </h1>
+          <p style={{ color: "#64748B", margin: 0 }}>
+            Manage your custom report structures and building blocks.
           </p>
         </div>
         {!isCreating && (
-          <button className="btn" onClick={() => setIsCreating(true)}>
-            <Plus size={18} className="mr-2" />
+          <button 
+            style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "8px", 
+              backgroundColor: "#0A1628", 
+              color: "white", 
+              padding: "12px 24px", 
+              borderRadius: "8px", 
+              fontWeight: "700", 
+              fontSize: "14px",
+              border: "none",
+              cursor: "pointer",
+              transition: "background-color 0.2s"
+            }} 
+            onClick={() => setIsCreating(true)}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#1a2a40"}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#0A1628"}
+          >
+            <Plus size={18} />
             New Template
           </button>
         )}
       </div>
 
             {isCreating && (
-              <div className="card border border-[#c1a362]/30 bg-[rgba(15,23,40,0.5)] p-8 fade-in">
-                <form onSubmit={handleCreateTemplate} className="stack gap-6">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold">Create New Template</h3>
-                    <button type="button" onClick={() => setIsCreating(false)} className="text-gray-500 hover:text-white">
+              <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                <form onSubmit={handleCreateTemplate} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Create New Template</h3>
+                    <button type="button" onClick={() => setIsCreating(false)} style={{ color: "#64748B", cursor: "pointer" }}>
                       <X size={24} />
                     </button>
                   </div>
                   
                   <div className="field">
-                    <label className="text-sm font-medium text-gray-400">Template Name</label>
+                    <label style={{ fontSize: "12px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>Template Name</label>
                     <input
                       className="input"
                       placeholder="e.g. Standard Pension Review"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       required
+                      style={{ padding: "12px", borderRadius: "8px", border: "1px solid #E5E7EB" }}
                     />
                   </div>
 
                   <div className="field">
-                    <label className="text-sm font-medium text-gray-400">Structure / Boilerplate Text</label>
+                    <label style={{ fontSize: "12px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>Structure / Boilerplate Text</label>
                     <textarea
-                      className="textarea min-h-[300px]"
+                      className="textarea"
                       placeholder="Paste your report structure or boilerplate text here..."
                       value={newContent}
                       onChange={(e) => setNewContent(e.target.value)}
                       required
+                      style={{ padding: "12px", borderRadius: "8px", border: "1px solid #E5E7EB", minHeight: "200px", resize: "vertical" }}
                     />
                   </div>
 
                   {error && <div className="alert alert-error">{error}</div>}
 
-                  <button type="submit" className="btn w-full" disabled={isSaving}>
-                    {isSaving ? <Loader2 className="animate-spin mr-2" size={18} /> : <Save size={18} className="mr-2" />}
+                  <button 
+                    type="submit" 
+                    disabled={isSaving}
+                    style={{ 
+                      backgroundColor: "#0A1628", 
+                      color: "white", 
+                      padding: "14px", 
+                      borderRadius: "8px", 
+                      fontWeight: "700", 
+                      fontSize: "14px", 
+                      border: "none", 
+                      cursor: isSaving ? "not-allowed" : "pointer", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      gap: "8px",
+                      transition: "background-color 0.2s"
+                    }}
+                    onMouseEnter={(e) => { if (!isSaving) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
+                    onMouseLeave={(e) => { if (!isSaving) e.currentTarget.style.backgroundColor = "#0A1628"; }}
+                  >
+                    {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                     Save Template
                   </button>
                 </form>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
               {templates.length > 0 ? (
                 templates.map((template) => (
-                  <div key={template.id} className="card border border-[rgba(193,163,98,0.1)] bg-[rgba(15,23,40,0.3)] p-6 hover:border-[#c1a362]/30 transition-all group">
-                    <div className="flex justify-between items-start mb-4">
-                      <h4 className="font-bold text-gray-200">{template.name}</h4>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleDeleteTemplate(template.id)} className="text-gray-500 hover:text-red-500">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                  <div key={template.id} style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <h4 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{template.name}</h4>
+                      <button onClick={() => handleDeleteTemplate(template.id)} style={{ color: "#94A3B8", cursor: "pointer" }}>
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-4 italic mb-4">
+                    <p style={{ fontSize: "13px", color: "#64748B", margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: "1.5", fontStyle: "italic" }}>
                       {template.content}
                     </p>
-                    <div className="text-[10px] text-gray-600 uppercase tracking-widest">
+                    <div style={{ fontSize: "10px", color: "#94A3B8", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "auto" }}>
                       Added {new Date(template.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 ))
               ) : !isCreating && (
-                <div className="col-span-full py-20 text-center border border-dashed border-[rgba(193,163,98,0.2)] rounded-2xl">
-                  <p className="text-gray-500">No templates saved yet. Create your first one to get started.</p>
+                <div style={{ gridColumn: "1/-1", padding: "80px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px dashed #E5E7EB" }}>
+                  <Layout size={48} color="#CBD5E1" style={{ marginBottom: "16px" }} />
+                  <p style={{ color: "#64748B", margin: 0 }}>No templates saved yet. Create your first one to get started.</p>
                 </div>
               )}
             </div>
           </div>
   );
 }
+

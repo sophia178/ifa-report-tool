@@ -199,33 +199,29 @@ export default function EmailsPage() {
         )}
 
         <button
-          disabled={isDrafting || !clientName || !keyPoints}
           onClick={handleDraft}
+          disabled={isDrafting || !clientName || !keyPoints}
+          onMouseEnter={(e) => { if (!isDrafting && clientName && keyPoints) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
+          onMouseLeave={(e) => { if (!isDrafting && clientName && keyPoints) e.currentTarget.style.backgroundColor = "#0A1628"; }}
           style={{
             backgroundColor: "#0A1628",
             color: "white",
-            padding: "12px 24px",
+            padding: "16px",
             borderRadius: "8px",
-            fontSize: "15px",
-            fontWeight: "600",
             border: "none",
+            fontWeight: "700",
+            fontSize: "15px",
             cursor: (isDrafting || !clientName || !keyPoints) ? "not-allowed" : "pointer",
-            width: "100%",
+            opacity: (isDrafting || !clientName || !keyPoints) ? 0.6 : 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "10px",
-            opacity: (isDrafting || !clientName || !keyPoints) ? 0.7 : 1
+            gap: "8px",
+            transition: "background-color 0.2s"
           }}
         >
-          {isDrafting ? (
-            <>
-              <Loader2 className="animate-spin" size={18} />
-              Drafting Email...
-            </>
-          ) : (
-            "Generate Email Draft"
-          )}
+          {isDrafting ? <Loader2 className="animate-spin" size={20} /> : <Mail size={20} />}
+          {isDrafting ? "Drafting..." : "Draft Professional Email"}
         </button>
 
         {emailContent && (

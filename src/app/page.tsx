@@ -30,7 +30,7 @@ export default async function Home() {
           Suitance turns your client meeting notes into complete regulatory-compliant suitability reports — for UK (FCA), Australian (ASIC), and US (SEC/FINRA) advisers. Reviewed by you. Sent with confidence.
         </p>
         <Link href={startHref} style={{ display: "inline-block", textDecoration: "none", backgroundColor: "#C9A84C", color: "#0A1628", fontWeight: "700", fontSize: "16px", padding: "16px 40px", borderRadius: "50px", border: "none", cursor: "pointer", marginBottom: "32px" }}>
-          Start now — £19/month
+          Start today from £19/month — cancel anytime
         </Link>
         <div style={{ fontSize: "12px", color: "#C9A84C", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>
           🇬🇧 FCA — 🇦🇺 ASIC — 🇺🇸 SEC/FINRA
@@ -71,7 +71,10 @@ export default async function Home() {
 
       {/* Pricing Section */}
       <section style={{ backgroundColor: "#F8FAFC", padding: "80px 48px", textAlign: "center" }}>
-        <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#0A1628", marginBottom: "48px" }}>Simple, transparent pricing.</h2>
+        <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#0A1628", marginBottom: "16px" }}>Simple, transparent pricing.</h2>
+        <p style={{ fontSize: "18px", color: "#64748B", textAlign: "center", marginBottom: "64px" }}>
+          Start today from £19/month. Scale as you grow.
+        </p>
         <div style={{ display: "flex", gap: "24px", maxWidth: "900px", margin: "0 auto", justifyContent: "center" }}>
           {[
             { name: "Starter", price: "£19", desc: "Perfect for sole practitioners.", featured: false },

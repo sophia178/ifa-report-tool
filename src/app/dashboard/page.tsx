@@ -1,13 +1,18 @@
 import { ReportStudio } from "@/components/report-studio";
 import { requireUser } from "@/lib/auth";
-import { checkSubscription } from "@/lib/subscription";
 import type { Report } from "@/types/report";
-import { redirect } from "next/navigation";
-import { Plus, FileText, Download, Calendar, ArrowRight } from "lucide-react";
+import { FileText, Download, Calendar, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
+
+  // 1. Fetch user profile for display name and jurisdiction
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, jurisdiction, stripe_price_id")
+    .eq("id", user.id)
+    .single();
 
   const { data } = await supabase
     .from("reports")
@@ -21,13 +26,42 @@ export default async function DashboardPage() {
     content: report.report_text,
   }));
 
-  const userEmail = user.email || "Adviser";
+  const displayName = profile?.display_name || user.email?.split('@')[0] || "Adviser";
+  
+  // 2. Dynamic greeting based on time
+  const hour = new Date().getHours();
+  let greeting = "Good morning";
+  if (hour >= 12 && hour < 17) greeting = "Good afternoon";
+  else if (hour >= 17) greeting = "Good evening";
+
+  // 3. Dynamic content based on jurisdiction
+  const jurisdiction = profile?.jurisdiction || "uk";
+  const isPlus = profile?.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID;
+  const isPro = profile?.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+  const hasFullAccess = isPlus || isPro;
+
+  const getDashboardHero = () => {
+    if (hasFullAccess) {
+      return {
+        title: "Report Studio",
+        desc: "Transform meeting notes into professional suitability reports, SOAs, or financial plans.",
+        link: "#studio"
+      };
+    }
+    switch (jurisdiction) {
+      case "aus": return { title: "Australian SOA", desc: "Transform your meeting notes into a complete ASIC-compliant Statement of Advice.", link: "/dashboard/soa-australia" };
+      case "usa": return { title: "Financial Plan", desc: "Transform your meeting notes into a complete SEC/FINRA-compliant Financial Plan.", link: "/dashboard/usa-plan" };
+      default: return { title: "Suitability Report", desc: "Transform your meeting notes into a complete FCA-compliant suitability report.", link: "#studio" };
+    }
+  };
+
+  const hero = getDashboardHero();
 
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 48px" }}>
       <div style={{ marginBottom: "64px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "8px" }}>
-          Good morning, {userEmail.split('@')[0]}
+          {greeting}, {displayName}
         </h1>
         <p style={{ color: "#5F6877", fontSize: "16px" }}>Welcome back to your professional workspace.</p>
       </div>
@@ -38,9 +72,11 @@ export default async function DashboardPage() {
         borderRadius: "24px", 
         padding: "64px", 
         textAlign: "center", 
-        border: "1px solid #F0F2F5", 
+        border: "1px solid #E5E7EB", 
         boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
-        marginBottom: "80px"
+        marginBottom: "80px",
+        position: "relative",
+        overflow: "hidden"
       }}>
         <div style={{ 
           width: "80px", 
@@ -55,21 +91,22 @@ export default async function DashboardPage() {
         }}>
           <FileText size={40} />
         </div>
-        <h2 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", marginBottom: "16px" }}>Generate New Report</h2>
-        <p style={{ color: "#5F6877", fontSize: "18px", marginBottom: "32px", maxWidth: "480px", margin: "0 auto 32px" }}>
-          Transform your latest client meeting notes into a complete FCA-compliant suitability report.
+        <h2 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "16px" }}>{hero.title}</h2>
+        <p style={{ color: "#5F6877", fontSize: "18px", marginBottom: "32px", maxWidth: "480px", margin: "0 auto 32px", lineHeight: "1.6" }}>
+          {hero.desc}
         </p>
-        <Link href="#studio" style={{ 
+        <Link href={hero.link} style={{ 
           display: "inline-flex", 
           alignItems: "center", 
           gap: "12px", 
           backgroundColor: "#0A1628", 
           color: "#FFFFFF", 
-          padding: "16px 32px", 
+          padding: "16px 36px", 
           borderRadius: "12px", 
           fontWeight: "700", 
           textDecoration: "none",
-          fontSize: "16px"
+          fontSize: "16px",
+          transition: "transform 0.2s ease"
         }}>
           Start Building <ArrowRight size={20} />
         </Link>

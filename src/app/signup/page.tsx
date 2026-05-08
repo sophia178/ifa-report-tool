@@ -77,6 +77,15 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                   style={{ textDecoration: "underline", textUnderlineOffset: 3 }}
                 >
                   Terms of Use
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "underline", textUnderlineOffset: 3 }}
+                >
+                  Privacy Policy
                 </Link>
               </label>
             </div>

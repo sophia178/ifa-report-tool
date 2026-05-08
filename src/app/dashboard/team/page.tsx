@@ -103,141 +103,129 @@ export default function TeamPage() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
-      </div>
-    );
+  if (!isPro && !isLoading) {
+    router.push("/pricing?message=upgrade-pro");
+    return null;
   }
 
   return (
-    <div className="stack gap-8">
-      <div className="stack gap-2">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Users className="text-[#c1a362]" />
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Team Management
-        </h2>
-        <p className="text-gray-400">
-          Invite team members and manage their access to your Pro subscription.
+        </h1>
+        <p style={{ color: "#64748B", margin: 0 }}>
+          Invite team members and manage their access to your Suitance Pro firm.
         </p>
       </div>
 
-            {!isPro ? (
-              <div className="card border border-amber-500/20 bg-amber-500/5 p-8 text-center stack gap-4">
-                <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
-                  <Users size={24} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "32px", alignItems: "start" }}>
+        {/* Invite Card */}
+        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <UserPlus size={18} color="#C9A84C" />
+            Invite Member
+          </h2>
+          
+          <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "12px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>Email Address</label>
+              <input
+                type="email"
+                placeholder="colleague@firm.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                required
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "14px" }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isInviting || !inviteEmail.trim()}
+              style={{
+                width: "100%",
+                padding: "12px",
+                backgroundColor: "#0A1628",
+                color: "white",
+                borderRadius: "8px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: (isInviting || !inviteEmail.trim()) ? "not-allowed" : "pointer",
+                opacity: (isInviting || !inviteEmail.trim()) ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px"
+              }}
+            >
+              {isInviting ? <Loader2 className="animate-spin" size={16} /> : <Mail size={16} />}
+              {isInviting ? "Inviting..." : "Send Invite"}
+            </button>
+            {error && <p style={{ color: "#EF4444", fontSize: "12px", margin: 0 }}>{error}</p>}
+          </form>
+        </div>
+
+        {/* List Section */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+            <Users size={20} color="#0A1628" />
+            <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Active Team</h2>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* You (The Owner) */}
+            <div style={{ backgroundColor: "#F8FAFC", borderRadius: "12px", padding: "16px 20px", border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "10px", backgroundColor: "#0A1628", color: "#C9A84C", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800" }}>
+                  {userEmail?.[0].toUpperCase()}
                 </div>
-                <h3 className="text-xl font-bold text-gray-200">Team Seats is a Pro Feature</h3>
-                <p className="text-gray-400 max-w-md mx-auto">
-                  Upgrade to Suitance Pro to invite up to 4 additional team members. Everyone gets full Pro access under one subscription.
-                </p>
-                <button onClick={() => router.push("/pricing")} className="btn mx-auto px-8">
-                  View Pro Plan
-                </button>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={{ fontSize: "14px", fontWeight: "700", color: "#0A1628" }}>{userEmail} (You)</span>
+                  <span style={{ fontSize: "11px", color: "#64748B", fontWeight: "600", textTransform: "uppercase" }}>Firm Administrator</span>
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-1">
-                  <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] p-8">
-                    <form onSubmit={handleInvite} className="stack gap-6">
-                      <div className="stack gap-2">
-                        <h3 className="text-lg font-bold">Invite Member</h3>
-                        <p className="text-xs text-gray-500">You can have up to 4 additional team members.</p>
-                      </div>
-                      
-                      <div className="field">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Email Address</label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
-                          <input
-                            type="email"
-                            className="input pl-10"
-                            placeholder="colleague@firm.com"
-                            value={inviteEmail}
-                            onChange={(e) => setInviteEmail(e.target.value)}
-                            required
-                            disabled={team.length >= 4}
-                          />
-                        </div>
-                      </div>
+              <ShieldCheck size={18} color="#10B981" />
+            </div>
 
-                      {error && <div className="alert alert-error text-xs">{error}</div>}
-
-                      <button 
-                        type="submit" 
-                        className="btn w-full" 
-                        disabled={isInviting || team.length >= 4 || !inviteEmail}
-                      >
-                        {isInviting ? <Loader2 className="animate-spin mr-2" size={18} /> : <UserPlus className="mr-2" size={18} />}
-                        Send Invitation
-                      </button>
-
-                      {team.length >= 4 && (
-                        <p className="text-[10px] text-amber-500 text-center">
-                          Team limit reached. Remove a member to invite someone new.
-                        </p>
-                      )}
-                    </form>
+            {team.map((member) => (
+              <div key={member.id} style={{ backgroundColor: "white", borderRadius: "12px", padding: "16px 20px", border: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", backgroundColor: "#F1F5F9", color: "#64748B", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800" }}>
+                    {member.member_email[0].toUpperCase()}
                   </div>
-                </div>
-
-                <div className="lg:col-span-2">
-                  <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] overflow-hidden bg-[rgba(15,23,40,0.3)]">
-                    <div className="p-0 overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead className="bg-[rgba(193,163,98,0.05)] text-[#c1a362] text-xs uppercase tracking-wider">
-                          <tr>
-                            <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Team Member</th>
-                            <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Status</th>
-                            <th className="p-4 border-b border-[rgba(193,163,98,0.1)]">Joined</th>
-                            <th className="p-4 border-b border-[rgba(193,163,98,0.1)] text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-sm">
-                          {team.length > 0 ? (
-                            team.map((member) => (
-                              <tr key={member.id} className="border-b border-[rgba(193,163,98,0.05)] hover:bg-[rgba(193,163,98,0.02)]">
-                                <td className="p-4">
-                                  <div className="font-bold text-gray-200">{member.member_email}</div>
-                                </td>
-                                <td className="p-4">
-                                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                                    member.status === 'active' 
-                                      ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                                      : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                                  }`}>
-                                    {member.status === 'active' ? <ShieldCheck size={12} /> : <Clock size={12} />}
-                                    {member.status}
-                                  </div>
-                                </td>
-                                <td className="p-4 text-gray-500">
-                                  {new Date(member.created_at).toLocaleDateString()}
-                                </td>
-                                <td className="p-4 text-right">
-                                  <button 
-                                    onClick={() => handleRemove(member.id)}
-                                    className="text-gray-500 hover:text-red-500 transition-colors"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={4} className="p-12 text-center text-gray-500 italic">
-                                Your team is currently empty.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontSize: "14px", fontWeight: "700", color: "#0A1628" }}>{member.member_email}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      {member.status === "pending" ? (
+                        <>
+                          <Clock size={10} color="#F59E0B" />
+                          <span style={{ fontSize: "11px", color: "#F59E0B", fontWeight: "600", textTransform: "uppercase" }}>Pending Invite</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldCheck size={10} color="#10B981" />
+                          <span style={{ fontSize: "11px", color: "#10B981", fontWeight: "600", textTransform: "uppercase" }}>Active Member</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
+                <button onClick={() => handleRemove(member.id)} style={{ color: "#94A3B8", cursor: "pointer", padding: "8px" }}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+
+            {team.length === 0 && (
+              <div style={{ padding: "40px 0", textAlign: "center", border: "1px dashed #E5E7EB", borderRadius: "12px" }}>
+                <p style={{ color: "#94A3B8", fontSize: "14px", margin: 0 }}>No other team members yet.</p>
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
   );
 }

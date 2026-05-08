@@ -226,7 +226,11 @@ export default function TradeJournalPage() {
             <label style={{ fontSize: "12px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>Rationale / Strategy</label>
             <textarea value={rationale} onChange={e => setRationale(e.target.value)} required rows={4} placeholder="Why did you take this trade?" style={{ padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", resize: "none" }} />
           </div>
-          <button type="submit" disabled={isSubmitting} style={{ gridColumn: "span 2", padding: "14px", backgroundColor: "#0A1628", color: "white", borderRadius: "8px", border: "none", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer" }}>
+          <button type="submit" disabled={isSubmitting} 
+            onMouseEnter={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#1a2a40"; }}
+            onMouseLeave={(e) => { if (!isSubmitting) e.currentTarget.style.backgroundColor = "#0A1628"; }}
+            style={{ gridColumn: "span 2", padding: "14px", backgroundColor: "#0A1628", color: "white", borderRadius: "8px", border: "none", fontWeight: "700", cursor: isSubmitting ? "not-allowed" : "pointer", transition: "background-color 0.2s" }}
+          >
             {isSubmitting ? "Logging..." : "Log Trade"}
           </button>
           {error && <p style={{ color: "#EF4444", fontSize: "12px", gridColumn: "span 2", margin: 0 }}>{error}</p>}
@@ -238,7 +242,9 @@ export default function TradeJournalPage() {
             <button 
               onClick={handleAnalyse} 
               disabled={isAnalysing || trades.length === 0}
-              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#C9A84C", color: "#0A1628", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer" }}
+              onMouseEnter={(e) => { if (!isAnalysing && trades.length > 0) e.currentTarget.style.backgroundColor = "#B39239"; }}
+              onMouseLeave={(e) => { if (!isAnalysing && trades.length > 0) e.currentTarget.style.backgroundColor = "#C9A84C"; }}
+              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#C9A84C", color: "#0A1628", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer", transition: "background-color 0.2s" }}
             >
               {isAnalysing ? <Loader2 className="animate-spin" size={16} /> : <BarChart2 size={16} />}
               {isAnalysing ? "Analysing..." : "Run AI Analysis"}

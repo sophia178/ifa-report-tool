@@ -16,7 +16,7 @@ export default async function DashboardLayout({
   // 1. Perform server-side subscription and onboarding checks
   const { data: profile } = await supabase
     .from("profiles")
-    .select("subscribed, jurisdiction")
+    .select("subscribed, jurisdiction, display_name")
     .eq("id", user.id)
     .single();
 
@@ -27,6 +27,8 @@ export default async function DashboardLayout({
   if (!profile?.jurisdiction) {
     redirect("/onboarding");
   }
+
+  const displayName = profile?.display_name || user.email?.split('@')[0] || "Adviser";
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -86,7 +88,7 @@ export default async function DashboardLayout({
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div style={{ display: "flex", flexDirection: "column", textAlign: "right" }}>
                 <span style={{ fontSize: "14px", fontWeight: "700", color: "#0A1628", lineHeight: 1.2 }}>
-                  {user.email?.split('@')[0]}
+                  {displayName}
                 </span>
                 <span style={{ fontSize: "10px", fontWeight: "600", color: "#8A94A6", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Principal Adviser
