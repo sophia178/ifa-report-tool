@@ -36,9 +36,10 @@ export async function POST(request: Request) {
         strategy_json: strategyJson,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
+    if (!data) throw new Error("Could not save strategy.");
 
     return NextResponse.json(data);
   } catch (error) {

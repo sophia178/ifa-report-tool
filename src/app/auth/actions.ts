@@ -8,36 +8,26 @@ import { createClient } from "@/lib/supabase/server";
 export async function login(formData: FormData) {
   const supabase = await createClient();
 
-  const email = String(formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    if (error) {
+      redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/dashboard");
+  } catch (error: any) {
+    if (error.message === "NEXT_REDIRECT") throw error;
+    console.error("Login error:", error);
+    redirect(`/login?error=${encodeURIComponent(error.message || "An error occurred during login")}`);
   }
-
-  // 1. Check for jurisdiction and subscription server-side after login
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("jurisdiction, subscribed")
-    .eq("id", (await supabase.auth.getUser()).data.user?.id)
-    .single();
-
-  revalidatePath("/", "layout");
-
-  if (!profile?.jurisdiction) {
-    redirect("/onboarding");
-  }
-
-  if (!profile?.subscribed) {
-    redirect("/pricing?message=subscribe");
-  }
-
-  redirect("/dashboard");
 }
 
 export async function signup(formData: FormData) {
@@ -56,52 +46,38 @@ export async function signup(formData: FormData) {
     );
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-  if (error) {
-    if (error.message.includes("already registered") || error.status === 422) {
-      redirect(
-        `/signup?error=${encodeURIComponent("This email is already registered. Please log in instead.")}`,
-      );
-    }
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
-  }
-
-  // Attempt to manually create a profile if the trigger fails or hasn't run yet.
-  // Wrapped in try/catch so it never blocks the user's signup flow.
-  let hasJurisdiction = false;
-  if (data.user) {
-    try {
-      // Check if user already exists and has a jurisdiction
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("jurisdiction")
-        .eq("id", data.user.id)
-        .single();
-      
-      if (profile?.jurisdiction) {
-        hasJurisdiction = true;
-      } else {
-        await supabase.from("profiles").insert({
-          id: data.user.id,
-          email: data.user.email,
-          subscribed: false,
-        });
+    if (error) {
+      if (error.message.includes("already registered") || error.status === 422) {
+        redirect(
+          `/signup?error=${encodeURIComponent("This email is already registered. Please log in instead.")}`,
+        );
       }
-    } catch (e) {
-      console.error("Silent profile handling error:", e);
-      // We continue silently as requested
+      redirect(`/signup?error=${encodeURIComponent(error.message)}`);
     }
-  }
 
-  revalidatePath("/", "layout");
-  if (hasJurisdiction) {
-    redirect("/dashboard");
-  } else {
+    // Attempt to manually create a profile if the trigger fails or hasn't run yet.
+    if (data.user) {
+      await supabase.from("profiles").upsert({
+        id: data.user.id,
+        email: data.user.email,
+        subscribed: false,
+      });
+    }
+
+    revalidatePath("/", "layout");
     redirect("/onboarding");
+  } catch (error: any) {
+    if (error.message === "NEXT_REDIRECT") throw error;
+    console.error("Signup error:", error);
+    redirect(
+      `/signup?error=${encodeURIComponent(error.message || "An error occurred during signup")}`,
+    );
   }
 }
 

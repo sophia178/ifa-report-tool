@@ -42,9 +42,10 @@ export async function POST(request: Request) {
         plan_text: planText,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
+    if (!data) throw new Error("Could not save plan.");
 
     return NextResponse.json({ planText, planId: data.id });
   } catch (error) {

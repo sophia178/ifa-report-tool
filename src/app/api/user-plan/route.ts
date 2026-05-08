@@ -24,6 +24,7 @@ export async function GET() {
       jurisdiction: profile?.jurisdiction
     });
   } catch (error) {
+    console.error("User plan fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch user plan" }, { status: 500 });
   }
 }

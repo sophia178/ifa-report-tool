@@ -7,8 +7,10 @@ export async function GET() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    
     if (!user) {
-      return NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_APP_URL));
+      return NextResponse.redirect(new URL("/login", appUrl));
     }
 
     const { data: profile } = await supabase
@@ -19,18 +21,19 @@ export async function GET() {
 
     if (!profile?.stripe_customer_id) {
       // If no customer ID, they probably haven't subscribed yet
-      return NextResponse.redirect(new URL("/pricing", process.env.NEXT_PUBLIC_APP_URL));
+      return NextResponse.redirect(new URL("/pricing", appUrl));
     }
 
     const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
+      return_url: `${appUrl}/dashboard/settings`,
     });
 
     return NextResponse.redirect(session.url);
   } catch (error) {
     console.error("Portal error:", error);
-    return NextResponse.redirect(new URL("/dashboard/settings?error=portal", process.env.NEXT_PUBLIC_APP_URL));
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    return NextResponse.redirect(new URL("/dashboard/settings?error=portal", appUrl));
   }
 }

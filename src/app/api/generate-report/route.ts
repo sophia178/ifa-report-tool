@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         report_text: report,
       })
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return NextResponse.json(

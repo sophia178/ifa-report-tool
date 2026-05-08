@@ -58,7 +58,7 @@ export default function RegulatoryPage() {
       const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
       if (!isPlus && !isPro) {
-        router.push("/pricing?message=upgrade-plus");
+        router.push("/pricing?message=upgrade");
         return;
       }
       

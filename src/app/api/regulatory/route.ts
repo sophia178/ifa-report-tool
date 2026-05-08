@@ -36,9 +36,10 @@ export async function POST(request: Request) {
         updates,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
+    if (!data) throw new Error("Could not save updates.");
 
     return NextResponse.json(data);
   } catch (error) {

@@ -41,9 +41,10 @@ export async function POST(request: Request) {
         soa_text: soaText,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
+    if (!data) throw new Error("Could not save SOA.");
 
     return NextResponse.json({ soaText, soaId: data.id });
   } catch (error) {

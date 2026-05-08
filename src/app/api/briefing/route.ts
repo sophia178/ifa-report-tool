@@ -29,9 +29,10 @@ export async function POST() {
         briefing_text: briefingText,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
+    if (!data) throw new Error("Could not save briefing.");
 
     return NextResponse.json({ briefingText, id: data.id });
   } catch (error) {

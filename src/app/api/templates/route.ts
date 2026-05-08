@@ -29,9 +29,10 @@ export async function POST(request: Request) {
         content,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (dbError) throw dbError;
+    if (!data) throw new Error("Could not save template.");
 
     return NextResponse.json(data);
   } catch (error) {
