@@ -23,7 +23,7 @@ export async function callClaude(prompt: string): Promise<string> {
     // Note: If this version is not yet available, the API will return a 404/400 error
     // which will be caught by our try/catch block.
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
       max_tokens: 4000,
       messages: [
         {
