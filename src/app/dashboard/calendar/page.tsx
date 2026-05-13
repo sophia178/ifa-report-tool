@@ -11,19 +11,71 @@ type EconomicEvent = {
   id: string;
   title: string;
   date: string;
+  displayDate: string;
   impact: "High" | "Medium" | "Low";
+  description: string;
   explanation?: string;
 };
 
 const realEvents: EconomicEvent[] = [
-  { id: "1", title: "UK CPI Inflation Release", date: "2026-05-21", impact: "High" },
-  { id: "2", title: "US ADP Employment Report", date: "2026-06-03", impact: "Medium" },
-  { id: "3", title: "ECB Interest Rate Decision", date: "2026-06-05", impact: "Medium" },
-  { id: "4", title: "US Non-Farm Payrolls", date: "2026-06-06", impact: "High" },
-  { id: "5", title: "UK GDP Monthly Estimate", date: "2026-06-13", impact: "Medium" },
-  { id: "6", title: "UK Employment Data Release", date: "2026-06-17", impact: "Medium" },
-  { id: "7", title: "US Federal Reserve FOMC Meeting", date: "2026-06-18", impact: "High" },
-  { id: "8", title: "Bank of England Interest Rate Decision", date: "2026-06-19", impact: "High" },
+  {
+    id: "1",
+    title: "UK CPI Inflation Data (ONS)",
+    date: "2026-05-21",
+    displayDate: "Thursday 21 May 2026",
+    impact: "High",
+    description:
+      "Office for National Statistics releases Consumer Price Index data showing UK inflation rate",
+  },
+  {
+    id: "2",
+    title: "US ADP National Employment Report",
+    date: "2026-06-03",
+    displayDate: "Wednesday 3 June 2026",
+    impact: "Medium",
+    description:
+      "Private sector employment change for May 2026 from ADP Research Institute",
+  },
+  {
+    id: "3",
+    title: "ECB Monetary Policy Decision",
+    date: "2026-06-05",
+    displayDate: "Thursday 5 June 2026",
+    impact: "High",
+    description: "European Central Bank interest rate decision and press conference",
+  },
+  {
+    id: "4",
+    title: "US Non-Farm Payrolls (BLS)",
+    date: "2026-06-06",
+    displayDate: "Friday 6 June 2026",
+    impact: "High",
+    description: "US Bureau of Labor Statistics monthly jobs report for May 2026",
+  },
+  {
+    id: "5",
+    title: "US Federal Reserve FOMC Meeting",
+    date: "2026-06-18",
+    displayDate: "Wednesday 18 June 2026",
+    impact: "High",
+    description: "Federal Open Market Committee interest rate decision and economic projections",
+  },
+  {
+    id: "6",
+    title: "Bank of England MPC Decision",
+    date: "2026-06-19",
+    displayDate: "Thursday 19 June 2026",
+    impact: "High",
+    description: "Bank of England Monetary Policy Committee interest rate decision",
+  },
+  {
+    id: "7",
+    title: "UK Retail Sales (ONS)",
+    date: "2026-06-20",
+    displayDate: "Friday 20 June 2026",
+    impact: "Medium",
+    description: "ONS monthly retail sales volume data for May 2026",
+  },
 ];
 
 export default function CalendarPage() {
@@ -73,7 +125,12 @@ export default function CalendarPage() {
       const response = await fetch("/api/calendar/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: event.title, date: event.date, impact: event.impact }),
+        body: JSON.stringify({
+          title: event.title,
+          date: event.date,
+          impact: event.impact,
+          description: event.description,
+        }),
       });
 
       if (!response.ok) {
@@ -105,13 +162,6 @@ export default function CalendarPage() {
       case "Low": return { bg: "#F0FDF4", text: "#16A34A", border: "#DCFCE7" };
       default: return { bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" };
     }
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   return (
@@ -150,7 +200,7 @@ export default function CalendarPage() {
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {formatDate(event.date)}
+                    {event.displayDate}
                   </span>
                   <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{event.title}</h3>
                 </div>

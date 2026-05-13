@@ -108,7 +108,7 @@ export default function BriefingPage() {
     const sections = cleanText.split(/^(?:##|###)\s+/m).filter(s => s.trim().length > 0);
     
     return (
-      <div id="briefing-content" style={{ fontFamily: '"Georgia", "Times New Roman", serif', lineHeight: "1.8", color: "#1A202C" }}>
+      <div id="briefing-print-content" style={{ fontFamily: '"Georgia", "Times New Roman", serif', lineHeight: "1.8", color: "#1A202C" }}>
         {sections.map((section, idx) => {
           const lines = section.split('\n');
           const title = lines[0].trim();
@@ -264,62 +264,54 @@ export default function BriefingPage() {
           )}
         </div>
 
-        <style jsx global>{`
-          @media print {
-            @page {
-              margin: 20mm;
-            }
+        <style jsx global media="print">{`
+          @page {
+            margin: 20mm;
+          }
 
-            body {
-              background: white !important;
-              color: black !important;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
+          body {
+            background: white !important;
+            color: black !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
 
-            nav,
-            aside,
-            header,
-            .sidebar,
-            [data-sidebar] {
-              display: none !important;
-            }
+          body > * {
+            display: none !important;
+          }
 
-            .briefing-actions,
-            .briefing-actions button {
-              display: none !important;
-            }
+          #briefing-print-content {
+            display: block !important;
+          }
 
-            body * {
-              visibility: hidden;
-            }
+          body > div,
+          body > main {
+            display: block !important;
+          }
 
-            #briefing-content,
-            #briefing-content * {
-              visibility: visible;
-            }
+          body > div *:not(#briefing-print-content):not(#briefing-print-content *),
+          body > main *:not(#briefing-print-content):not(#briefing-print-content *) {
+            display: none !important;
+          }
 
-            #briefing-content {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              padding: 0;
-              background: white !important;
-              color: black !important;
-              font-size: 12pt;
-              line-height: 1.6;
-            }
+          #briefing-print-content {
+            position: static !important;
+            width: 100% !important;
+            padding: 0 !important;
+            background: white !important;
+            color: black !important;
+            font-size: 12pt !important;
+            line-height: 1.6 !important;
+          }
 
-            #briefing-content h2 {
-              color: black !important;
-              border-bottom: 1px solid #e5e7eb !important;
-              page-break-after: avoid;
-            }
+          #briefing-print-content h2 {
+            color: black !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            page-break-after: avoid;
+          }
 
-            #briefing-content p {
-              color: black !important;
-            }
+          #briefing-print-content p {
+            color: black !important;
           }
         `}</style>
 

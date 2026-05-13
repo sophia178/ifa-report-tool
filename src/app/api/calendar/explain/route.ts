@@ -28,16 +28,20 @@ export async function POST(request: Request) {
     }
 
     const event = await request.json();
-    if (!event.title || !event.date || !event.impact) {
+    if (!event.title || !event.date || !event.impact || !event.description) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const prompt = `You are an economist. Generate a 150-word adviser-focused insight about the following economic event. Explain its significance and potential impact on financial markets in plain English for a financial adviser to use with clients.
-    Event: ${event.title}
-    Date: ${event.date}
-    Impact: ${event.impact}
-    
-    Return the explanation as plain text. The length should be approximately 150 words.`;
+    const prompt = `You are an economist. Generate a 150-word adviser-focused insight about the following economic event in plain English for a financial adviser to use with clients.
+
+Use the description as the factual context for what the event is. Do not invent or assume additional event details beyond what is provided. You may discuss general market sensitivity and typical channels of impact, but keep event-specific details grounded in the description.
+
+Event: ${event.title}
+Date: ${event.date}
+Impact: ${event.impact}
+Description: ${event.description}
+
+Return the explanation as plain text. The length should be approximately 150 words.`;
 
     const explanation = await callClaude(prompt);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Loader2, Globe, CheckCircle2, AlertTriangle, RefreshCw, ArrowLeft } from "lucide-react";
+import { CheckCircle2, RefreshCw, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";

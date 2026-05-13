@@ -28,15 +28,18 @@ export default async function DashboardPage() {
     source_type: report.source_type,
   }));
 
-  // Format display name: use profiles.display_name or format email prefix
-  let formattedName = profile?.display_name;
-  if (!formattedName && user.email) {
-    const prefix = user.email.split('@')[0];
-    // Remove numbers and capitalise first letter
-    const cleanPrefix = prefix.replace(/[0-9]/g, '');
-    formattedName = cleanPrefix.charAt(0).toUpperCase() + cleanPrefix.slice(1).toLowerCase();
-  }
-  const displayName = formattedName || "Adviser";
+  const formatName = (email: string, displayName?: string) => { 
+    if (displayName) return displayName; 
+    const prefix = email.split('@')[0]; 
+    // Remove all numbers 
+    const noNumbers = prefix.replace(/[0-9]/g, ''); 
+    // Split on common separators and take first part only 
+    const firstName = noNumbers.split(/[._\-]/)[0]; 
+    // Capitalise first letter 
+    return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase(); 
+  };
+
+  const displayName = user.email ? formatName(user.email, profile?.display_name ?? undefined) : (profile?.display_name || "Adviser");
   
   // 2. Dynamic greeting based on time
   const hour = new Date().getHours();
