@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Zap, Loader2, Target, AlertCircle, ShieldCheck, TrendingUp, Star } from "lucide-react";
+import { Zap, Target, AlertCircle, ShieldCheck, TrendingUp, Star, ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type Strategy = {
   strategyName: string;
@@ -28,10 +30,10 @@ export default function StrategyPage() {
   const [idea, setIdea] = useState("");
   const [savedStrategies, setSavedStrategies] = useState<SavedStrategy[]>([]);
   const [isBuilding, setIsBuilding] = useState(false);
+  const [hoveredBtn, setHoveredBtn] = useState(false);
   const [currentStrategy, setCurrentStrategy] = useState<Strategy | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | undefined>();
 
   useEffect(() => {
     async function checkAccess() {
@@ -43,11 +45,9 @@ export default function StrategyPage() {
         return;
       }
 
-      setUserEmail(user.email);
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed")
+        .select("subscribed, stripe_price_id")
         .eq("id", user.id)
         .single();
 
@@ -56,11 +56,9 @@ export default function StrategyPage() {
         return;
       }
 
-      // Check if user has Pro plan
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
+      const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
-      if (plan === "starter" || plan === "plus") {
+      if (!isPro) {
         router.push("/pricing?message=upgrade-pro");
         return;
       }
@@ -74,10 +72,7 @@ export default function StrategyPage() {
   async function fetchStrategies() {
     try {
       const response = await fetch("/api/strategy");
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to fetch strategies");
-      }
+      if (!response.ok) throw new Error("Failed to fetch strategies");
       const data = await response.json();
       setSavedStrategies(data);
     } catch (err) {
@@ -104,7 +99,7 @@ export default function StrategyPage() {
       }
 
       const data = await response.json();
-      setCurrentStrategy(data.result); // Use .result as per our new API pattern
+      setCurrentStrategy(data.result);
       await fetchStrategies();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -113,156 +108,201 @@ export default function StrategyPage() {
     }
   }
 
+  const cleanText = (text: string) => {
+    return text.replace(/[⊙☆★☐☑☒✓✔✕✖✗✘•●○]/g, "").trim();
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a1628] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#c1a362]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-1 stack gap-6">
-              <div className="card shadow-xl border border-[rgba(193,163,98,0.2)] p-8">
-                <div className="stack gap-6">
-                  <div className="stack gap-2">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                      <Zap className="text-[#c1a362]" />
-                      Strategy Builder
-                    </h2>
-                    <p className="text-gray-400 text-sm">
-                      Describe your trading idea in plain English and let Claude structure it.
-                    </p>
-                  </div>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          AI Strategy Builder
+        </h1>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
+          Turn your trading ideas into structured institutional-grade strategies.
+        </p>
+      </div>
 
-                  <div className="stack gap-2">
-                    <textarea
-                      className="textarea min-h-[150px]"
-                      placeholder="e.g. buy gold when inflation expectations rise above 3% and the dollar is weakening..."
-                      value={idea}
-                      onChange={(e) => setIdea(e.target.value)}
-                    />
-                  </div>
-
-                  {error && <div className="alert alert-error text-sm">{error}</div>}
-
-                  <button
-                    className="btn w-full"
-                    disabled={isBuilding || !idea.trim()}
-                    onClick={handleBuild}
-                    style={{
-                      backgroundColor: "#C9A84C",
-                      color: "#0A1628",
-                      fontWeight: "700"
-                    }}
-                  >
-                    {isBuilding ? (
-                      <>
-                        <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%", marginRight: "8px" }} />
-                        Building Strategy...
-                      </>
-                    ) : (
-                      "Build Strategy"
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="stack gap-4">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest px-2">Saved Strategies</h3>
-                {savedStrategies.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setCurrentStrategy(s.strategy_json)}
-                    className={`p-4 rounded-xl border transition-all text-left ${
-                      currentStrategy?.strategyName === s.strategy_json.strategyName
-                        ? "bg-[#c1a362]/10 border-[#c1a362] shadow-lg"
-                        : "border-[rgba(193,163,98,0.1)] bg-[rgba(15,23,40,0.2)] hover:border-[#c1a362]/30"
-                    }`}
-                  >
-                    <div className="font-bold text-gray-200 line-clamp-1">{s.strategy_json.strategyName}</div>
-                    <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">
-                      {new Date(s.created_at).toLocaleDateString()}
-                    </div>
-                  </button>
-                ))}
-              </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "40px", alignItems: "start" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+          {isBuilding && (
+            <div style={{ marginBottom: "24px" }}>
+              <LoadingProgress isLoading={isBuilding} messages={["Connecting to AI...", "Analysing idea...", "Building strategy framework...", "Finalising..."]} />
             </div>
+          )}
 
-            <div className="lg:col-span-2">
-              {currentStrategy ? (
-                <div className="stack gap-6 fade-in">
-                  <div className="card border border-[#c1a362]/30 bg-[#0a1628] overflow-hidden">
-                    <div className="p-8 border-b border-[rgba(193,163,98,0.1)] bg-gradient-to-r from-[rgba(193,163,98,0.05)] to-transparent flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div className="stack gap-2">
-                        <span className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest">Formal Strategy</span>
-                        <h3 className="text-3xl font-bold text-white">{currentStrategy.strategyName}</h3>
-                      </div>
-                      <div className="flex flex-col items-center p-4 rounded-2xl bg-[#c1a362]/10 border border-[#c1a362]/20 min-w-[120px]">
-                        <span className="text-[10px] font-bold text-[#c1a362] uppercase tracking-widest mb-1">Viability</span>
-                        <div className="text-3xl font-bold text-[#c1a362]">{currentStrategy.viabilityRating}/10</div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10">
-                      <div className="stack gap-8">
-                        <div className="stack gap-3">
-                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <Target size={14} className="text-[#c1a362]" />
-                            Execution Rules
-                          </h4>
-                          <div className="stack gap-4">
-                            <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/10">
-                              <span className="text-[10px] font-bold text-green-500 uppercase block mb-1">Entry</span>
-                              <p className="text-sm text-gray-300 leading-relaxed">{currentStrategy.entryRules}</p>
-                            </div>
-                            <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10">
-                              <span className="text-[10px] font-bold text-red-500 uppercase block mb-1">Exit</span>
-                              <p className="text-sm text-gray-300 leading-relaxed">{currentStrategy.exitRules}</p>
-                            </div>
-                          </div>
-                        </div>
+          {/* Input Card */}
+          <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+            <h2 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>Strategy Idea</h2>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>
+                  Your Concept
+                </label>
+                <textarea
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", minHeight: "150px", outline: "none", resize: "none", fontFamily: "inherit" }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"}
+                  onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"}
+                  placeholder="e.g. buy gold when inflation expectations rise above 3% and the dollar is weakening..."
+                  value={idea}
+                  onChange={(e) => setIdea(e.target.value)}
+                />
+              </div>
 
-                        <div className="stack gap-3">
-                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <Star size={14} className="text-[#c1a362]" />
-                            Position Sizing
-                          </h4>
-                          <p className="text-sm text-gray-300 leading-relaxed italic">&ldquo;{currentStrategy.positionSizing}&rdquo;</p>
-                        </div>
-                      </div>
+              {error && <p style={{ color: "#EF4444", fontSize: "12px", margin: 0 }}>{error}</p>}
 
-                      <div className="stack gap-8">
-                        <div className="stack gap-3">
-                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <AlertCircle size={14} className="text-red-400" />
-                            Risk Analysis
-                          </h4>
-                          <p className="text-sm text-gray-300 leading-relaxed">{currentStrategy.risks}</p>
-                        </div>
-
-                        <div className="stack gap-3">
-                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                            <ShieldCheck size={14} className="text-amber-500" />
-                            Invalidation Conditions
-                          </h4>
-                          <p className="text-sm text-gray-300 leading-relaxed">{currentStrategy.invalidationConditions}</p>
-                        </div>
-
-                        <div className="p-6 rounded-2xl bg-[rgba(193,163,98,0.05)] border border-[rgba(193,163,98,0.1)]">
-                          <h4 className="text-xs font-bold text-[#c1a362] uppercase tracking-widest flex items-center gap-2 mb-3">
-                            <TrendingUp size={14} />
-                            Professional Reasoning
-                          </h4>
-                          <p className="text-sm text-gray-300 leading-relaxed italic">{currentStrategy.reasoning}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+              <button
+                onClick={handleBuild}
+                disabled={isBuilding || !idea.trim()}
+                style={{
+                  backgroundColor: "#0A1628",
+                  color: "white",
+                  width: "100%",
+                  padding: "16px",
+                  borderRadius: "10px",
+                  border: "none",
+                  fontWeight: "700",
+                  fontSize: "15px",
+                  cursor: (isBuilding || !idea.trim()) ? "not-allowed" : "pointer",
+                  opacity: isBuilding ? 0.6 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  marginTop: "24px",
+                  letterSpacing: "0.5px"
+                }}
+              >
+                <Zap size={20} />
+                {isBuilding ? "Building..." : "Build Strategy"}
+              </button>
             </div>
           </div>
+
+          {/* History List */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <h3 style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", paddingLeft: "8px" }}>Saved Strategies</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {savedStrategies.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setCurrentStrategy(s.strategy_json)}
+                  style={{
+                    padding: "16px 20px",
+                    borderRadius: "12px",
+                    border: "1px solid",
+                    borderColor: currentStrategy?.strategyName === s.strategy_json.strategyName ? "#C9A84C" : "#E5E7EB",
+                    backgroundColor: currentStrategy?.strategyName === s.strategy_json.strategyName ? "#FFFBF0" : "white",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <div style={{ fontWeight: "700", color: "#0A1628", fontSize: "14px" }}>{s.strategy_json.strategyName}</div>
+                  <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>{new Date(s.created_at).toLocaleDateString()}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {currentStrategy ? (
+            <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
+                <div>
+                  <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#0A1628", margin: "0 0 4px" }}>{currentStrategy.strategyName}</h2>
+                  <div style={{ fontSize: "12px", fontWeight: "700", color: "#C9A84C", textTransform: "uppercase", letterSpacing: "1px" }}>AI Generated Strategy</div>
+                </div>
+                <div style={{ textAlign: "right", minWidth: "120px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Viability Score</div>
+                  <div style={{ height: "6px", width: "100%", backgroundColor: "#F1F5F9", borderRadius: "3px", overflow: "hidden", marginBottom: "6px" }}>
+                    <div style={{ height: "100%", width: `${currentStrategy.viabilityRating * 10}%`, backgroundColor: currentStrategy.viabilityRating >= 7 ? "#10B981" : currentStrategy.viabilityRating >= 4 ? "#F59E0B" : "#EF4444", transition: "width 1s ease-out" }} />
+                  </div>
+                  <div style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628" }}>{currentStrategy.viabilityRating}/10</div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+                {currentStrategy.entryRules && (
+                  <div>
+                    <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Target size={16} color="#C9A84C" /> Entry Rules
+                    </h4>
+                    <p style={{ fontSize: "15px", color: "#374151", lineHeight: "1.7", margin: 0 }}>{cleanText(currentStrategy.entryRules)}</p>
+                  </div>
+                )}
+
+                {currentStrategy.exitRules && (
+                  <div>
+                    <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <TrendingUp size={16} color="#10B981" /> Exit Rules
+                    </h4>
+                    <p style={{ fontSize: "15px", color: "#374151", lineHeight: "1.7", margin: 0 }}>{cleanText(currentStrategy.exitRules)}</p>
+                  </div>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
+                  {currentStrategy.risks && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <AlertCircle size={16} color="#EF4444" /> Risks
+                      </h4>
+                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.risks)}</p>
+                    </div>
+                  )}
+                  {currentStrategy.positionSizing && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Star size={16} color="#C9A84C" /> Position Sizing
+                      </h4>
+                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.positionSizing)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {currentStrategy.invalidationConditions && (
+                  <div style={{ padding: "24px", backgroundColor: "#FFFBEB", borderRadius: "12px", border: "1px solid #FEF3C7" }}>
+                    <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#92400E", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <ShieldCheck size={16} /> Invalidation
+                    </h4>
+                    <p style={{ fontSize: "14px", color: "#92400E", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.invalidationConditions)}</p>
+                  </div>
+                )}
+
+                {currentStrategy.reasoning && (
+                  <div style={{ marginTop: "8px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
+                    <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px" }}>AI Reasoning</h4>
+                    <p style={{ fontSize: "13px", color: "#64748B", lineHeight: "1.6", margin: 0, fontStyle: "italic" }}>{cleanText(currentStrategy.reasoning)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "100px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "16px", border: "1px dashed #E5E7EB", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+              <div style={{ width: "64px", height: "64px", borderRadius: "20px", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+                <Zap size={32} color="#CBD5E1" />
+              </div>
+              <div>
+                <p style={{ fontWeight: "700", color: "#0A1628", margin: "0 0 4px" }}>Ready to Build</p>
+                <p style={{ fontSize: "14px", color: "#94A3B8", maxWidth: "280px", margin: 0 }}>Enter your strategy idea on the left to generate a formal trading plan.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

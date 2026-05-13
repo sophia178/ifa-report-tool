@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Mail, Loader2, Copy, Check, AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 import { LoadingProgress } from "@/components/loading-progress";
 
 const purposes = [
@@ -23,6 +24,7 @@ export default function EmailsPage() {
   const [keyPoints, setKeyPoints] = useState("");
   const [tone, setTone] = useState(tones[0]);
   const [isDrafting, setIsDrafting] = useState(false);
+  const [hoveredBtn, setHoveredBtn] = useState(false);
   const [emailContent, setEmailContent] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -56,8 +58,8 @@ export default function EmailsPage() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }
@@ -111,152 +113,130 @@ export default function EmailsPage() {
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      {isDrafting && (
-        <div style={{ marginBottom: "24px" }}>
-          <LoadingProgress isLoading={isDrafting} />
-        </div>
-      )}
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Client Email Drafter
         </h1>
-        <p style={{ color: "#64748B", margin: 0 }}>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
           Generate professional, personalized emails for your clients in seconds.
         </p>
       </div>
 
-      <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Client Name</label>
-            <input
-              type="text"
-              style={{
-                border: "1px solid #E5E7EB",
-                borderRadius: "8px",
-                padding: "12px 16px",
-                fontSize: "15px",
-                width: "100%",
-                color: "#1E293B"
-              }}
-              placeholder="e.g. John Smith"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-            />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Email Purpose</label>
-            <select
-              style={{
-                border: "1px solid #E5E7EB",
-                borderRadius: "8px",
-                padding: "12px 16px",
-                fontSize: "15px",
-                width: "100%",
-                color: "#1E293B",
-                backgroundColor: "white"
-              }}
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-            >
-              {purposes.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Key Points to Include</label>
-          <textarea
-            style={{
-              border: "1px solid #E5E7EB",
-              borderRadius: "8px",
-              padding: "12px 16px",
-              fontSize: "15px",
-              width: "100%",
-              minHeight: "120px",
-              color: "#1E293B",
-              fontFamily: "inherit"
-            }}
-            placeholder="e.g. mention the 5% portfolio growth, confirm the next meeting on Tuesday at 10am..."
-            value={keyPoints}
-            onChange={(e) => setKeyPoints(e.target.value)}
-          />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <label style={{ fontSize: "14px", fontWeight: "600", color: "#475569" }}>Tone</label>
-          <div style={{ display: "flex", gap: "12px" }}>
-            {tones.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTone(t)}
-                style={{
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  border: tone === t ? "2px solid #0A1628" : "1px solid #E5E7EB",
-                  backgroundColor: tone === t ? "#F8FAFC" : "white",
-                  color: "#0A1628"
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {error && (
-          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
-            {error}
+      <div style={{ maxWidth: "780px", margin: "0 auto", width: "100%" }}>
+        {isDrafting && (
+          <div style={{ marginBottom: "24px" }}>
+            <LoadingProgress isLoading={isDrafting} />
           </div>
         )}
 
-        <button
-          onClick={handleDraft}
-          disabled={isDrafting || !clientName || !keyPoints}
-          style={{
-            backgroundColor: "#C9A84C",
-            color: "#0A1628",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "none",
-            fontWeight: "700",
-            fontSize: "15px",
-            cursor: (isDrafting || !clientName || !keyPoints) ? "not-allowed" : "pointer",
-            opacity: (isDrafting || !clientName || !keyPoints) ? 0.6 : 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            transition: "all 0.2s ease"
-          }}
-        >
-          {isDrafting ? (
-            <>
-              <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
-              Drafting...
-            </>
-          ) : (
-            <>
+        <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+          <h2 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>Email Details</h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Client Name</label>
+                <input
+                  type="text"
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", outline: "none", transition: "border-color 0.2s" }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"}
+                  onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"}
+                  placeholder="e.g. John Smith"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Purpose</label>
+                <select
+                  style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", outline: "none", backgroundColor: "white" }}
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                >
+                  {purposes.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Key Points</label>
+              <textarea
+                style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", width: "100%", minHeight: "120px", outline: "none", resize: "none", transition: "border-color 0.2s", fontFamily: "inherit" }}
+                onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"}
+                onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"}
+                placeholder="e.g. mention the 5% portfolio growth, confirm the next meeting on Tuesday at 10am..."
+                value={keyPoints}
+                onChange={(e) => setKeyPoints(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Tone</label>
+              <div style={{ display: "flex", gap: "12px" }}>
+                {tones.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTone(t)}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "8px",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      border: "1px solid",
+                      borderColor: tone === t ? "#0A1628" : "#E5E7EB",
+                      backgroundColor: tone === t ? "#F8FAFC" : "white",
+                      color: "#0A1628"
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {error && <p style={{ color: "#EF4444", fontSize: "12px", margin: 0 }}>{error}</p>}
+
+            <button
+              onClick={handleDraft}
+              disabled={isDrafting || !clientName || !keyPoints}
+              style={{
+                backgroundColor: "#0A1628",
+                color: "white",
+                width: "100%",
+                padding: "16px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: (isDrafting || !clientName || !keyPoints) ? "not-allowed" : "pointer",
+                opacity: isDrafting ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                marginTop: "24px",
+                letterSpacing: "0.5px"
+              }}
+            >
               <Mail size={20} />
-              Draft Professional Email
-            </>
-          )}
-        </button>
+              {isDrafting ? "Drafting..." : "Draft Professional Email"}
+            </button>
+          </div>
+        </div>
 
         {emailContent && (
-          <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "16px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
+          <div style={{ marginTop: "40px", backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "24px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", margin: 0 }}>
-                Generated Draft
-              </h3>
+              <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase" }}>Generated Draft</h3>
               <button
                 onClick={copyToClipboard}
                 style={{
@@ -266,24 +246,18 @@ export default function EmailsPage() {
                   padding: "8px 16px",
                   backgroundColor: "#F8FAFC",
                   border: "1px solid #E5E7EB",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   fontSize: "13px",
                   fontWeight: "600",
                   color: "#0A1628",
-                  cursor: "pointer"
+                  cursor: "pointer",
+                  transition: "all 0.2s"
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#F1F5F9"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#F8FAFC"}
               >
-                {copied ? (
-                  <>
-                    <Check size={16} />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={16} />
-                    Copy to Clipboard
-                  </>
-                )}
+                {copied ? <Check size={16} color="#10B981" /> : <Copy size={16} />}
+                {copied ? "Copied!" : "Copy Email"}
               </button>
             </div>
             <div style={{ 
@@ -292,10 +266,9 @@ export default function EmailsPage() {
               backgroundColor: "#F8FAFC", 
               border: "1px solid #E5E7EB", 
               whiteSpace: "pre-wrap", 
-              color: "#334155", 
+              color: "#374151", 
               lineHeight: "1.8", 
-              fontFamily: "monospace", 
-              fontSize: "14px" 
+              fontSize: "15px" 
             }}>
               {emailContent}
             </div>

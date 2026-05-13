@@ -18,6 +18,7 @@ export default function ResearchPage() {
   const router = useRouter();
   const [text, setText] = useState("");
   const [isSummarising, setIsSummarising] = useState(false);
+  const [hoveredBtn, setHoveredBtn] = useState(false);
   const [result, setResult] = useState<SummaryResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -42,12 +43,6 @@ export default function ResearchPage() {
         router.push("/pricing?message=subscribe");
         return;
       }
-
-      const planRes = await fetch("/api/user-plan");
-      const { plan } = await planRes.json();
-      
-      // Research is available for all plans as long as subscribed
-      // But let's check if there are any specific restrictions
       
       setIsLoading(false);
     }
@@ -56,8 +51,8 @@ export default function ResearchPage() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }
@@ -91,13 +86,12 @@ export default function ResearchPage() {
         if (done) break;
         resultText += decoder.decode(value, { stream: true });
         
-        // Try to parse partial JSON for display if it's already a valid object
         try {
           const cleanJson = resultText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
           const parsed = JSON.parse(cleanJson);
           setResult(parsed);
         } catch (e) {
-          // Ignore parse errors while streaming partial JSON
+          // Ignore partial parse errors
         }
       }
     } catch (err) {
@@ -108,98 +102,99 @@ export default function ResearchPage() {
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      {isSummarising && (
-        <div style={{ marginBottom: "24px" }}>
-          <LoadingProgress isLoading={isSummarising} />
-        </div>
-      )}
-      
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Research Summariser
         </h1>
-        <p style={{ color: "#64748B", margin: 0 }}>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
           Paste any document, article, or research report text to get an AI-powered summary.
         </p>
       </div>
 
-      <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", gap: "24px" }}>
-        <textarea
-          style={{
-            border: "1px solid #E5E7EB",
-            borderRadius: "8px",
-            padding: "16px",
-            fontSize: "15px",
-            width: "100%",
-            minHeight: "300px",
-            resize: "vertical",
-            fontFamily: "inherit",
-            color: "#1E293B",
-            backgroundColor: "#F8FAFC"
-          }}
-          placeholder="Paste research text here..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-
-        {error && (
-          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#991B1B", fontSize: "14px" }}>
-            {error}
+      <div style={{ maxWidth: "780px", margin: "0 auto", width: "100%" }}>
+        {isSummarising && (
+          <div style={{ marginBottom: "24px" }}>
+            <LoadingProgress isLoading={isSummarising} />
           </div>
         )}
 
-        <button
-          onClick={handleSummarise}
-          disabled={isSummarising || !text.trim()}
-          style={{
-            backgroundColor: "#C9A84C",
-            color: "#0A1628",
-            padding: "16px",
-            borderRadius: "8px",
-            border: "none",
-            fontWeight: "700",
-            fontSize: "15px",
-            cursor: (isSummarising || !text.trim()) ? "not-allowed" : "pointer",
-            opacity: (isSummarising || !text.trim()) ? 0.6 : 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            transition: "all 0.2s ease"
-          }}
-        >
-          {isSummarising ? (
-            <>
-              <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
-              Summarising...
-            </>
-          ) : (
-            <>
-              <Search size={20} />
-              Summarise Research
-            </>
-          )}
-        </button>
-
-        {result && (
-          <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "32px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
-            <div style={{ padding: "24px", borderRadius: "12px", backgroundColor: "#F8FAFC", border: "1px solid #E5E7EB" }}>
-              <h3 style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", marginBottom: "16px", display: "block" }}>
-                3-Sentence Summary
-              </h3>
-              <p style={{ color: "#334155", lineHeight: "1.8", fontSize: "15px", margin: 0 }}>{result.summary}</p>
+        <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+          <h2 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>Research Content</h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Source Text</label>
+              <textarea
+                style={{
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "8px",
+                  padding: "12px 16px",
+                  fontSize: "15px",
+                  width: "100%",
+                  minHeight: "300px",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                  color: "#1E293B",
+                  outline: "none",
+                  backgroundColor: "white",
+                  transition: "border-color 0.2s"
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"}
+                onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"}
+                placeholder="Paste research text here..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <h3 style={{ fontSize: "12px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B", margin: 0 }}>
-                  Key Points
-                </h3>
+            {error && <p style={{ color: "#EF4444", fontSize: "12px", margin: 0 }}>{error}</p>}
+
+            <button
+              onClick={handleSummarise}
+              disabled={isSummarising || !text.trim()}
+              style={{
+                backgroundColor: "#0A1628",
+                color: "white",
+                width: "100%",
+                padding: "16px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: (isSummarising || !text.trim()) ? "not-allowed" : "pointer",
+                opacity: isSummarising ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                marginTop: "24px",
+                letterSpacing: "0.5px"
+              }}
+            >
+              <Search size={20} />
+              {isSummarising ? "Summarising..." : "Summarise Research"}
+            </button>
+          </div>
+        </div>
+
+        {result && (
+          <div style={{ marginTop: "40px", backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "32px" }}>
+            <div>
+              <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>3-Sentence Summary</h3>
+              <p style={{ color: "#374151", lineHeight: "1.8", fontSize: "16px", margin: 0 }}>{result.summary}</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
+              <div>
+                <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>Key Points</h3>
                 <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
                   {result.keyPoints.map((point: string, i: number) => (
-                    <li key={i} style={{ display: "flex", gap: "12px", fontSize: "14px", color: "#475569", lineHeight: "1.5" }}>
-                      <span style={{ color: "#0A1628", fontWeight: "900" }}>•</span>
+                    <li key={i} style={{ display: "flex", gap: "12px", fontSize: "14px", color: "#475569", lineHeight: "1.6" }}>
+                      <span style={{ color: "#C9A84C", fontWeight: "900" }}>•</span>
                       {point}
                     </li>
                   ))}
@@ -207,50 +202,23 @@ export default function ResearchPage() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <h3 style={{ 
-                    fontSize: "12px", 
-                    fontWeight: "800", 
-                    textTransform: "uppercase", 
-                    letterSpacing: "0.1em", 
-                    color: "#991B1B", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "8px", 
-                    margin: 0 
-                  }}>
-                    <AlertTriangle size={16} />
-                    Risks & Concerns
+                <div>
+                  <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#EF4444", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <AlertTriangle size={16} /> Risks & Concerns
                   </h3>
                   <p style={{ color: "#475569", lineHeight: "1.6", fontSize: "14px", margin: 0 }}>{result.risks}</p>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <h3 style={{ 
-                    fontSize: "12px", 
-                    fontWeight: "800", 
-                    textTransform: "uppercase", 
-                    letterSpacing: "0.1em", 
-                    color: "#64748B", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "8px", 
-                    margin: 0 
-                  }}>
-                    <Star size={16} color="#0A1628" />
-                    Relevance Rating
+                <div>
+                  <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Star size={16} /> Relevance
                   </h3>
                   <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                    <div style={{ flex: 1, height: "8px", backgroundColor: "#E2E8F0", borderRadius: "4px", overflow: "hidden" }}>
-                      <div 
-                        style={{ height: "100%", backgroundColor: "#0A1628", width: `${result.relevanceRating * 10}%` }}
-                      />
+                    <div style={{ flex: 1, height: "6px", backgroundColor: "#F1F5F9", borderRadius: "999px", overflow: "hidden" }}>
+                      <div style={{ height: "100%", backgroundColor: "#C9A84C", width: `${result.relevanceRating * 10}%` }} />
                     </div>
-                    <span style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628" }}>
-                      {result.relevanceRating}/10
-                    </span>
+                    <span style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628" }}>{result.relevanceRating}/10</span>
                   </div>
-                  <p style={{ fontSize: "12px", color: "#94A3B8", margin: 0 }}>Relevance for UK financial advisers</p>
                 </div>
               </div>
             </div>

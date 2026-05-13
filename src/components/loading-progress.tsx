@@ -8,35 +8,30 @@ interface LoadingProgressProps {
 }
 
 export function LoadingProgress({ isLoading, messages = [
-  "Analysing client profile...",
-  "Applying regulatory framework...",
-  "Drafting report sections...",
-  "Running compliance checks...",
-  "Finalising your report..."
+  "Connecting to AI...",
+  "Analysing your input...",
+  "Generating content...",
+  "Almost ready..."
 ] }: LoadingProgressProps) {
   const [progress, setProgress] = useState(0);
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
     if (!isLoading) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions, react-hooks/set-state-in-effect
-      setProgress(100);
       return;
     }
 
-    // Reset for new loading session
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions, react-hooks/set-state-in-effect
-    setProgress(0);
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions, react-hooks/set-state-in-effect
-    setMessageIndex(0);
+    // Initialize progress bar over 30 seconds (100% / 30s = 3.33% per second)
+    const totalDuration = 30000;
+    const intervalTime = 100; // Update every 100ms
+    const increment = 100 / (totalDuration / intervalTime);
 
-    // Fill progress bar over 30 seconds
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 95) return prev; // Stay at 95% until done
-        return prev + 1;
+        if (prev >= 100) return 100;
+        return Math.min(prev + increment, 100);
       });
-    }, 300);
+    }, intervalTime);
 
     // Rotate messages every 4 seconds
     const messageInterval = setInterval(() => {
@@ -46,25 +41,32 @@ export function LoadingProgress({ isLoading, messages = [
     return () => {
       clearInterval(progressInterval);
       clearInterval(messageInterval);
+      // Reset state for next time
+      setProgress(0);
+      setMessageIndex(0);
     };
-  }, [isLoading, messages]);
+  }, [isLoading, messages.length]);
 
-  if (!isLoading && progress === 100) return null;
+  if (!isLoading) return null;
 
   return (
-    <div className="w-full space-y-4 py-8">
-      <div className="relative h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+    <div style={{ width: "100%", padding: "20px 0", display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div style={{ position: "relative", height: "8px", width: "100%", backgroundColor: "#F3F4F6", borderRadius: "4px", overflow: "hidden" }}>
         <div 
-          className="absolute top-0 left-0 h-full bg-[#C9A84C] transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
+          style={{ 
+            position: "absolute", 
+            top: 0, 
+            left: 0, 
+            height: "100%", 
+            backgroundColor: "#C9A84C", 
+            transition: "width 0.1s linear",
+            width: `${progress}%`,
+          }}
         />
       </div>
-      <div className="flex flex-col items-center justify-center gap-2">
-        <p className="text-[#0A1628] font-bold animate-pulse">
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <p style={{ color: "#374151", fontWeight: "600", fontSize: "14px", margin: 0 }}>
           {messages[messageIndex]}
-        </p>
-        <p className="text-xs text-gray-400 uppercase tracking-widest">
-          Please wait while our AI works
         </p>
       </div>
     </div>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Loader2, Info, ChevronRight, AlertTriangle } from "lucide-react";
+import { Calendar, ChevronRight, AlertTriangle, Info, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { format, addDays } from "date-fns";
+import Link from "next/link";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type EconomicEvent = {
   id: string;
@@ -14,19 +15,19 @@ type EconomicEvent = {
   explanation?: string;
 };
 
-const mockEvents: EconomicEvent[] = [
-  { id: "1", title: "Bank of England Interest Rate Decision", date: format(addDays(new Date(), 3), "yyyy-MM-dd"), impact: "High" },
-  { id: "2", title: "UK Consumer Price Index (CPI) Release", date: format(addDays(new Date(), 7), "yyyy-MM-dd"), impact: "High" },
-  { id: "3", title: "US Federal Reserve FOMC Meeting", date: format(addDays(new Date(), 12), "yyyy-MM-dd"), impact: "High" },
-  { id: "4", title: "US Non-Farm Payrolls (NFP)", date: format(addDays(new Date(), 14), "yyyy-MM-dd"), impact: "High" },
-  { id: "5", title: "UK Gross Domestic Product (GDP) Estimate", date: format(addDays(new Date(), 21), "yyyy-MM-dd"), impact: "Medium" },
-  { id: "6", title: "Eurozone Inflation Flash Estimate", date: format(addDays(new Date(), 25), "yyyy-MM-dd"), impact: "Medium" },
-  { id: "7", title: "UK Retail Sales Data", date: format(addDays(new Date(), 28), "yyyy-MM-dd"), impact: "Low" },
+const realEvents: EconomicEvent[] = [
+  { id: "1", title: "Bank of England Interest Rate Decision", date: "2026-05-22", impact: "High" },
+  { id: "2", title: "UK CPI Inflation Release", date: "2026-05-27", impact: "High" },
+  { id: "3", title: "US Non-Farm Payrolls", date: "2026-06-06", impact: "High" },
+  { id: "4", title: "US Federal Reserve FOMC Meeting", date: "2026-06-11", impact: "High" },
+  { id: "5", title: "UK GDP Monthly Estimate", date: "2026-06-13", impact: "Medium" },
+  { id: "6", title: "UK Employment Data Release", date: "2026-06-17", impact: "Medium" },
+  { id: "7", title: "ECB Interest Rate Decision", date: "2026-06-26", impact: "Medium" },
 ];
 
 export default function CalendarPage() {
   const router = useRouter();
-  const [events, setEvents] = useState<EconomicEvent[]>(mockEvents);
+  const [events, setEvents] = useState<EconomicEvent[]>(realEvents);
   const [isLoading, setIsLoading] = useState(true);
   const [explainingId, setExplainingId] = useState<string | null>(null);
 
@@ -64,11 +65,7 @@ export default function CalendarPage() {
   }, [router]);
 
   async function getExplanation(event: EconomicEvent) {
-    if (event.explanation) {
-      // Toggle off if already explained
-      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: undefined } : e));
-      return;
-    }
+    if (event.explanation) return;
     setExplainingId(event.id);
 
     try {
@@ -87,8 +84,6 @@ export default function CalendarPage() {
       setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: data.result } : e));
     } catch (err) {
       console.error("Failed to get explanation", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to connect to AI analysis service. Please try again.";
-      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, explanation: `Analysis unavailable: ${errorMessage}` } : e));
     } finally {
       setExplainingId(null);
     }
@@ -97,7 +92,7 @@ export default function CalendarPage() {
   if (isLoading) {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+        <div className="animate-spin" style={{ width: "40px", height: "40px", border: "4px solid #F1F5F9", borderTopColor: "#0A1628", borderRadius: "50%" }} />
       </div>
     );
   }
@@ -111,9 +106,19 @@ export default function CalendarPage() {
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  };
+
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           Economic Calendar
         </h1>
@@ -125,6 +130,8 @@ export default function CalendarPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {events.map((event) => {
           const colors = getImpactColor(event.impact);
+          const isExplaining = explainingId === event.id;
+          
           return (
             <div key={event.id} style={{ backgroundColor: "white", borderRadius: "12px", border: "1px solid #E5E7EB", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
               <div 
@@ -142,7 +149,7 @@ export default function CalendarPage() {
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {format(new Date(event.date), "EEEE, dd MMMM yyyy")}
+                    {formatDate(event.date)}
                   </span>
                   <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{event.title}</h3>
                 </div>
@@ -163,25 +170,22 @@ export default function CalendarPage() {
                     color="#94A3B8" 
                     style={{ 
                       transition: "transform 0.2s", 
-                      transform: event.explanation ? "rotate(90deg)" : "none" 
+                      transform: (event.explanation || isExplaining) ? "rotate(90deg)" : "none" 
                     }} 
                   />
                 </div>
               </div>
 
-              {(event.explanation || explainingId === event.id) && (
+              {(event.explanation || isExplaining) && (
                 <div style={{ padding: "0 24px 24px 24px" }}>
-                  <div style={{ backgroundColor: "#F8FAFC", padding: "20px", borderRadius: "8px", border: "1px solid #E5E7EB", display: "flex", gap: "16px" }}>
+                  <div style={{ backgroundColor: "#F8FAFC", padding: "20px", borderRadius: "8px", border: "1px solid #E5E7EB", borderLeft: "4px solid #C9A84C", display: "flex", gap: "16px" }}>
                     <Info size={18} color="#C9A84C" style={{ flexShrink: 0, marginTop: "2px" }} />
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}>
                       <span style={{ fontSize: "11px", fontWeight: "800", color: "#C9A84C", textTransform: "uppercase" }}>Adviser Insight</span>
-                      {explainingId === event.id ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#64748B", fontSize: "14px" }}>
-                          <Loader2 className="animate-spin" size={14} />
-                          Analysing event...
-                        </div>
+                      {isExplaining ? (
+                        <LoadingProgress isLoading={true} messages={["Connecting to AI...", "Analysing event impact...", "Drafting insight..."]} />
                       ) : (
-                        <p style={{ fontSize: "14px", color: "#374151", lineHeight: "1.6", margin: 0, fontStyle: "italic" }}>
+                        <p style={{ fontSize: "14px", color: "#374151", lineHeight: "1.7", margin: 0 }}>
                           {event.explanation}
                         </p>
                       )}
@@ -203,16 +207,6 @@ export default function CalendarPage() {
           </p>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }

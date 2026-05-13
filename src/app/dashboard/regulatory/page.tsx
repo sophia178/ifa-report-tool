@@ -114,7 +114,7 @@ export default function RegulatoryPage() {
   if (isLoading) {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }
@@ -122,14 +122,8 @@ export default function RegulatoryPage() {
   const latestSummary = summaries[0];
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", display: "flex", flexDirection: "column", gap: "24px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      {isGenerating && (
-        <div style={{ marginBottom: "24px" }}>
-          <LoadingProgress isLoading={isGenerating} />
-        </div>
-      )}
-      
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
         <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
           <ArrowLeft size={16} /> Back to Dashboard
         </Link>
@@ -141,123 +135,105 @@ export default function RegulatoryPage() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "32px", alignItems: "start" }}>
-        {/* Selection Card */}
-        <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <Globe size={18} color="#C9A84C" />
-            Jurisdictions
-          </h2>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {availableJurisdictions.map((j) => (
-              <button
-                key={j.id}
-                onClick={() => toggleJurisdiction(j.id)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 16px",
-                  borderRadius: "8px",
-                  border: "1px solid",
-                  borderColor: selectedJurisdictions.includes(j.id) ? "#C9A84C" : "#E5E7EB",
-                  backgroundColor: selectedJurisdictions.includes(j.id) ? "#FFFBF0" : "white",
-                  color: selectedJurisdictions.includes(j.id) ? "#0A1628" : "#64748B",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease"
-                }}
-              >
-                {j.label}
-                {selectedJurisdictions.includes(j.id) && <CheckCircle2 size={16} color="#C9A84C" />}
-              </button>
-            ))}
+      <div style={{ maxWidth: "780px", margin: "0 auto", width: "100%" }}>
+        {isGenerating && (
+          <div style={{ marginBottom: "24px" }}>
+            <LoadingProgress isLoading={isGenerating} />
           </div>
+        )}
 
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating || selectedJurisdictions.length === 0}
-            style={{
-              backgroundColor: "#C9A84C",
-              color: "#0A1628",
-              padding: "16px",
-              borderRadius: "8px",
-              border: "none",
-              fontWeight: "700",
-              fontSize: "14px",
-              cursor: (isGenerating || selectedJurisdictions.length === 0) ? "not-allowed" : "pointer",
-              opacity: (isGenerating || selectedJurisdictions.length === 0) ? 0.6 : 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              transition: "all 0.2s ease"
-            }}
-          >
-            {isGenerating ? (
-              <>
-                <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
-                Generating...
-              </>
-            ) : (
-              <>
-                <RefreshCw size={16} />
-                Generate Updates
-              </>
-            )}
-          </button>
+        <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+          <h2 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>Jurisdictions</h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div>
+              <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>
+                Select Markets
+              </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {availableJurisdictions.map((j) => (
+                  <button
+                    key={j.id}
+                    onClick={() => toggleJurisdiction(j.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "12px 16px",
+                      borderRadius: "8px",
+                      border: "1px solid",
+                      borderColor: selectedJurisdictions.includes(j.id) ? "#C9A84C" : "#E5E7EB",
+                      backgroundColor: selectedJurisdictions.includes(j.id) ? "#FFFBF0" : "white",
+                      color: selectedJurisdictions.includes(j.id) ? "#0A1628" : "#64748B",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    {j.label}
+                    {selectedJurisdictions.includes(j.id) && <CheckCircle2 size={16} color="#C9A84C" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {error && <p style={{ color: "#EF4444", fontSize: "12px", margin: 0 }}>{error}</p>}
+
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || selectedJurisdictions.length === 0}
+              style={{
+                backgroundColor: "#0A1628",
+                color: "white",
+                width: "100%",
+                padding: "16px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: (isGenerating || selectedJurisdictions.length === 0) ? "not-allowed" : "pointer",
+                opacity: isGenerating ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                marginTop: "24px",
+                letterSpacing: "0.5px"
+              }}
+            >
+              <RefreshCw size={20} />
+              {isGenerating ? "Generating..." : "Generate Updates"}
+            </button>
+          </div>
         </div>
 
-        {/* Results Section */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          {error && (
-            <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
-              <AlertTriangle size={18} />
-              {error}
-            </div>
-          )}
-
-          {latestSummary ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        {latestSummary && (
+          <div style={{ marginTop: "40px", backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase" }}>Regulatory Updates</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               {latestSummary.updates.map((update, idx) => (
-                <div key={idx} style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                <div key={idx} style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{update.regulationName}</h3>
-                    <span style={{ fontSize: "12px", fontWeight: "700", backgroundColor: "#F1F5F9", color: "#64748B", padding: "4px 10px", borderRadius: "4px" }}>
+                    <h4 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{update.regulationName}</h4>
+                    <span style={{ fontSize: "12px", fontWeight: "700", backgroundColor: "white", border: "1px solid #E5E7EB", color: "#64748B", padding: "4px 10px", borderRadius: "4px" }}>
                       Effective: {update.effectiveDate}
                     </span>
                   </div>
                   <div style={{ marginBottom: "20px" }}>
-                    <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", marginBottom: "8px" }}>Summary</h4>
-                    <p style={{ fontSize: "15px", color: "#374151", lineHeight: "1.6", margin: 0 }}>{update.whatChanged}</p>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>Summary</span>
+                    <p style={{ fontSize: "15px", color: "#374151", lineHeight: "1.6", margin: "4px 0 0" }}>{update.whatChanged}</p>
                   </div>
-                  <div style={{ backgroundColor: "#F8FAFC", padding: "16px", borderRadius: "8px", borderLeft: "4px solid #C9A84C" }}>
-                    <h4 style={{ fontSize: "12px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "8px" }}>Action Required</h4>
-                    <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: 0 }}>{update.actionRequired}</p>
+                  <div style={{ backgroundColor: "white", padding: "16px", borderRadius: "8px", border: "1px solid #E5E7EB", borderLeft: "4px solid #C9A84C" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", letterSpacing: "0.05em" }}>Action Required</span>
+                    <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.5", margin: "4px 0 0" }}>{update.actionRequired}</p>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div style={{ padding: "80px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px solid #E5E7EB" }}>
-              <Bell size={48} color="#CBD5E1" style={{ marginBottom: "16px" }} />
-              <p style={{ color: "#64748B", margin: 0 }}>No updates generated yet. Click refresh to start.</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }

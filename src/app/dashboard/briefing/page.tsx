@@ -185,97 +185,101 @@ export default function BriefingPage() {
   if (isLoading) {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "60px 48px", minHeight: "100vh", backgroundColor: "white" }}>
-      {isGenerating && (
-        <div style={{ marginBottom: "24px" }}>
-          <LoadingProgress isLoading={isGenerating} />
-        </div>
-      )}
-      
-      <div style={{ borderBottom: "4px solid #0A1628", paddingBottom: "40px", marginBottom: "60px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#C9A84C", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "13px", marginBottom: "16px" }}>
-            <Coffee size={18} />
-            Market Intelligence
-          </div>
-          <h1 style={{ fontSize: "42px", fontWeight: "900", color: "#0A1628", margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-            The Daily Briefing
-          </h1>
-        </div>
-        <div style={{ textAlign: "right", color: "#64748B", fontSize: "15px", fontWeight: "500" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "flex-end", marginBottom: "4px" }}>
-            <Calendar size={16} />
-            {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </div>
-          Ref: BRIEF-{new Date().toISOString().slice(0, 10).replace(/-/g, '')}
-        </div>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", minHeight: "100vh", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          The Daily Briefing
+        </h1>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
+          Market intelligence and strategic advice for professional financial advisers.
+        </p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
-        <div style={{ display: "flex", gap: "16px" }}>
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            style={{
-              padding: "12px 24px",
-              backgroundColor: "#0A1628",
-              color: "white",
-              borderRadius: "8px",
-              border: "none",
-              fontWeight: "700",
-              fontSize: "14px",
-              cursor: isGenerating ? "not-allowed" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              opacity: isGenerating ? 0.7 : 1
-            }}
-          >
-            {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Coffee size={18} />}
-            {isGenerating ? "Generating Briefing..." : "Generate New Briefing"}
-          </button>
-          
-          {briefing && (
-            <button style={{ padding: "12px 24px", backgroundColor: "#F4F6F9", color: "#0A1628", borderRadius: "8px", border: "1px solid #E2E8F0", fontWeight: "700", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <Download size={18} /> Download PDF
-            </button>
-          )}
-        </div>
-
-        {error && (
-          <div style={{ padding: "20px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "15px", display: "flex", alignItems: "center", gap: "12px" }}>
-            <AlertCircle size={20} />
-            {error}
+      <div style={{ maxWidth: "780px", margin: "0 auto", width: "100%" }}>
+        {isGenerating && (
+          <div style={{ marginBottom: "24px" }}>
+            <LoadingProgress isLoading={isGenerating} />
           </div>
         )}
 
+        <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase" }}>Actions</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#64748B", fontSize: "13px", fontWeight: "600" }}>
+              <Calendar size={14} />
+              {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "16px" }}>
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              style={{
+                flex: 1,
+                padding: "16px",
+                backgroundColor: "#0A1628",
+                color: "white",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "700",
+                fontSize: "15px",
+                cursor: isGenerating ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                opacity: isGenerating ? 0.7 : 1,
+                letterSpacing: "0.5px"
+              }}
+            >
+              <Coffee size={20} />
+              {isGenerating ? "Generating..." : "Generate New Briefing"}
+            </button>
+            
+            {briefing && (
+              <button style={{ padding: "16px 24px", backgroundColor: "#F8FAFC", color: "#0A1628", borderRadius: "10px", border: "1px solid #E5E7EB", fontWeight: "700", fontSize: "15px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                <Download size={20} /> Download PDF
+              </button>
+            )}
+          </div>
+
+          {error && (
+            <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+              <AlertCircle size={18} />
+              {error}
+            </div>
+          )}
+        </div>
+
         {briefing ? (
           <div style={{ 
-            backgroundColor: "#FFFFFF", 
-            padding: "60px", 
-            borderRadius: "4px", 
-            border: "1px solid #E2E8F0", 
-            boxShadow: "0 10px 25px rgba(0,0,0,0.02)",
+            marginTop: "40px",
+            backgroundColor: "white", 
+            padding: "40px", 
+            borderRadius: "16px", 
+            border: "1px solid #E5E7EB", 
+            borderLeft: "3px solid #C9A84C",
+            boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
             position: "relative"
           }}>
             {renderFormattedContent(briefing)}
             
-            <div style={{ marginTop: "80px", paddingTop: "40px", borderTop: "1px solid #F1F5F9", textAlign: "center", color: "#94A3B8", fontSize: "13px", fontStyle: "italic" }}>
+            <div style={{ marginTop: "60px", paddingTop: "32px", borderTop: "1px solid #F1F5F9", textAlign: "center", color: "#94A3B8", fontSize: "12px", fontStyle: "italic" }}>
               This briefing is intended for professional financial advisers only. All market data is delayed by at least 15 minutes.
             </div>
           </div>
         ) : (
           !isGenerating && (
-            <div style={{ padding: "120px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "16px", border: "2px dashed #E2E8F0" }}>
-              <Coffee size={64} color="#CBD5E1" style={{ marginBottom: "24px" }} />
-              <h3 style={{ fontSize: "20px", fontWeight: "700", color: "#0A1628", marginBottom: "12px" }}>No Briefing Active</h3>
-              <p style={{ color: "#64748B", maxWidth: "400px", margin: "0 auto" }}>Generate your daily intelligence briefing to see market analysis and strategic advice.</p>
+            <div style={{ marginTop: "40px", padding: "100px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "16px", border: "1px dashed #E5E7EB", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+              <Coffee size={48} color="#CBD5E1" />
+              <p style={{ color: "#64748B", margin: 0, fontSize: "15px" }}>Generate your daily intelligence briefing to see market analysis.</p>
             </div>
           )
         )}

@@ -32,12 +32,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const prompt = `You are an economist. Explain the following economic event and its potential impact on financial markets in plain English for a financial adviser to use with clients.
+    const prompt = `You are an economist. Generate a 150-word adviser-focused insight about the following economic event. Explain its significance and potential impact on financial markets in plain English for a financial adviser to use with clients.
     Event: ${event.title}
     Date: ${event.date}
     Impact: ${event.impact}
     
-    Return the explanation as plain text.`;
+    Return the explanation as plain text. The length should be approximately 150 words.`;
 
     const explanation = await callClaude(prompt);
 

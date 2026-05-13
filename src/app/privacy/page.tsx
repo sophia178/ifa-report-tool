@@ -28,7 +28,7 @@ export default function PrivacyPage() {
     },
     {
       title: "7. Contact Information",
-      content: "If you have any questions about this Privacy Policy or our data practices, please contact our privacy team at support@suitance.com. We aim to respond to all inquiries within 48 hours."
+      content: "If you have any questions about this Privacy Policy or our data practices, please contact our privacy team at hello@suitance.co.uk. We aim to respond to all inquiries within 48 hours."
     }
   ];
 

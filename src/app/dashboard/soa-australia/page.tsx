@@ -14,17 +14,9 @@ export default function SOAAustraliaPage() {
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
-  const [adviserName, setAdviserName] = useState("");
-  const [adviserFirm, setAdviserFirm] = useState("");
-  const [platformName, setPlatformName] = useState("");
-  const [fundName, setFundName] = useState("");
-  const [fundSrriRiskRating, setFundSrriRiskRating] = useState("");
-  const [fundIsinNumber, setFundIsinNumber] = useState("");
   const [meetingDate, setMeetingDate] = useState(today);
-  const [objectives, setObjectives] = useState("");
   const [meetingNotes, setMeetingNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [soaId, setSoaId] = useState<string | null>(null);
   const [soaText, setSoaText] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +45,7 @@ export default function SOAAustraliaPage() {
 
       const isPro = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       const isPlus = profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID;
-      const isAusStarter = profile.jurisdiction === "aus"; // Starter is fallback
+      const isAusStarter = profile.jurisdiction === "aus";
 
       if (!isPro && !isPlus && !isAusStarter) {
         router.push("/dashboard?error=access-denied");
@@ -67,8 +59,8 @@ export default function SOAAustraliaPage() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+      <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }
@@ -78,7 +70,6 @@ export default function SOAAustraliaPage() {
     if (!clientName || !meetingNotes) return;
     setIsGenerating(true);
     setError("");
-    setSoaId(null);
     setSoaText(null);
 
     try {
@@ -89,14 +80,7 @@ export default function SOAAustraliaPage() {
           clientName,
           clientEmail,
           dateOfBirth,
-          adviserName,
-          adviserFirm,
-          platformName,
-          fundName,
-          fundSrriRiskRating,
-          fundIsinNumber,
           meetingDate,
-          objectives,
           meetingNotes,
         }),
       });
@@ -126,136 +110,101 @@ export default function SOAAustraliaPage() {
   }
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px" }}>
-      {isGenerating && (
-        <div style={{ marginBottom: "24px" }}>
-          <LoadingProgress isLoading={isGenerating} />
-        </div>
-      )}
-
-      {error && (
-        <div style={{ 
-          backgroundColor: "#FEF2F2", 
-          border: "1px solid #FCA5A5", 
-          padding: "16px", 
-          borderRadius: "12px", 
-          color: "#991B1B", 
-          marginBottom: "24px",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px"
-        }}>
-          <AlertCircle size={20} />
-          <span style={{ fontSize: "14px", fontWeight: "600" }}>{error}</span>
-        </div>
-      )}
-
-      <div style={{ marginBottom: "40px" }}>
-        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "24px" }}>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
           <ArrowLeft size={16} /> Back to Dashboard
         </Link>
-        <h1 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "8px" }}>Australian SOA Generator</h1>
-        <p style={{ color: "#5F6877", fontSize: "16px" }}>Generate an ASIC RG 175 compliant Statement of Advice from meeting notes.</p>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+          Australian SOA Generator
+        </h1>
+        <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
+          Generate an ASIC RG 175 compliant Statement of Advice from meeting notes.
+        </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px", alignItems: "start" }}>
-        {/* Input Panel */}
-        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+      <div style={{ maxWidth: "780px", margin: "0 auto", width: "100%" }}>
+        {isGenerating && (
+          <div style={{ marginBottom: "24px" }}>
+            <LoadingProgress isLoading={isGenerating} />
+          </div>
+        )}
+
+        <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
           <form onSubmit={handleGenerate} style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Client Name</label>
-                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} value={clientName} onChange={(e) => setClientName(e.target.value)} required />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Client Email</label>
-                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Date of Birth</label>
-                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Meeting Date</label>
-                <input style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} required />
+            <div>
+              <h2 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>Client Information</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Client Name</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} value={clientName} onChange={(e) => setClientName(e.target.value)} required />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Client Email</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} required />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Date of Birth</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Meeting Date</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} required />
+                </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Meeting Notes</label>
-              <textarea style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px", minHeight: "200px", resize: "vertical" }} placeholder="Paste your meeting notes here..." value={meetingNotes} onChange={(e) => setMeetingNotes(e.target.value)} required />
+            <div>
+              <h2 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "16px" }}>Case Details</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Meeting Notes</label>
+                <textarea style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", minHeight: "200px", resize: "vertical", outline: "none", fontFamily: "inherit", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} placeholder="Paste your meeting notes here..." value={meetingNotes} onChange={(e) => setMeetingNotes(e.target.value)} required />
+              </div>
             </div>
 
-            {error && (
-              <div style={{ padding: "12px 16px", backgroundColor: "#FEF2F2", color: "#991B1B", borderRadius: "8px", fontSize: "14px", border: "1px solid #FEE2E2" }}>
-                {error}
-              </div>
-            )}
+            {error && <p style={{ color: "#EF4444", fontSize: "12px", margin: 0 }}>{error}</p>}
 
             <button 
               type="submit" 
-              disabled={isGenerating}
-              onMouseEnter={() => setHoveredBtn(true)}
-              onMouseLeave={() => setHoveredBtn(false)}
+              disabled={isGenerating || !clientName || !meetingNotes}
               style={{ 
+                backgroundColor: "#0A1628", 
+                color: "white", 
+                width: "100%",
                 padding: "16px", 
-                backgroundColor: "#C9A84C", 
-                color: "#0A1628", 
-                borderRadius: "12px", 
+                borderRadius: "10px", 
                 fontWeight: "700", 
-                fontSize: "16px", 
-                cursor: isGenerating ? "not-allowed" : "pointer",
-                opacity: isGenerating ? 0.7 : 1,
+                fontSize: "15px", 
+                cursor: (isGenerating || !clientName || !meetingNotes) ? "not-allowed" : "pointer",
+                opacity: isGenerating ? 0.6 : 1,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "12px",
-                transition: "all 0.2s ease",
-                transform: hoveredBtn && !isGenerating ? "translateY(-1px)" : "none",
-                boxShadow: hoveredBtn && !isGenerating ? "0 4px 12px rgba(201, 168, 76, 0.2)" : "none"
+                gap: "10px",
+                marginTop: "24px",
+                border: "none",
+                letterSpacing: "0.5px"
               }}
             >
-              {isGenerating ? (
-                <>
-                  <div className="animate-spin" style={{ width: "20px", height: "20px", border: "3px solid #0A1628", borderTopColor: "#C9A84C", borderRadius: "50%" }} />
-                  Generating SOA...
-                </>
-              ) : (
-                <>
-                  <Map size={20} />
-                  Generate Australian SOA
-                </>
-              )}
+              <Map size={20} />
+              {isGenerating ? "Generating..." : "Generate Australian SOA"}
             </button>
           </form>
         </div>
 
-        {/* Output Panel */}
-        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", minHeight: "600px", display: "flex", flexDirection: "column", gap: "24px" }}>
-          {soaText ? (
-            <>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628" }}>Generated SOA</h3>
-                <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", backgroundColor: "#F4F6F9", borderRadius: "8px", fontSize: "13px", fontWeight: "600", color: "#0A1628" }}>
-                  <FileDown size={16} /> Download Word
-                </button>
-              </div>
-              <div style={{ whiteSpace: "pre-wrap", color: "#374151", fontSize: "15px", lineHeight: "1.7", padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px", flex: 1 }}>
-                {soaText}
-              </div>
-            </>
-          ) : (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#8A94A6", textAlign: "center", gap: "16px" }}>
-              <div style={{ width: "64px", height: "64px", borderRadius: "16px", backgroundColor: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Map size={32} />
-              </div>
-              <div>
-                <p style={{ fontWeight: "700", color: "#0A1628", marginBottom: "4px" }}>No SOA Generated Yet</p>
-                <p style={{ fontSize: "14px" }}>Fill out the form to generate a compliant Statement of Advice.</p>
-              </div>
+        {soaText && (
+          <div style={{ marginTop: "40px", backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase" }}>Generated SOA</h3>
+              <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", backgroundColor: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", fontSize: "13px", fontWeight: "600", color: "#0A1628", cursor: "pointer" }}>
+                <FileDown size={16} /> Download Word
+              </button>
             </div>
-          )}
-        </div>
+            <div style={{ whiteSpace: "pre-wrap", color: "#374151", fontSize: "15px", lineHeight: "1.8", padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px" }}>
+              {soaText}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
