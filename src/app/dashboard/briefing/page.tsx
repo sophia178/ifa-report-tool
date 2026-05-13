@@ -224,6 +224,7 @@ export default function BriefingPage() {
             <button
               onClick={handleGenerate}
               disabled={isGenerating}
+              className="no-print"
               style={{
                 flex: 1,
                 padding: "16px",
@@ -249,6 +250,7 @@ export default function BriefingPage() {
             {briefing && (
               <button 
                 onClick={() => window.print()}
+                className="no-print"
                 style={{ padding: "16px 24px", backgroundColor: "#F8FAFC", color: "#0A1628", borderRadius: "10px", border: "1px solid #E5E7EB", fontWeight: "700", fontSize: "15px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
               >
                 <Download size={20} /> Download PDF
@@ -264,54 +266,11 @@ export default function BriefingPage() {
           )}
         </div>
 
-        <style jsx global media="print">{`
-          @page {
-            margin: 20mm;
-          }
-
-          body {
-            background: white !important;
-            color: black !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          body > * {
-            display: none !important;
-          }
-
-          #briefing-print-content {
-            display: block !important;
-          }
-
-          body > div,
-          body > main {
-            display: block !important;
-          }
-
-          body > div *:not(#briefing-print-content):not(#briefing-print-content *),
-          body > main *:not(#briefing-print-content):not(#briefing-print-content *) {
-            display: none !important;
-          }
-
-          #briefing-print-content {
-            position: static !important;
-            width: 100% !important;
-            padding: 0 !important;
-            background: white !important;
-            color: black !important;
-            font-size: 12pt !important;
-            line-height: 1.6 !important;
-          }
-
-          #briefing-print-content h2 {
-            color: black !important;
-            border-bottom: 1px solid #e5e7eb !important;
-            page-break-after: avoid;
-          }
-
-          #briefing-print-content p {
-            color: black !important;
+        <style jsx global>{`
+          @media print {
+            .no-print {
+              display: none !important;
+            }
           }
         `}</style>
 

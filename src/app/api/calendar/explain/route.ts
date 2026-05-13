@@ -28,18 +28,22 @@ export async function POST(request: Request) {
     }
 
     const event = await request.json();
-    if (!event.title || !event.date || !event.impact || !event.description) {
+    if (!event.title || !event.date || !event.impact) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    const country = typeof event.country === "string" ? event.country : "";
+    const description = typeof event.description === "string" ? event.description : "";
+
     const prompt = `You are an economist. Generate a 150-word adviser-focused insight about the following economic event in plain English for a financial adviser to use with clients.
 
-Use the description as the factual context for what the event is. Do not invent or assume additional event details beyond what is provided. You may discuss general market sensitivity and typical channels of impact, but keep event-specific details grounded in the description.
+Do not invent specific event details (like the exact figure, forecast, or outcome). If a description is provided, use it as factual context.
 
 Event: ${event.title}
+Country: ${country}
 Date: ${event.date}
 Impact: ${event.impact}
-Description: ${event.description}
+Description (if provided): ${description}
 
 Return the explanation as plain text. The length should be approximately 150 words.`;
 

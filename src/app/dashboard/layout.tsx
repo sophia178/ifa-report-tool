@@ -44,7 +44,7 @@ export default async function DashboardLayout({
   return (
     <div style={{ display: "flex", height: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif", overflow: "hidden" }}>
       {/* Sidebar */}
-      <aside style={{ 
+      <aside className="no-print" style={{ 
         width: "240px", 
         minWidth: "240px",
         flexShrink: 0,
@@ -61,7 +61,7 @@ export default async function DashboardLayout({
       {/* Main Content Container */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         {/* Top Navigation Bar */}
-        <header style={{ 
+        <header className="no-print" style={{ 
           height: "64px", 
           minHeight: "64px",
           backgroundColor: "#FFFFFF", 

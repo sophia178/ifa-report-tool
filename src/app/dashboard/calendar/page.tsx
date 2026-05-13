@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, ChevronRight, AlertTriangle, Info, ArrowLeft } from "lucide-react";
+import { ChevronRight, AlertTriangle, Info, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -9,83 +9,22 @@ import { LoadingProgress } from "@/components/loading-progress";
 
 type EconomicEvent = {
   id: string;
-  title: string;
-  date: string;
-  displayDate: string;
+  name: string;
+  date: string; // YYYY-MM-DD
+  country: "GB" | "US" | "EU";
   impact: "High" | "Medium" | "Low";
-  description: string;
   explanation?: string;
 };
 
-const realEvents: EconomicEvent[] = [
-  {
-    id: "1",
-    title: "UK CPI Inflation Data (ONS)",
-    date: "2026-05-21",
-    displayDate: "Thursday 21 May 2026",
-    impact: "High",
-    description:
-      "Office for National Statistics releases Consumer Price Index data showing UK inflation rate",
-  },
-  {
-    id: "2",
-    title: "US ADP National Employment Report",
-    date: "2026-06-03",
-    displayDate: "Wednesday 3 June 2026",
-    impact: "Medium",
-    description:
-      "Private sector employment change for May 2026 from ADP Research Institute",
-  },
-  {
-    id: "3",
-    title: "ECB Monetary Policy Decision",
-    date: "2026-06-05",
-    displayDate: "Thursday 5 June 2026",
-    impact: "High",
-    description: "European Central Bank interest rate decision and press conference",
-  },
-  {
-    id: "4",
-    title: "US Non-Farm Payrolls (BLS)",
-    date: "2026-06-06",
-    displayDate: "Friday 6 June 2026",
-    impact: "High",
-    description: "US Bureau of Labor Statistics monthly jobs report for May 2026",
-  },
-  {
-    id: "5",
-    title: "US Federal Reserve FOMC Meeting",
-    date: "2026-06-18",
-    displayDate: "Wednesday 18 June 2026",
-    impact: "High",
-    description: "Federal Open Market Committee interest rate decision and economic projections",
-  },
-  {
-    id: "6",
-    title: "Bank of England MPC Decision",
-    date: "2026-06-19",
-    displayDate: "Thursday 19 June 2026",
-    impact: "High",
-    description: "Bank of England Monetary Policy Committee interest rate decision",
-  },
-  {
-    id: "7",
-    title: "UK Retail Sales (ONS)",
-    date: "2026-06-20",
-    displayDate: "Friday 20 June 2026",
-    impact: "Medium",
-    description: "ONS monthly retail sales volume data for May 2026",
-  },
-];
-
 export default function CalendarPage() {
   const router = useRouter();
-  const [events, setEvents] = useState<EconomicEvent[]>(realEvents);
+  const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [explainingId, setExplainingId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function checkAccess() {
+    async function checkAccessAndLoad() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -111,10 +50,24 @@ export default function CalendarPage() {
         router.push("/pricing?message=upgrade-pro");
         return;
       }
-      
-      setIsLoading(false);
+
+      try {
+        setLoadError("");
+        const response = await fetch("/api/calendar");
+        if (!response.ok) {
+          throw new Error("Calendar fetch failed");
+        }
+        const data = await response.json();
+        const fetchedEvents: EconomicEvent[] = Array.isArray(data?.events) ? data.events : [];
+        setEvents(fetchedEvents);
+      } catch {
+        setLoadError("Calendar temporarily unavailable - please check back shortly");
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
-    checkAccess();
+    checkAccessAndLoad();
   }, [router]);
 
   async function getExplanation(event: EconomicEvent) {
@@ -126,10 +79,10 @@ export default function CalendarPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: event.title,
+          title: event.name,
           date: event.date,
           impact: event.impact,
-          description: event.description,
+          country: event.country,
         }),
       });
 
@@ -150,7 +103,7 @@ export default function CalendarPage() {
   if (isLoading) {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="animate-spin" style={{ width: "40px", height: "40px", border: "4px solid #F1F5F9", borderTopColor: "#0A1628", borderRadius: "50%" }} />
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }
@@ -162,6 +115,25 @@ export default function CalendarPage() {
       case "Low": return { bg: "#F0FDF4", text: "#16A34A", border: "#DCFCE7" };
       default: return { bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" };
     }
+  };
+
+  const flagForCountry = (country: EconomicEvent["country"]) => {
+    switch (country) {
+      case "GB": return "🇬🇧";
+      case "US": return "🇺🇸";
+      case "EU": return "🇪🇺";
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const [yearStr, monthStr, dayStr] = dateStr.split("-");
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    const date = new Date(year, month - 1, day);
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   return (
@@ -178,6 +150,11 @@ export default function CalendarPage() {
         </p>
       </div>
 
+      {loadError ? (
+        <div style={{ padding: "18px 20px", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px solid #E5E7EB", color: "#475569", fontSize: "14px", fontWeight: "600" }}>
+          {loadError}
+        </div>
+      ) : (
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {events.map((event) => {
           const colors = getImpactColor(event.impact);
@@ -200,9 +177,12 @@ export default function CalendarPage() {
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {event.displayDate}
+                    {formatDate(event.date)}
                   </span>
-                  <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{event.title}</h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ fontSize: "16px" }}>{flagForCountry(event.country)}</span>
+                    <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{event.name}</h3>
+                  </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                   <span style={{ 
@@ -248,6 +228,7 @@ export default function CalendarPage() {
           );
         })}
       </div>
+      )}
 
       <div style={{ padding: "24px", backgroundColor: "#FFFBEB", borderRadius: "12px", border: "1px solid #FEF3C7", display: "flex", gap: "16px", alignItems: "start" }}>
         <AlertTriangle size={20} color="#D97706" style={{ flexShrink: 0 }} />

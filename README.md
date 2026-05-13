@@ -21,6 +21,7 @@ Next.js app for financial advisers that:
 4. Add:
    - `ANTHROPIC_API_KEY`
    - `ASSEMBLYAI_API_KEY`
+   - `FINNHUB_API_KEY`
    - `STRIPE_SECRET_KEY`
    - `STRIPE_PRICE_ID`
    - `STRIPE_WEBHOOK_SECRET`
