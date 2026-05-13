@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, RefreshCw, ShieldAlert } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, RefreshCw, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingProgress } from "@/components/loading-progress";
 
 type MarketItem = {
   symbol: string;
@@ -79,7 +80,7 @@ export default function MarketsPage() {
   if (isLoading) {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 className="animate-spin text-[#0A1628]" size={48} />
+        <LoadingProgress isLoading={true} />
       </div>
     );
   }

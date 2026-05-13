@@ -26,27 +26,23 @@ export async function POST() {
       return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
-    const todayStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    const prompt = `You are a market analyst. Generate a professional daily market briefing for a UK financial adviser. 
-    The current date is ${todayStr}.
-    
-    Include sections on:
-    - UK Market Overview
-    - Global Markets
-    - Regulatory Highlights
-    - Key Economic Events
-    
-    Return the briefing as plain structured text with clear headings. Use "##" for main section headings. Do not use a single "#" for the title. 
-    Maximum 600 words.`;
+    const today = new Date().toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    const prompt = `You are a market analyst. Generate a professional daily market briefing.\n\nPrepared for UK Financial Advisers | ${today}\n\nWrite a title line at the top (e.g. \"DAILY MARKET BRIEFING\") and then use \"##\" for section headings.\n\nInclude sections on:\n- UK Market Overview\n- Global Markets\n- Regulatory Highlights\n- Key Economic Events\n\nDo not use placeholders like {DATE}. Use the date provided above.\nReturn plain text only. Maximum 600 words.`;
 
     const briefingText = await callClaude(prompt);
+    const finalBriefingText = briefingText.replace(/\{DATE\}/g, today);
 
     // Save to Supabase
     const { data, error: dbError } = await supabase
       .from("market_briefings")
       .insert({
         user_id: user.id,
-        briefing_text: briefingText,
+        briefing_text: finalBriefingText,
       })
       .select()
       .maybeSingle();
@@ -55,7 +51,7 @@ export async function POST() {
       return NextResponse.json({ error: "Could not save briefing" }, { status: 500 });
     }
 
-    return NextResponse.json({ result: briefingText, id: data.id });
+    return NextResponse.json({ result: finalBriefingText, id: data.id });
   } catch (error) {
     console.error("API route error:", error);
     return NextResponse.json(

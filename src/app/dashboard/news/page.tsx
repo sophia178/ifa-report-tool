@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { RefreshCw, Newspaper, AlertTriangle } from "lucide-react";
+import { LoadingProgress } from "@/components/loading-progress";
 
 interface NewsItem {
   topic: string;
@@ -46,79 +47,132 @@ export default function NewsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-serif font-bold text-[#0A1628] mb-2">Adviser News Briefing</h1>
-          <p className="text-gray-600">Daily insights and regulatory developments for UK financial advisers.</p>
+    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 24px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", marginBottom: "32px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+            Adviser News Briefing
+          </h1>
+          <p style={{ color: "#64748B", margin: 0, fontSize: "15px" }}>
+            Daily insights and regulatory developments for UK financial advisers.
+          </p>
         </div>
         <button
           onClick={fetchNews}
           disabled={isLoading}
-          className="flex items-center gap-2 bg-[#0A1628] text-white px-6 py-3 rounded-xl font-bold transition-all hover:bg-[#1a2a40] disabled:opacity-50"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            backgroundColor: "#0A1628",
+            color: "white",
+            padding: "12px 18px",
+            borderRadius: "10px",
+            fontWeight: "700",
+            fontSize: "14px",
+            border: "none",
+            cursor: isLoading ? "not-allowed" : "pointer",
+            opacity: isLoading ? 0.7 : 1,
+          }}
         >
-          <RefreshCw className={isLoading ? "animate-spin" : ""} size={20} />
+          <RefreshCw className={isLoading ? "animate-spin" : ""} size={18} />
           {isLoading ? "Refreshing..." : "Refresh News"}
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl mb-8 flex items-start gap-4">
-          <AlertTriangle className="flex-shrink-0" />
-          <div>
-            <p className="font-bold mb-1">Could not load news</p>
-            <p className="text-sm">{error}</p>
+        <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "24px" }}>
+          <AlertTriangle size={18} />
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <span style={{ fontWeight: "800" }}>Could not load news</span>
+            <span style={{ fontSize: "13px", color: "#B91C1C" }}>{error}</span>
           </div>
         </div>
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 animate-pulse h-64" />
-          ))}
+        <div style={{ marginTop: "24px" }}>
+          <LoadingProgress isLoading={true} />
         </div>
       ) : briefings.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {briefings.map((item: NewsItem, idx: number) => (
-            <div key={idx} className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-[#F8F6F1] p-3 rounded-xl">
-                  <Newspaper className="text-[#C9A84C]" size={24} />
+            <div
+              key={idx}
+              style={{
+                backgroundColor: "white",
+                borderRadius: "12px",
+                padding: "20px 24px",
+                border: "1px solid #E5E7EB",
+                borderLeft: "3px solid #C9A84C",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "44px", height: "44px", borderRadius: "12px", backgroundColor: "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Newspaper size={22} color="#C9A84C" />
                 </div>
-                <h3 className="text-xl font-bold text-[#0A1628]">{item.topic}</h3>
+                <h3 style={{ fontWeight: "700", fontSize: "18px", color: "#0A1628", margin: 0 }}>
+                  {item.topic}
+                </h3>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#C9A84C] mb-1">Developments</h4>
-                  <p className="text-gray-700 leading-relaxed">{item.developments}</p>
-                </div>
-                
-                <div className="bg-[#F8F6F1] p-4 rounded-xl">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#0A1628] mb-1">Implications for Advisers</h4>
-                  <p className="text-[#0A1628] text-sm italic">{item.implications}</p>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-50">
-                  <div>
-                    <h4 className="text-[10px] font-bold uppercase text-gray-400 mb-1">Client Advice</h4>
-                    <p className="text-xs text-gray-600">{item.adviserAdvice}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-bold uppercase text-red-400 mb-1">Risk Flags</h4>
-                    <p className="text-xs text-red-600">{item.riskFlags}</p>
-                  </div>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", color: "#C9A84C", marginBottom: "6px" }}>
+                  Developments
+                </div>
+                <div style={{ fontSize: "15px", color: "#374151", lineHeight: "1.7" }}>
+                  {item.developments}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", color: "#C9A84C", marginBottom: "6px" }}>
+                  Implications
+                </div>
+                <div style={{ fontSize: "15px", color: "#374151", lineHeight: "1.7" }}>
+                  {item.implications}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", color: "#C9A84C", marginBottom: "6px" }}>
+                  Adviser Advice
+                </div>
+                <div style={{ fontSize: "15px", color: "#374151", lineHeight: "1.7" }}>
+                  {item.adviserAdvice}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", color: "#C9A84C", marginBottom: "6px" }}>
+                  Risk Flags
+                </div>
+                <div style={{ fontSize: "15px", color: "#374151", lineHeight: "1.7" }}>
+                  {item.riskFlags}
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : !error && (
-        <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-          <p className="text-gray-500">No news briefings available at the moment.</p>
+        <div style={{ textAlign: "center", padding: "80px 24px", backgroundColor: "#F8FAFC", borderRadius: "16px", border: "1px dashed #E5E7EB" }}>
+          <p style={{ color: "#64748B", margin: 0 }}>No news briefings available at the moment.</p>
         </div>
       )}
+
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
     </div>
   );
 }

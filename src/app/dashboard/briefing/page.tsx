@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Coffee, Loader2, Download, AlertCircle, Calendar } from "lucide-react";
+import { Coffee, Download, AlertCircle, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingProgress } from "@/components/loading-progress";
@@ -102,7 +102,7 @@ export default function BriefingPage() {
     cleanText = cleanText.replace(/[*_~`]/g, '');
 
     // 3. Handle # (h1) as well by treating it like ## for consistency in rendering
-    cleanText = cleanText.replace(/^#\s+/m, '## ');
+    cleanText = cleanText.replace(/^\s*#\s+/gm, "## ");
 
     // 4. Split by sections (handling both ## and ###)
     const sections = cleanText.split(/^(?:##|###)\s+/m).filter(s => s.trim().length > 0);
@@ -220,7 +220,7 @@ export default function BriefingPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "16px" }}>
+          <div className="briefing-actions" style={{ display: "flex", gap: "16px" }}>
             <button
               onClick={handleGenerate}
               disabled={isGenerating}
@@ -266,26 +266,59 @@ export default function BriefingPage() {
 
         <style jsx global>{`
           @media print {
+            @page {
+              margin: 20mm;
+            }
+
+            body {
+              background: white !important;
+              color: black !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+
+            nav,
+            aside,
+            header,
+            .sidebar,
+            [data-sidebar] {
+              display: none !important;
+            }
+
+            .briefing-actions,
+            .briefing-actions button {
+              display: none !important;
+            }
+
             body * {
               visibility: hidden;
             }
-            #briefing-content, #briefing-content * {
+
+            #briefing-content,
+            #briefing-content * {
               visibility: visible;
             }
+
             #briefing-content {
               position: absolute;
               left: 0;
               top: 0;
               width: 100%;
-              padding: 40px;
+              padding: 0;
+              background: white !important;
               color: black !important;
-              background: white !important;
+              font-size: 12pt;
+              line-height: 1.6;
             }
-            /* Hide the sticky navy background or any dark elements if needed */
-            main, div, section {
-              background: white !important;
-              box-shadow: none !important;
-              border: none !important;
+
+            #briefing-content h2 {
+              color: black !important;
+              border-bottom: 1px solid #e5e7eb !important;
+              page-break-after: avoid;
+            }
+
+            #briefing-content p {
+              color: black !important;
             }
           }
         `}</style>
