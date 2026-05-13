@@ -98,9 +98,18 @@ export default function USAPlanPage() {
         throw new Error(err.error || "Failed to generate USA plan");
       }
 
-      const data = await response.json();
-      setPlanId(data.planId);
-      setPlanText(data.result); // Use .result as per our new API pattern
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Response body is null");
+
+      const decoder = new TextDecoder();
+      let result = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        result += decoder.decode(value, { stream: true });
+        setPlanText(result);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

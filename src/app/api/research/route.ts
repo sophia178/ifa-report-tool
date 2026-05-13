@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callClaude } from "@/lib/claude";
+import { anthropic } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -42,29 +42,53 @@ export async function POST(request: Request) {
 
     Return ONLY the raw JSON object. Do not use markdown code fences.`;
 
-    const rawResult = await callClaude(prompt);
-    
-    // Clean and parse JSON safely
-    const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-    const result = JSON.parse(cleanJson);
+    const stream = await anthropic.messages.stream({
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
+      max_tokens: 1500,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-    // Save to Supabase
-    const { error: dbError } = await supabase
-      .from("research_summaries")
-      .insert({
-        user_id: user.id,
-        input_text: text,
-        summary: result.summary,
-        key_points: result.keyPoints,
-        risks: result.risks,
-        relevance_rating: result.relevanceRating,
-      });
+    return new Response(
+      new ReadableStream({
+        async start(controller) {
+          let fullText = "";
+          for await (const chunk of stream) {
+            if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+              const textChunk = chunk.delta.text;
+              fullText += textChunk;
+              controller.enqueue(new TextEncoder().encode(textChunk));
+            }
+          }
 
-    if (dbError) {
-      console.error("DB Error:", dbError);
-    }
+          // After streaming, try to parse and save to DB
+          try {
+            const cleanJson = fullText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+            const result = JSON.parse(cleanJson);
+            await supabase
+              .from("research_summaries")
+              .insert({
+                user_id: user.id,
+                input_text: text,
+                summary: result.summary,
+                key_points: result.keyPoints,
+                risks: result.risks,
+                relevance_rating: result.relevanceRating,
+              });
+          } catch (err) {
+            console.error("Failed to parse/save research result:", err);
+          }
 
-    return NextResponse.json({ result });
+          controller.close();
+        },
+      }),
+      {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Transfer-Encoding": "chunked",
+          "X-Accel-Buffering": "no",
+        },
+      }
+    );
   } catch (error) {
     console.error("API route error:", error);
     return NextResponse.json(

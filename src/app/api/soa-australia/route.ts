@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callClaude } from "@/lib/claude";
+import { anthropic } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 import { checkSubscription } from "@/lib/subscription";
 
@@ -49,25 +49,49 @@ export async function POST(request: Request) {
     
     Return the SOA as plain structured text. Maximum 8 sections.`;
 
-    const soaText = await callClaude(prompt);
+    const stream = await anthropic.messages.stream({
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
+      max_tokens: 1500,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-    // Save to Supabase
-    const { data, error: dbError } = await supabase
-      .from("australian_soas")
-      .insert({
-        user_id: user.id,
-        client_name: clientName,
-        meeting_notes: meetingNotes,
-        soa_text: soaText,
-      })
-      .select()
-      .maybeSingle();
+    return new Response(
+      new ReadableStream({
+        async start(controller) {
+          let fullText = "";
+          for await (const chunk of stream) {
+            if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+              const text = chunk.delta.text;
+              fullText += text;
+              controller.enqueue(new TextEncoder().encode(text));
+            }
+          }
 
-    if (dbError || !data) {
-      return NextResponse.json({ error: "Could not save SOA" }, { status: 500 });
-    }
+          // Save to Supabase in the background
+          try {
+            await supabase
+              .from("australian_soas")
+              .insert({
+                user_id: user.id,
+                client_name: clientName,
+                meeting_notes: meetingNotes,
+                soa_text: fullText,
+              });
+          } catch (dbError) {
+            console.error("Failed to save SOA to DB:", dbError);
+          }
 
-    return NextResponse.json({ result: soaText, soaId: data.id });
+          controller.close();
+        },
+      }),
+      {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Transfer-Encoding": "chunked",
+          "X-Accel-Buffering": "no",
+        },
+      }
+    );
   } catch (error) {
     console.error("API route error:", error);
     return NextResponse.json(

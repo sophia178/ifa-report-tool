@@ -12,7 +12,7 @@ if (!apiKey) {
 }
 
 // Initialise the Anthropic client once at the module level for better performance
-const anthropic = new Anthropic({
+export const anthropic = new Anthropic({
   apiKey: apiKey || "dummy-key",
 });
 

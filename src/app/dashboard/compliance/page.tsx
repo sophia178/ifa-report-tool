@@ -88,8 +88,26 @@ export default function CompliancePage() {
         throw new Error(err.error || "Failed to check compliance");
       }
 
-      const data = await response.json();
-      setResult(data.result); // Use .result as per our new API pattern
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Response body is null");
+
+      const decoder = new TextDecoder();
+      let resultText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        resultText += decoder.decode(value, { stream: true });
+        
+        // Try to parse partial JSON for display if it's already a valid object
+        try {
+          const cleanJson = resultText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+          const parsed = JSON.parse(cleanJson);
+          setResult(parsed);
+        } catch (e) {
+          // Ignore parse errors while streaming partial JSON
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {

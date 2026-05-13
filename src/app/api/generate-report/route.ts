@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callClaude } from "@/lib/claude";
+import { anthropic } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -106,33 +106,51 @@ export async function POST(request: Request) {
     13. Implementation & Next Steps
     14. Formal FCA Disclaimer: ${REPORT_DISCLAIMER}`;
 
-    const report = await callClaude(prompt, 4000);
-
-    // Save to Supabase
-    const { data, error: dbError } = await supabase
-      .from("reports")
-      .insert({
-        user_id: user.id,
-        client_name: clientName,
-        client_email: clientEmail,
-        source_type: sourceType,
-        meeting_date: meetingDate,
-        report_text: report,
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (dbError || !data) {
-      return NextResponse.json(
-        { error: dbError?.message || "Could not save report" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      report,
-      reportId: data.id,
+    const stream = await anthropic.messages.stream({
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
+      max_tokens: 4000,
+      messages: [{ role: "user", content: prompt }],
     });
+
+    return new Response(
+      new ReadableStream({
+        async start(controller) {
+          let fullText = "";
+          for await (const chunk of stream) {
+            if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+              const text = chunk.delta.text;
+              fullText += text;
+              controller.enqueue(new TextEncoder().encode(text));
+            }
+          }
+
+          // Save to Supabase after stream is finished
+          try {
+            await supabase
+              .from("reports")
+              .insert({
+                user_id: user.id,
+                client_name: clientName,
+                client_email: clientEmail,
+                source_type: sourceType,
+                meeting_date: meetingDate,
+                report_text: fullText,
+              });
+          } catch (dbError) {
+            console.error("Failed to save report to DB:", dbError);
+          }
+
+          controller.close();
+        },
+      }),
+      {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Transfer-Encoding": "chunked",
+          "X-Accel-Buffering": "no",
+        },
+      }
+    );
   } catch (error) {
     console.error("API route error:", error);
     return NextResponse.json(

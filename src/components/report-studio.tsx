@@ -275,9 +275,19 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
         throw new Error(json.error || "Report generation failed.");
       }
 
-      const json = await response.json();
-      setLatestReport(json.report);
-      setLatestReportId(json.reportId);
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Response body is null");
+
+      const decoder = new TextDecoder();
+      let result = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        result += decoder.decode(value, { stream: true });
+        setLatestReport(result);
+      }
+
       setStatus("Report generated successfully.");
       router.refresh();
       window.scrollTo({ top: 0, behavior: 'smooth' });
