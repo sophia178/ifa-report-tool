@@ -28,7 +28,15 @@ export default async function DashboardPage() {
     source_type: report.source_type,
   }));
 
-  const displayName = profile?.display_name || user.email?.split('@')[0] || "Adviser";
+  // Format display name: use profiles.display_name or format email prefix
+  let formattedName = profile?.display_name;
+  if (!formattedName && user.email) {
+    const prefix = user.email.split('@')[0];
+    // Remove numbers and capitalise first letter
+    const cleanPrefix = prefix.replace(/[0-9]/g, '');
+    formattedName = cleanPrefix.charAt(0).toUpperCase() + cleanPrefix.slice(1).toLowerCase();
+  }
+  const displayName = formattedName || "Adviser";
   
   // 2. Dynamic greeting based on time
   const hour = new Date().getHours();
@@ -115,6 +123,23 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent Reports Section */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+        <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Recent Reports
+        </h3>
+        <Link href="/dashboard/reports" style={{ 
+          fontSize: "14px", 
+          fontWeight: "700", 
+          color: "#0A1628", 
+          textDecoration: "none",
+          padding: "8px 16px",
+          borderRadius: "8px",
+          border: "2px solid #0A1628",
+          transition: "all 0.2s ease"
+        }}>
+          View All Reports
+        </Link>
+      </div>
       <ClientReportsList initialReports={reports} />
 
       {/* Full Studio for Action */}

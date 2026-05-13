@@ -9,13 +9,18 @@ import { LoadingProgress } from "@/components/loading-progress";
 
 type Strategy = {
   strategyName: string;
+  viabilityRating: number;
+  viabilityJustification: string;
+  summary: string;
+  marketConditions: string;
   entryRules: string;
   exitRules: string;
-  risks: string;
   positionSizing: string;
-  invalidationConditions: string;
-  viabilityRating: number;
-  reasoning: string;
+  riskManagement: string;
+  timeframe: string;
+  instruments: string;
+  backtestingNotes: string;
+  adviserConsiderations: string;
 };
 
 type SavedStrategy = {
@@ -236,6 +241,32 @@ export default function StrategyPage() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+                {currentStrategy.summary && (
+                  <div>
+                    <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>Executive Summary</h4>
+                    <p style={{ fontSize: "15px", color: "#374151", lineHeight: "1.7", margin: 0 }}>{cleanText(currentStrategy.summary)}</p>
+                  </div>
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
+                  {currentStrategy.marketConditions && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Star size={16} color="#C9A84C" /> Market Conditions
+                      </h4>
+                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.marketConditions)}</p>
+                    </div>
+                  )}
+                  {currentStrategy.instruments && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Zap size={16} color="#0A1628" /> Instruments
+                      </h4>
+                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.instruments)}</p>
+                    </div>
+                  )}
+                </div>
+
                 {currentStrategy.entryRules && (
                   <div>
                     <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -255,37 +286,50 @@ export default function StrategyPage() {
                 )}
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
-                  {currentStrategy.risks && (
+                  {currentStrategy.riskManagement && (
                     <div>
                       <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-                        <AlertCircle size={16} color="#EF4444" /> Risks
+                        <AlertCircle size={16} color="#EF4444" /> Risk Management
                       </h4>
-                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.risks)}</p>
+                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.riskManagement)}</p>
                     </div>
                   )}
                   {currentStrategy.positionSizing && (
                     <div>
                       <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-                        <Star size={16} color="#C9A84C" /> Position Sizing
+                        <ShieldCheck size={16} color="#10B981" /> Position Sizing
                       </h4>
                       <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.positionSizing)}</p>
                     </div>
                   )}
                 </div>
 
-                {currentStrategy.invalidationConditions && (
-                  <div style={{ padding: "24px", backgroundColor: "#FFFBEB", borderRadius: "12px", border: "1px solid #FEF3C7" }}>
-                    <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#92400E", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <ShieldCheck size={16} /> Invalidation
-                    </h4>
-                    <p style={{ fontSize: "14px", color: "#92400E", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.invalidationConditions)}</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
+                  {currentStrategy.timeframe && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>Timeframe</h4>
+                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.timeframe)}</p>
+                    </div>
+                  )}
+                  {currentStrategy.backtestingNotes && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>Backtesting Notes</h4>
+                      <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.backtestingNotes)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {currentStrategy.adviserConsiderations && (
+                  <div style={{ padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px solid #E5E7EB" }}>
+                    <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>Adviser Considerations</h4>
+                    <p style={{ fontSize: "14px", color: "#475569", lineHeight: "1.6", margin: 0 }}>{cleanText(currentStrategy.adviserConsiderations)}</p>
                   </div>
                 )}
 
-                {currentStrategy.reasoning && (
+                {currentStrategy.viabilityJustification && (
                   <div style={{ marginTop: "8px", paddingTop: "32px", borderTop: "1px solid #E5E7EB" }}>
-                    <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px" }}>AI Reasoning</h4>
-                    <p style={{ fontSize: "13px", color: "#64748B", lineHeight: "1.6", margin: 0, fontStyle: "italic" }}>{cleanText(currentStrategy.reasoning)}</p>
+                    <h4 style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px" }}>AI Viability Analysis</h4>
+                    <p style={{ fontSize: "13px", color: "#64748B", lineHeight: "1.6", margin: 0, fontStyle: "italic" }}>{cleanText(currentStrategy.viabilityJustification)}</p>
                   </div>
                 )}
               </div>

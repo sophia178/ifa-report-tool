@@ -26,14 +26,18 @@ export async function POST() {
       return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
+    const todayStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const prompt = `You are a market analyst. Generate a professional daily market briefing for a UK financial adviser. 
+    The current date is ${todayStr}.
+    
     Include sections on:
     - UK Market Overview
     - Global Markets
     - Regulatory Highlights
     - Key Economic Events
     
-    Return the briefing as plain structured text with clear headings. Maximum 600 words.`;
+    Return the briefing as plain structured text with clear headings. Use "##" for main section headings. Do not use a single "#" for the title. 
+    Maximum 600 words.`;
 
     const briefingText = await callClaude(prompt);
 

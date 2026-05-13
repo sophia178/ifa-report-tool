@@ -30,8 +30,9 @@ function toParagraphs(text: string) {
     );
 }
 
-export async function buildSuitabilityReportDocx(
+export async function buildReportDocx(
   reportText: string,
+  title: string,
   whiteLabel?: {
     firm_name: string;
     firm_address?: string | null;
@@ -72,7 +73,6 @@ export async function buildSuitabilityReportDocx(
   if (whiteLabel) {
     if (whiteLabel.logo_url) {
       try {
-        // In a real server environment, we'd fetch the image buffer
         const imageRes = await fetch(whiteLabel.logo_url);
         const imageBuffer = await imageRes.arrayBuffer();
         headerChildren.push(
@@ -82,8 +82,8 @@ export async function buildSuitabilityReportDocx(
               new ImageRun({
                 data: imageBuffer,
                 transformation: { width: 100, height: 100 },
-                type: "png", // Add type
-              } as any), // Use as any to bypass strict docx type check if needed
+                type: "png",
+              } as any),
             ],
           })
         );
@@ -141,7 +141,7 @@ export async function buildSuitabilityReportDocx(
             heading: HeadingLevel.TITLE,
             children: [
               new TextRun({
-                text: "FCA Suitability Report",
+                text: title,
                 bold: true,
               }),
             ],
@@ -169,4 +169,17 @@ export async function buildSuitabilityReportDocx(
   });
 
   return Packer.toBuffer(doc);
+}
+
+export async function buildSuitabilityReportDocx(
+  reportText: string,
+  whiteLabel?: {
+    firm_name: string;
+    firm_address?: string | null;
+    fca_number?: string | null;
+    logo_url?: string | null;
+    footer_message?: string | null;
+  }
+) {
+  return buildReportDocx(reportText, "FCA Suitability Report", whiteLabel);
 }

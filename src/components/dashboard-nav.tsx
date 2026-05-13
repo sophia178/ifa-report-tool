@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { 
   FileText, Search, Mail, Map, Shield, Flag, TrendingUp, 
   BarChart3, Coffee, Calendar, ShieldAlert, Layout, 
-  Bell, Zap, Newspaper, Users, Settings, Lock, ExternalLink
+  Bell, Zap, Newspaper, Users, Settings, Lock, ExternalLink, Archive
 } from "lucide-react";
 import { SuitanceLogo } from "./suitance-logo";
 import { createClient } from "@/lib/supabase/client";
@@ -29,8 +29,9 @@ const navGroups: NavGroup[] = [
     title: "REPORTS",
     items: [
       { href: "/dashboard", label: "Report Studio", icon: FileText, requiredJurisdiction: "uk" },
+      { href: "/dashboard/reports", label: "All Reports", icon: Archive },
       { href: "/dashboard/soa-australia", label: "Australian SOA", icon: Map, requiredJurisdiction: "aus" },
-      { href: "/dashboard/usa-plan", label: "USA Plan", icon: Flag, requiredJurisdiction: "usa" },
+      { href: "/dashboard/usa-plan", label: "USA Financial Plan", icon: Flag, requiredJurisdiction: "usa" },
       { href: "/dashboard/templates", label: "Templates", icon: Layout },
     ]
   },

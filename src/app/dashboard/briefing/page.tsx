@@ -101,11 +101,14 @@ export default function BriefingPage() {
     // 2. Remove asterisks and other markdown symbols
     cleanText = cleanText.replace(/[*_~`]/g, '');
 
-    // 3. Split by sections (handling both ## and ###)
+    // 3. Handle # (h1) as well by treating it like ## for consistency in rendering
+    cleanText = cleanText.replace(/^#\s+/m, '## ');
+
+    // 4. Split by sections (handling both ## and ###)
     const sections = cleanText.split(/^(?:##|###)\s+/m).filter(s => s.trim().length > 0);
     
     return (
-      <div style={{ fontFamily: '"Georgia", "Times New Roman", serif', lineHeight: "1.8", color: "#1A202C" }}>
+      <div id="briefing-content" style={{ fontFamily: '"Georgia", "Times New Roman", serif', lineHeight: "1.8", color: "#1A202C" }}>
         {sections.map((section, idx) => {
           const lines = section.split('\n');
           const title = lines[0].trim();
@@ -244,7 +247,10 @@ export default function BriefingPage() {
             </button>
             
             {briefing && (
-              <button style={{ padding: "16px 24px", backgroundColor: "#F8FAFC", color: "#0A1628", borderRadius: "10px", border: "1px solid #E5E7EB", fontWeight: "700", fontSize: "15px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+              <button 
+                onClick={() => window.print()}
+                style={{ padding: "16px 24px", backgroundColor: "#F8FAFC", color: "#0A1628", borderRadius: "10px", border: "1px solid #E5E7EB", fontWeight: "700", fontSize: "15px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
+              >
                 <Download size={20} /> Download PDF
               </button>
             )}
@@ -257,6 +263,32 @@ export default function BriefingPage() {
             </div>
           )}
         </div>
+
+        <style jsx global>{`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #briefing-content, #briefing-content * {
+              visibility: visible;
+            }
+            #briefing-content {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              padding: 40px;
+              color: black !important;
+              background: white !important;
+            }
+            /* Hide the sticky navy background or any dark elements if needed */
+            main, div, section {
+              background: white !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+          }
+        `}</style>
 
         {briefing ? (
           <div style={{ 

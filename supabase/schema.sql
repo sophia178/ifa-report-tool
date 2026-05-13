@@ -132,10 +132,15 @@ create table if not exists public.australian_soas (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   client_name text not null,
+  client_email text,
   meeting_notes text not null,
   soa_text text not null,
+  content text,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.australian_soas add column if not exists client_email text;
+alter table public.australian_soas add column if not exists content text;
 
 alter table public.australian_soas enable row level security;
 
@@ -175,10 +180,15 @@ create table if not exists public.usa_financial_plans (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   client_name text not null,
+  client_email text,
   meeting_notes text not null,
   plan_text text not null,
+  content text,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.usa_financial_plans add column if not exists client_email text;
+alter table public.usa_financial_plans add column if not exists content text;
 
 alter table public.usa_financial_plans enable row level security;
 

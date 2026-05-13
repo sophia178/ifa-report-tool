@@ -31,13 +31,13 @@ export default function ForgotPasswordPage() {
 
   return (
     <main style={{ backgroundColor: "#F8FAFC", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, -apple-system, sans-serif", padding: "20px" }}>
-      <div style={{ maxWidth: "480px", width: "100%", backgroundColor: "white", borderRadius: "24px", padding: "48px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
+      <div style={{ maxWidth: "480px", width: "100%", backgroundColor: "white", borderRadius: "16px", padding: "48px", border: "1px solid #E5E7EB", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
         <Link href="/login" style={{ color: "#64748B", textDecoration: "none", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px", marginBottom: "32px" }}>
           ← Back to login
         </Link>
         
-        <h1 style={{ fontSize: "32px", fontWeight: "800", color: "#0A1628", marginBottom: "12px" }}>Forgot Password</h1>
-        <p style={{ color: "#64748B", fontSize: "16px", marginBottom: "32px", lineHeight: "1.5" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", marginBottom: "12px" }}>Forgot Password</h1>
+        <p style={{ color: "#64748B", fontSize: "15px", marginBottom: "32px", lineHeight: "1.5" }}>
           Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
 

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { buildSuitabilityReportDocx } from "@/lib/docx";
+import { buildReportDocx } from "@/lib/docx";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const reportId = searchParams.get("id");
+    const type = searchParams.get("type") || "fca"; // fca, soa, usa
 
     if (!reportId) {
       return NextResponse.json({ error: "Report ID is required." }, { status: 400 });
@@ -21,9 +22,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    let tableName = "reports";
+    let textField = "report_text";
+    let title = "FCA Suitability Report";
+
+    if (type === "soa") {
+      tableName = "australian_soas";
+      textField = "soa_text";
+      title = "Australian Statement of Advice";
+    } else if (type === "usa") {
+      tableName = "usa_financial_plans";
+      textField = "plan_text";
+      title = "USA Financial Plan";
+    }
+
     const { data, error } = await supabase
-      .from("reports")
-      .select("client_name, report_text")
+      .from(tableName)
+      .select(`client_name, ${textField}`)
       .eq("id", reportId)
       .eq("user_id", user.id)
       .single();
@@ -39,9 +54,12 @@ export async function GET(request: Request) {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const buffer = await buildSuitabilityReportDocx(data.report_text, whiteLabel);
+    const reportData = data as any;
+    const reportText = reportData[textField] as string;
+    const buffer = await buildReportDocx(reportText, title, whiteLabel);
 
-    const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-suitability-report.docx`;
+    const clientName = reportData.client_name as string;
+    const filename = `${clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${type}-report.docx`;
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

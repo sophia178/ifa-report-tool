@@ -28,7 +28,15 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  const displayName = profile?.display_name || user.email?.split('@')[0] || "Adviser";
+  // Format display name: use profiles.display_name or format email prefix
+  let formattedName = profile?.display_name;
+  if (!formattedName && user.email) {
+    const prefix = user.email.split('@')[0];
+    // Remove numbers and capitalise first letter
+    const cleanPrefix = prefix.replace(/[0-9]/g, '');
+    formattedName = cleanPrefix.charAt(0).toUpperCase() + cleanPrefix.slice(1).toLowerCase();
+  }
+  const displayName = formattedName || "Adviser";
 
   return (
     <div style={{ display: "flex", height: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif", overflow: "hidden" }}>

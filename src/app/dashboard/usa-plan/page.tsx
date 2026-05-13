@@ -18,6 +18,9 @@ export default function USAPlanPage() {
   const [meetingNotes, setMeetingNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [planText, setPlanText] = useState<string | null>(null);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredBtn, setHoveredBtn] = useState(false);
@@ -65,6 +68,29 @@ export default function USAPlanPage() {
     );
   }
 
+  async function handleDownload() {
+    if (!reportId) return;
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`/api/download-report?id=${reportId}&type=usa`);
+      if (!response.ok) throw new Error("Download failed");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Financial_Plan_${clientName.replace(/\s+/g, '_')}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      alert("Failed to download report");
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
     if (!clientName || !meetingNotes) return;
@@ -73,6 +99,9 @@ export default function USAPlanPage() {
     setPlanText(null);
 
     try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
       const response = await fetch("/api/usa-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -101,6 +130,29 @@ export default function USAPlanPage() {
         if (done) break;
         result += decoder.decode(value, { stream: true });
         setPlanText(result);
+      }
+
+      // Save to Supabase
+      if (user && result) {
+        const { data: savedReport, error: saveError } = await supabase
+          .from("usa_financial_plans")
+          .insert({
+            user_id: user.id,
+            client_name: clientName,
+            client_email: clientEmail,
+            plan_text: result,
+            created_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error("Failed to save Plan:", saveError);
+        } else if (savedReport) {
+          setReportId(savedReport.id);
+          setIsSaved(true);
+          setTimeout(() => setIsSaved(false), 3000);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -195,9 +247,30 @@ export default function USAPlanPage() {
         {planText && (
           <div style={{ marginTop: "40px", backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", gap: "24px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase" }}>Generated Plan</h3>
-              <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", backgroundColor: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: "8px", fontSize: "13px", fontWeight: "600", color: "#0A1628", cursor: "pointer" }}>
-                <FileDown size={16} /> Download Word
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase" }}>Generated Plan</h3>
+                {isSaved && <span style={{ fontSize: "12px", color: "#10B981", fontWeight: "600" }}>✓ Saved to history</span>}
+              </div>
+              <button 
+                onClick={handleDownload}
+                disabled={isDownloading || !reportId}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px", 
+                  padding: "8px 16px", 
+                  backgroundColor: "#F8FAFC", 
+                  border: "1px solid #E5E7EB", 
+                  borderRadius: "8px", 
+                  fontSize: "13px", 
+                  fontWeight: "600", 
+                  color: "#0A1628", 
+                  cursor: (isDownloading || !reportId) ? "not-allowed" : "pointer",
+                  opacity: isDownloading ? 0.7 : 1
+                }}
+              >
+                {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+                {isDownloading ? "Downloading..." : "Download Word"}
               </button>
             </div>
             <div style={{ whiteSpace: "pre-wrap", color: "#374151", fontSize: "15px", lineHeight: "1.8", padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px" }}>

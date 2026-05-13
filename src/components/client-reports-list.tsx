@@ -67,9 +67,6 @@ export function ClientReportsList({ initialReports }: { initialReports: Report[]
 
   return (
     <div style={{ marginBottom: "80px" }}>
-      <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        Recent Reports
-      </h3>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {reports.map((report) => (
           <div key={report.id} style={{ 

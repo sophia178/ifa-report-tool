@@ -16,13 +16,14 @@ type EconomicEvent = {
 };
 
 const realEvents: EconomicEvent[] = [
-  { id: "1", title: "Bank of England Interest Rate Decision", date: "2026-05-22", impact: "High" },
-  { id: "2", title: "UK CPI Inflation Release", date: "2026-05-27", impact: "High" },
+  { id: "1", title: "Bank of England Interest Rate Decision", date: "2026-05-08", impact: "High" },
+  { id: "2", title: "UK CPI Inflation Release", date: "2026-05-21", impact: "High" },
   { id: "3", title: "US Non-Farm Payrolls", date: "2026-06-06", impact: "High" },
-  { id: "4", title: "US Federal Reserve FOMC Meeting", date: "2026-06-11", impact: "High" },
+  { id: "4", title: "US Federal Reserve FOMC Meeting", date: "2026-06-18", impact: "High" },
   { id: "5", title: "UK GDP Monthly Estimate", date: "2026-06-13", impact: "Medium" },
   { id: "6", title: "UK Employment Data Release", date: "2026-06-17", impact: "Medium" },
-  { id: "7", title: "ECB Interest Rate Decision", date: "2026-06-26", impact: "Medium" },
+  { id: "7", title: "ECB Interest Rate Decision", date: "2026-06-05", impact: "Medium" },
+  { id: "8", title: "Bank of England Interest Rate Decision", date: "2026-06-19", impact: "High" },
 ];
 
 export default function CalendarPage() {

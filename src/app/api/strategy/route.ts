@@ -32,16 +32,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Idea is required" }, { status: 400 });
     }
 
-    const prompt = `You are a quantitative trade strategist. Convert the following trading idea into a formal structured strategy.
-    Idea: ${idea}
+    const prompt = `You are an expert trading strategist. The user has described a trading concept. Generate a complete, detailed, actionable trading strategy document with these exact sections:
     
-    Return a JSON object with:
-    - strategyName: Professional name
-    - summary: 2-sentence summary
-    - entryCriteria: Array of strings
-    - exitCriteria: Array of strings
-    - riskManagement: Detailed text
-    - viabilityRating: 1-10
+    STRATEGY NAME: [Create a professional name]
+    VIABILITY SCORE: [X/10 with brief justification]
+    EXECUTIVE SUMMARY: [2-3 sentences describing the strategy]
+    MARKET CONDITIONS: [When this strategy works best]
+    ENTRY RULES: [Specific, numbered entry criteria]
+    EXIT RULES: [Specific take profit and stop loss rules]
+    POSITION SIZING: [How to size positions]
+    RISK MANAGEMENT: [Maximum drawdown, daily loss limits]
+    TIMEFRAME: [Best timeframes for this strategy]
+    INSTRUMENTS: [Best markets/instruments to apply this to]
+    BACKTESTING NOTES: [What to look for when backtesting]
+    ADVISER CONSIDERATIONS: [Regulatory and suitability notes]
+    
+    User concept: ${idea}
+    
+    Be specific and actionable. No vague advice. Real numbers and rules where possible.
+    
+    Return ONLY a JSON object with these keys:
+    - strategyName
+    - viabilityRating (just the number X)
+    - viabilityJustification
+    - summary
+    - marketConditions
+    - entryRules
+    - exitRules
+    - positionSizing
+    - riskManagement
+    - timeframe
+    - instruments
+    - backtestingNotes
+    - adviserConsiderations
     
     Return ONLY the raw JSON object. Do not use markdown code fences.`;
 
