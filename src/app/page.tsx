@@ -30,8 +30,11 @@ export default async function Home() {
           Suitance helps financial advisers draft suitability reports faster. All output must be reviewed by a qualified regulated adviser before use.
         </p>
         <Link href={startHref} style={{ display: "inline-block", textDecoration: "none", backgroundColor: "#C9A84C", color: "#0A1628", fontWeight: "700", fontSize: "16px", padding: "16px 40px", borderRadius: "50px", border: "none", cursor: "pointer", marginBottom: "32px" }}>
-          Start today from £19/month — cancel anytime
+          Start free — 7 days free trial
         </Link>
+        <div style={{ fontSize: "13px", color: "#C9A84C", textAlign: "center", marginTop: "8px" }}>
+          No credit card commitment — cancel anytime
+        </div>
         <div style={{ fontSize: "12px", color: "#C9A84C", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>
           🇬🇧 designed for FCA suitability report standards — 🇦🇺 designed for ASIC Statement of Advice standards — 🇺🇸 designed for CFP Board and SEC planning standards
         </div>
@@ -47,6 +50,8 @@ export default async function Home() {
           <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>All 8 required sections</div>
           <div style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
           <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>Used by global advisers</div>
+          <div style={{ width: "1px", height: "16px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
+          <div style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>7-day free trial</div>
         </div>
       </section>
 
