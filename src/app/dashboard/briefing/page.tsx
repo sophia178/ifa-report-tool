@@ -12,6 +12,7 @@ export default function BriefingPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [jurisdiction, setJurisdiction] = useState<"uk" | "aus" | "usa" | "global">("global");
 
   useEffect(() => {
     async function fetchLatestBriefing() {
@@ -42,7 +43,7 @@ export default function BriefingPage() {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("subscribed, stripe_price_id")
+          .select("subscribed, stripe_price_id, jurisdiction")
           .eq("id", user.id)
           .single();
 
@@ -59,6 +60,13 @@ export default function BriefingPage() {
           router.push("/pricing?message=upgrade-pro");
           return;
         }
+
+        const j = typeof profile?.jurisdiction === "string" ? profile.jurisdiction : "global";
+        if (j === "uk" || j === "aus" || j === "usa") {
+          setJurisdiction(j);
+        } else {
+          setJurisdiction("global");
+        }
         
         await fetchLatestBriefing();
       } catch (err) {
@@ -70,6 +78,15 @@ export default function BriefingPage() {
     checkAccessAndFetch();
   }, [router]);
 
+  function getTitle() {
+    switch (jurisdiction) {
+      case "uk": return "The Daily Briefing — UK Markets";
+      case "aus": return "The Daily Briefing — Australian Markets";
+      case "usa": return "The Daily Briefing — US Markets";
+      default: return "The Daily Briefing — Global Markets";
+    }
+  }
+
   async function handleGenerate() {
     setIsGenerating(true);
     setError("");
@@ -78,6 +95,8 @@ export default function BriefingPage() {
     try {
       const response = await fetch("/api/briefing", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jurisdiction }),
       });
 
       if (!response.ok) {
@@ -197,7 +216,7 @@ export default function BriefingPage() {
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", minHeight: "100vh", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
-          The Daily Briefing
+          {getTitle()}
         </h1>
         <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
           Market intelligence and strategic advice for professional financial advisers.

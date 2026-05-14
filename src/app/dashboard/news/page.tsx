@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Newspaper, AlertTriangle } from "lucide-react";
 import { LoadingProgress } from "@/components/loading-progress";
+import { createClient } from "@/lib/supabase/client";
 
 interface NewsItem {
   topic: string;
@@ -16,19 +17,25 @@ export default function NewsPage() {
   const [briefings, setBriefings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [jurisdiction, setJurisdiction] = useState<"uk" | "aus" | "usa" | "global">("global");
 
-  useEffect(() => {
-    fetchNews();
-  }, []);
+  function getTitle() {
+    switch (jurisdiction) {
+      case "uk": return "UK Adviser News Briefing";
+      case "aus": return "Australian Adviser News Briefing";
+      case "usa": return "US Adviser News Briefing";
+      default: return "Global Adviser News Briefing";
+    }
+  }
 
-  async function fetchNews() {
+  const fetchNews = useCallback(async (j: "uk" | "aus" | "usa" | "global") => {
     setIsLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/news", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keywords: ["FCA", "UK Economy", "Consumer Duty", "Pensions"] }),
+        body: JSON.stringify({ jurisdiction: j }),
       });
 
       if (!res.ok) {
@@ -44,21 +51,51 @@ export default function NewsPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("jurisdiction")
+            .eq("id", user.id)
+            .single();
+
+          const j = typeof profile?.jurisdiction === "string" ? profile.jurisdiction : "global";
+          if (j === "uk" || j === "aus" || j === "usa") {
+            setJurisdiction(j);
+            await fetchNews(j);
+            return;
+          }
+        }
+
+        await fetchNews("global");
+      } catch (err) {
+        console.error("News init error:", err);
+        await fetchNews("global");
+      }
+    }
+    init();
+  }, [fetchNews]);
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 24px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", marginBottom: "32px", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
-            Adviser News Briefing
+            {getTitle()}
           </h1>
           <p style={{ color: "#64748B", margin: 0, fontSize: "15px" }}>
-            Daily insights and regulatory developments for UK financial advisers.
+            Daily insights and regulatory developments for professional financial advisers.
           </p>
         </div>
         <button
-          onClick={fetchNews}
+          onClick={() => fetchNews(jurisdiction)}
           disabled={isLoading}
           style={{
             display: "flex",

@@ -26,13 +26,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
-    const { keywords } = await request.json();
-    if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
-      return NextResponse.json({ error: "Keywords are required" }, { status: 400 });
-    }
+    const body = await request.json().catch(() => ({}));
+    const jurisdictionRaw = typeof body?.jurisdiction === "string" ? body.jurisdiction : "global";
+    const jurisdiction: "uk" | "aus" | "usa" | "global" =
+      jurisdictionRaw === "uk" || jurisdictionRaw === "aus" || jurisdictionRaw === "usa" || jurisdictionRaw === "global"
+        ? jurisdictionRaw
+        : "global";
 
-    const prompt = `You are a financial news editor. Generate a concise daily briefing based on the following keywords: ${keywords.join(", ")}.
-    Return a JSON array of objects, where each object has:
+    const keywords =
+      jurisdiction === "uk"
+        ? ["FCA", "Bank of England", "UK financial markets", "HMRC"]
+        : jurisdiction === "aus"
+          ? ["ASIC", "RBA", "ASX", "Australian financial advice"]
+          : jurisdiction === "usa"
+            ? ["SEC", "FINRA", "Federal Reserve", "NYSE/NASDAQ", "US financial planning"]
+            : ["FCA", "ASIC", "SEC", "Bank of England", "RBA", "Federal Reserve"];
+
+    const focus =
+      jurisdiction === "uk"
+        ? "Generate 4 news items focused on FCA regulation, Bank of England, UK financial markets, HMRC updates."
+        : jurisdiction === "aus"
+          ? "Generate 4 news items focused on ASIC regulation, RBA decisions, ASX markets, Australian financial advice."
+          : jurisdiction === "usa"
+            ? "Generate 4 news items focused on SEC, FINRA, Federal Reserve, NYSE/NASDAQ, US financial planning."
+            : "Generate 4 news items covering UK, Australia, and USA adviser-relevant developments.";
+
+    const prompt = `You are a financial news editor.
+${focus}
+
+Return a JSON array of exactly 4 objects, where each object has:
     - topic: The news topic
     - developments: Key news developments
     - implications: Implications for financial advisers

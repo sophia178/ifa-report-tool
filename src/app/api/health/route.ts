@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   return NextResponse.json({
     anthropicKey: !!process.env.ANTHROPIC_API_KEY,
+    finnhubKey: !!process.env.FINNHUB_API_KEY,
     supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
     stripeKey: !!process.env.STRIPE_SECRET_KEY,
     status: "healthy",

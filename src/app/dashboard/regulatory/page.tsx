@@ -38,6 +38,13 @@ export default function RegulatoryPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const mapProfileJurisdiction = (j: string | null | undefined) => {
+      if (j === "uk") return "UK";
+      if (j === "aus") return "Australia";
+      if (j === "usa") return "USA";
+      return null;
+    };
+
     async function fetchSummaries() {
       try {
         const response = await fetch("/api/regulatory");
@@ -59,7 +66,7 @@ export default function RegulatoryPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("subscribed, stripe_price_id")
+        .select("subscribed, stripe_price_id, jurisdiction")
         .eq("id", user.id)
         .single();
 
@@ -74,6 +81,11 @@ export default function RegulatoryPage() {
       if (!isPlus && !isPro) {
         router.push("/pricing?message=upgrade");
         return;
+      }
+
+      const preferred = mapProfileJurisdiction(profile?.jurisdiction);
+      if (preferred) {
+        setSelectedJurisdictions([preferred]);
       }
       
       await fetchSummaries();
