@@ -56,7 +56,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, currentPlan, tierPlan, pr
   if (!isLoggedIn) {
     return (
       <Link href="/signup" className="btn pricing-cta-button" style={style}>
-        Start now — {price}/month
+        Start free — then {price}/month
       </Link>
     );
   }
@@ -109,7 +109,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, currentPlan, tierPlan, pr
     if (currentPlan) {
       return `Upgrade to ${tierPlan.charAt(0).toUpperCase() + tierPlan.slice(1)}`;
     }
-    return `Start now — ${price}/month`;
+    return `Start free — then ${price}/month`;
   };
 
   return (

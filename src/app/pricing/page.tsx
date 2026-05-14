@@ -87,7 +87,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             Simple, transparent pricing.
           </h1>
           <p style={{ fontSize: "18px", color: "#64748B", textAlign: "center", marginBottom: "64px" }}>
-            Start today from £19/month. Scale as you grow.
+            Try free for 7 days — then from £19/month. Cancel anytime.
           </p>
         </header>
 
@@ -132,6 +132,9 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               <div style={{ marginBottom: "16px" }}>
                 <span style={{ fontSize: "48px", fontWeight: "800", color: "#0A1628" }}>{tier.price}</span>
                 <span style={{ fontSize: "18px", color: "#64748B" }}>/month</span>
+              </div>
+              <div style={{ fontSize: "12px", fontWeight: "700", color: "#64748B", marginBottom: "20px" }}>
+                7-day free trial — no charge today
               </div>
 
               <p style={{ fontSize: "15px", color: "#64748B", marginBottom: "32px" }}>
