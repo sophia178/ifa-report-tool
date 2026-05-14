@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const supabase = await createClient();
     const {
@@ -17,12 +17,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { plan } = await request.json();
-
-    let priceId = process.env.STRIPE_PRICE_ID;
-    if (plan === "plus" || plan === "promo") priceId = process.env.STRIPE_PLUS_PRICE_ID;
-    else if (plan === "pro") priceId = process.env.STRIPE_PRO_PRICE_ID;
-
+    const priceId = process.env.STRIPE_PLUS_PRICE_ID;
     if (!priceId) {
       return NextResponse.json(
         { error: "Stripe price ID is not configured for this plan." },
@@ -31,7 +26,6 @@ export async function POST(request: Request) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-
     if (!appUrl) {
       return NextResponse.json(
         { error: "NEXT_PUBLIC_APP_URL is not configured." },
@@ -61,13 +55,13 @@ export async function POST(request: Request) {
           userEmail: user.email,
         },
       },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+      success_url: `${appUrl}/dashboard`,
+      cancel_url: `${appUrl}/pricing`,
     });
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("Stripe checkout session creation failed:", error);
+    console.error("Stripe promo checkout session creation failed:", error);
 
     const message =
       error instanceof Error ? error.message : "Unable to create Stripe checkout session.";
@@ -75,3 +69,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
