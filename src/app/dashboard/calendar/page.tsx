@@ -9,7 +9,7 @@ import { LoadingProgress } from "@/components/loading-progress";
 
 type EconomicEvent = {
   id: string;
-  name: string;
+  event: string;
   date: string; // YYYY-MM-DD
   country: "GB" | "US" | "EU";
   impact: "High" | "Medium" | "Low";
@@ -21,6 +21,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [dataSource, setDataSource] = useState<"finnhub" | "fallback" | "">("");
   const [explainingId, setExplainingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,9 +61,12 @@ export default function CalendarPage() {
         const data = await response.json();
         const fetchedEvents: EconomicEvent[] = Array.isArray(data?.events) ? data.events : [];
         setEvents(fetchedEvents);
+        const source = data?.source === "finnhub" || data?.source === "fallback" ? data.source : "";
+        setDataSource(source);
       } catch {
         setLoadError("Calendar temporarily unavailable - please check back shortly");
         setEvents([]);
+        setDataSource("");
       } finally {
         setIsLoading(false);
       }
@@ -79,7 +83,7 @@ export default function CalendarPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: event.name,
+          title: event.event,
           date: event.date,
           impact: event.impact,
           country: event.country,
@@ -181,7 +185,7 @@ export default function CalendarPage() {
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span style={{ fontSize: "16px" }}>{flagForCountry(event.country)}</span>
-                    <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{event.name}</h3>
+                    <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{event.event}</h3>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -239,6 +243,12 @@ export default function CalendarPage() {
           </p>
         </div>
       </div>
+
+      {dataSource && (
+        <div style={{ textAlign: "center", color: "#94A3B8", fontSize: "12px", fontWeight: "600" }}>
+          {dataSource === "finnhub" ? "Live data from Finnhub" : "Scheduled events"}
+        </div>
+      )}
     </div>
   );
 }

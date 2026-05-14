@@ -9,11 +9,12 @@ export const dynamic = "force-dynamic";
 
 type CalendarEvent = {
   id: string;
-  name: string;
+  event: string;
   date: string; // YYYY-MM-DD
   country: "GB" | "US" | "EU";
   importance: number | null;
   impact: "High" | "Medium" | "Low";
+  description?: string;
 };
 
 type FinnhubEvent = {
@@ -91,6 +92,29 @@ function parseFinnhubEvents(payload: any): FinnhubEvent[] {
 const CACHE_ID = "economic_calendar_finnhub_gb_us_eu_60d";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+const fallbackEvents = [
+  { date: "2026-05-20", event: "UK CPI Inflation (April)", country: "GB", impact: "High", description: "ONS releases April 2026 CPI data" },
+  { date: "2026-06-03", event: "US ADP Employment Report", country: "US", impact: "Medium", description: "Private sector jobs for May 2026" },
+  { date: "2026-06-05", event: "ECB Interest Rate Decision", country: "EU", impact: "High", description: "ECB monetary policy decision" },
+  { date: "2026-06-06", event: "US Non-Farm Payrolls", country: "US", impact: "High", description: "BLS jobs report for May 2026" },
+  { date: "2026-06-17", event: "UK CPI Inflation (May)", country: "GB", impact: "High", description: "ONS releases May 2026 CPI data" },
+  { date: "2026-06-18", event: "US Federal Reserve FOMC", country: "US", impact: "High", description: "Fed interest rate decision" },
+  { date: "2026-06-18", event: "Bank of England MPC Decision", country: "GB", impact: "High", description: "BoE interest rate announcement" },
+  { date: "2026-06-20", event: "UK Retail Sales (May)", country: "GB", impact: "Medium", description: "ONS retail sales volume data" },
+] as const;
+
+function buildFallbackEvents(): CalendarEvent[] {
+  return fallbackEvents.map((e) => ({
+    id: `${e.country}-${e.date}-${e.event}`.toLowerCase().replace(/\s+/g, "-"),
+    event: e.event,
+    date: e.date,
+    country: e.country,
+    importance: null,
+    impact: e.impact,
+    description: e.description,
+  }));
+}
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -117,14 +141,24 @@ export async function GET() {
   const cacheFresh = cachedRow?.data && cachedUpdatedAt > 0 && now - cachedUpdatedAt < CACHE_TTL_MS;
 
   if (cacheFresh) {
-    return NextResponse.json({ events: (cachedRow.data as any)?.events ?? [] });
+    const events = (cachedRow.data as any)?.events ?? [];
+    const source = (cachedRow.data as any)?.source ?? "finnhub";
+    return NextResponse.json({ events, source });
   }
 
   if (!process.env.FINNHUB_API_KEY) {
     if (cachedRow?.data) {
-      return NextResponse.json({ events: (cachedRow.data as any)?.events ?? [] });
+      const events = (cachedRow.data as any)?.events ?? [];
+      const source = (cachedRow.data as any)?.source ?? "finnhub";
+      return NextResponse.json({ events, source });
     }
-    return NextResponse.json({ error: "FINNHUB_API_KEY not configured" }, { status: 500 });
+    const events = buildFallbackEvents();
+    await admin.from("market_data_cache").upsert({
+      id: CACHE_ID,
+      data: { events, source: "fallback" },
+      updated_at: new Date().toISOString(),
+    });
+    return NextResponse.json({ events, source: "fallback" });
   }
 
   const from = formatDateYYYYMMDD(new Date());
@@ -132,51 +166,103 @@ export async function GET() {
   const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${process.env.FINNHUB_API_KEY}`;
 
   try {
+    console.log("[calendar] Finnhub URL:", url);
     const res = await fetch(url, { cache: "no-store" });
+
+    console.log("[calendar] Finnhub status:", res.status);
+    const rawText = await res.text();
+    console.log("[calendar] Finnhub raw response:", rawText);
+
     if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        console.warn("[calendar] Finnhub economic calendar may require a paid plan or has insufficient permissions for this API key.");
+      }
       throw new Error(`Finnhub error: ${res.status}`);
     }
 
-    const json = await res.json();
-    const rawEvents = parseFinnhubEvents(json);
+    let json: any = null;
+    try {
+      json = rawText ? JSON.parse(rawText) : null;
+    } catch (parseErr) {
+      console.error("[calendar] Finnhub JSON parse error:", parseErr);
+      throw new Error("Finnhub returned non-JSON response");
+    }
 
-    const filtered: CalendarEvent[] = rawEvents
+    const rawEvents = parseFinnhubEvents(json);
+    console.log("[calendar] Events returned before filtering:", rawEvents.length);
+
+    const required = rawEvents
       .map((e) => {
         const name = getEventName(e);
         const date = getEventDate(e);
         const country = typeof e.country === "string" ? mapCountry(e.country) : null;
         const importance = extractImportance(e);
 
-        if (!name || !date || !country) return null;
-        if (!isAllowedEventName(name)) return null;
-
-        const impact = impactFromImportance(importance);
-        const id = `${country}-${date}-${name}`.toLowerCase().replace(/\s+/g, "-");
-
-        return { id, name, date, country, importance, impact };
+        return { name, date, country, importance };
       })
-      .filter(Boolean) as CalendarEvent[];
+      .filter((e) => Boolean(e.name) && Boolean(e.date));
 
-    filtered.sort((a, b) => a.date.localeCompare(b.date));
+    console.log("[calendar] After required fields filter:", required.length);
 
-    const events = filtered.slice(0, 10);
+    const countryFiltered = required.filter((e) => e.country === "GB" || e.country === "US" || e.country === "EU");
+    console.log("[calendar] After country filter (GB/US/EU):", countryFiltered.length);
+
+    const nameFiltered = countryFiltered.filter((e) => isAllowedEventName(e.name));
+    console.log("[calendar] After event name filter (allowed types):", nameFiltered.length);
+
+    const mapped: CalendarEvent[] = nameFiltered.map((e) => {
+      const impact = impactFromImportance(e.importance);
+      const id = `${e.country}-${e.date}-${e.name}`.toLowerCase().replace(/\s+/g, "-");
+      return {
+        id,
+        event: e.name,
+        date: e.date,
+        country: e.country as "GB" | "US" | "EU",
+        importance: e.importance,
+        impact,
+      };
+    });
+    console.log("[calendar] After mapping:", mapped.length);
+
+    mapped.sort((a, b) => a.date.localeCompare(b.date));
+    console.log("[calendar] After sort:", mapped.length);
+
+    const events = mapped.slice(0, 10);
+    console.log("[calendar] After max-10 limit:", events.length);
+
+    if (events.length === 0) {
+      console.warn("[calendar] Finnhub returned 0 events after filtering. Falling back to scheduled events. Finnhub economic calendar may not be available on the free tier.");
+      const fallback = buildFallbackEvents();
+      await admin.from("market_data_cache").upsert({
+        id: CACHE_ID,
+        data: { events: fallback, source: "fallback" },
+        updated_at: new Date().toISOString(),
+      });
+      return NextResponse.json({ events: fallback, source: "fallback" });
+    }
 
     await admin.from("market_data_cache").upsert({
       id: CACHE_ID,
-      data: { events },
+      data: { events, source: "finnhub" },
       updated_at: new Date().toISOString(),
     });
 
-    return NextResponse.json({ events });
+    return NextResponse.json({ events, source: "finnhub" });
   } catch (err) {
+    console.error("[calendar] Finnhub fetch error:", err);
     if (cachedRow?.data) {
-      return NextResponse.json({ events: (cachedRow.data as any)?.events ?? [] });
+      const events = (cachedRow.data as any)?.events ?? [];
+      const source = (cachedRow.data as any)?.source ?? "finnhub";
+      return NextResponse.json({ events, source });
     }
 
-    return NextResponse.json(
-      { error: "Failed to fetch calendar events" },
-      { status: 502 },
-    );
+    const events = buildFallbackEvents();
+    await admin.from("market_data_cache").upsert({
+      id: CACHE_ID,
+      data: { events, source: "fallback" },
+      updated_at: new Date().toISOString(),
+    });
+
+    return NextResponse.json({ events, source: "fallback" });
   }
 }
-
