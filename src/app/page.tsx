@@ -32,9 +32,6 @@ export default async function Home() {
         <Link href={startHref} style={{ display: "inline-block", textDecoration: "none", backgroundColor: "#C9A84C", color: "#0A1628", fontWeight: "700", fontSize: "16px", padding: "16px 40px", borderRadius: "50px", border: "none", cursor: "pointer", marginBottom: "32px" }}>
           Start free — 7 days free trial
         </Link>
-        <div style={{ fontSize: "13px", color: "#C9A84C", textAlign: "center", marginTop: "8px" }}>
-          No credit card commitment — cancel anytime
-        </div>
         <div style={{ fontSize: "12px", color: "#C9A84C", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>
           🇬🇧 designed for FCA suitability report standards — 🇦🇺 designed for ASIC Statement of Advice standards — 🇺🇸 designed for CFP Board and SEC planning standards
         </div>
