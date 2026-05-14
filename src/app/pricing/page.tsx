@@ -87,7 +87,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             Simple, transparent pricing.
           </h1>
           <p style={{ fontSize: "18px", color: "#64748B", textAlign: "center", marginBottom: "64px" }}>
-            Try free for 7 days — then from £19/month. Cancel anytime.
+            Try free for 7 days — then from £19/month. No card commitment.
           </p>
         </header>
 
@@ -98,7 +98,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
               style={{ 
                 backgroundColor: "white", 
                 borderRadius: "16px", 
-                padding: "40px", 
+                padding: "0", 
                 flex: "1", 
                 minWidth: "300px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.08)", 
@@ -108,6 +108,10 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                 flexDirection: "column"
               }}
             >
+              <div style={{ backgroundColor: "#C9A84C", color: "#0A1628", fontSize: "13px", fontWeight: "700", textAlign: "center", padding: "8px", borderRadius: "8px 8px 0 0" }}>
+                7 DAYS FREE TRIAL
+              </div>
+              <div style={{ padding: "40px", display: "flex", flexDirection: "column", flex: 1 }}>
               {tier.isPopular && (
                 <div style={{ 
                   position: "absolute", 
@@ -133,8 +137,8 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                 <span style={{ fontSize: "48px", fontWeight: "800", color: "#0A1628" }}>{tier.price}</span>
                 <span style={{ fontSize: "18px", color: "#64748B" }}>/month</span>
               </div>
-              <div style={{ fontSize: "12px", fontWeight: "700", color: "#64748B", marginBottom: "20px" }}>
-                7-day free trial — no charge today
+              <div style={{ fontSize: "12px", color: "#C9A84C", marginBottom: "20px" }}>
+                No charge for 7 days
               </div>
 
               <p style={{ fontSize: "15px", color: "#64748B", marginBottom: "32px" }}>
@@ -172,6 +176,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
                     textDecoration: "none"
                   }}
                 />
+              </div>
               </div>
             </article>
           ))}
