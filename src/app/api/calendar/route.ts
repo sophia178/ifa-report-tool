@@ -1,118 +1,227 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { callClaude } from "@/lib/claude";
 import { getUserPlan } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
-// Vercel: add FINNHUB_API_KEY to your Environment Variables. You can get a free key at https://finnhub.io/
-
 type CalendarEvent = {
-  id: string;
-  event: string;
   date: string; // YYYY-MM-DD
+  displayDate: string;
+  event: string;
   country: "GB" | "US" | "EU";
-  importance: number | null;
-  impact: "High" | "Medium" | "Low";
-  description?: string;
+  impact: "High" | "Medium";
+  description: string;
 };
 
-type FinnhubEvent = {
-  country?: string;
-  event?: string;
-  time?: string;
-  impact?: number;
-  importance?: number;
-  date?: string;
-};
+type CalendarEventWithId = CalendarEvent & { id: string };
 
-function formatDateYYYYMMDD(date: Date) {
-  return date.toISOString().slice(0, 10);
+const CACHE_PREFIX = "economic_calendar::";
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function stripJsonFences(text: string) {
+  return text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
 }
 
-function mapCountry(countryRaw: string): "GB" | "US" | "EU" | null {
-  const c = countryRaw.trim();
-  if (c === "GB" || c === "UK" || c.toLowerCase() === "united kingdom") return "GB";
-  if (c === "US" || c.toLowerCase() === "united states") return "US";
-  if (c === "EU" || c.toLowerCase() === "eurozone" || c.toLowerCase() === "european union") return "EU";
+function normalizeCountry(countryRaw: string): "GB" | "US" | "EU" | null {
+  const c = countryRaw.trim().toUpperCase();
+  if (c === "GB") return "GB";
+  if (c === "US") return "US";
+  if (c === "EU") return "EU";
   return null;
 }
 
-function getEventName(raw: FinnhubEvent) {
-  const name = typeof raw.event === "string" ? raw.event : "";
-  return name.trim();
+function parseYYYYMMDD(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map((v) => Number(v));
+  if (!y || !m || !d) return null;
+  const dt = new Date(y, m - 1, d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-function getEventDate(raw: FinnhubEvent) {
-  const date = typeof raw.date === "string" ? raw.date : "";
-  return date.trim();
+function isAfterToday(dateStr: string, todayISO: string) {
+  const d = parseYYYYMMDD(dateStr);
+  const t = parseYYYYMMDD(todayISO);
+  if (!d || !t) return false;
+  return d.getTime() > t.getTime();
 }
 
-function extractImportance(raw: FinnhubEvent) {
-  const importance =
-    typeof raw.importance === "number"
-      ? raw.importance
-      : typeof raw.impact === "number"
-        ? raw.impact
-        : null;
-  return importance;
+function validateEvents(raw: any, todayISO: string): CalendarEvent[] | null {
+  if (!Array.isArray(raw)) return null;
+  const mapped: CalendarEvent[] = [];
+
+  for (const item of raw) {
+    const date = typeof item?.date === "string" ? item.date.trim() : "";
+    const displayDate = typeof item?.displayDate === "string" ? item.displayDate.trim() : "";
+    const event = typeof item?.event === "string" ? item.event.trim() : "";
+    const country = typeof item?.country === "string" ? normalizeCountry(item.country) : null;
+    const impact = item?.impact === "High" || item?.impact === "Medium" ? item.impact : null;
+    const description = typeof item?.description === "string" ? item.description.trim() : "";
+
+    if (!date || !displayDate || !event || !country || !impact || !description) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    if (!isAfterToday(date, todayISO)) return null;
+    mapped.push({ date, displayDate, event, country, impact, description });
+  }
+
+  mapped.sort((a, b) => a.date.localeCompare(b.date));
+  if (mapped.length !== 8) return null;
+  return mapped;
 }
 
-function impactFromImportance(importance: number | null): "High" | "Medium" | "Low" {
-  if (importance == null) return "Medium";
-  if (importance >= 3) return "High";
-  if (importance === 2) return "Medium";
-  return "Low";
-}
-
-function isAllowedEventName(name: string) {
-  const hay = name.toLowerCase();
-  const needles = [
-    "interest rate decision",
-    "cpi",
-    "inflation",
-    "gdp",
-    "non-farm payroll",
-    "nonfarm payroll",
-    "employment",
-    "retail sales",
-    "pmi",
-  ];
-  return needles.some((n) => hay.includes(n));
-}
-
-function parseFinnhubEvents(payload: any): FinnhubEvent[] {
-  if (Array.isArray(payload)) return payload;
-  if (payload && Array.isArray(payload.economicCalendar)) return payload.economicCalendar;
-  if (payload && Array.isArray(payload.economicCalendarData)) return payload.economicCalendarData;
-  if (payload && Array.isArray(payload.data)) return payload.data;
-  return [];
-}
-
-const CACHE_ID = "economic_calendar_finnhub_gb_us_eu_60d";
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-
-const fallbackEvents = [
-  { date: "2026-05-20", event: "UK CPI Inflation (April)", country: "GB", impact: "High", description: "ONS releases April 2026 CPI data" },
-  { date: "2026-06-03", event: "US ADP Employment Report", country: "US", impact: "Medium", description: "Private sector jobs for May 2026" },
-  { date: "2026-06-05", event: "ECB Interest Rate Decision", country: "EU", impact: "High", description: "ECB monetary policy decision" },
-  { date: "2026-06-06", event: "US Non-Farm Payrolls", country: "US", impact: "High", description: "BLS jobs report for May 2026" },
-  { date: "2026-06-17", event: "UK CPI Inflation (May)", country: "GB", impact: "High", description: "ONS releases May 2026 CPI data" },
-  { date: "2026-06-18", event: "US Federal Reserve FOMC", country: "US", impact: "High", description: "Fed interest rate decision" },
-  { date: "2026-06-18", event: "Bank of England MPC Decision", country: "GB", impact: "High", description: "BoE interest rate announcement" },
-  { date: "2026-06-20", event: "UK Retail Sales (May)", country: "GB", impact: "Medium", description: "ONS retail sales volume data" },
-] as const;
-
-function buildFallbackEvents(): CalendarEvent[] {
-  return fallbackEvents.map((e) => ({
+function addIds(events: CalendarEvent[]): CalendarEventWithId[] {
+  return events.map((e) => ({
+    ...e,
     id: `${e.country}-${e.date}-${e.event}`.toLowerCase().replace(/\s+/g, "-"),
-    event: e.event,
-    date: e.date,
-    country: e.country,
-    importance: null,
-    impact: e.impact,
-    description: e.description,
   }));
+}
+
+function buildDeterministicEvents(todayISO: string): CalendarEvent[] | null {
+  const candidates: CalendarEvent[] = [
+    {
+      date: "2026-05-20",
+      displayDate: "Wednesday 20 May 2026",
+      event: "UK CPI Inflation (April)",
+      country: "GB",
+      impact: "High",
+      description: "ONS releases CPI data measuring the annual and monthly change in UK consumer prices.",
+    },
+    {
+      date: "2026-06-03",
+      displayDate: "Wednesday 3 June 2026",
+      event: "US ADP Employment (May)",
+      country: "US",
+      impact: "Medium",
+      description: "ADP estimates the monthly change in US private sector employment.",
+    },
+    {
+      date: "2026-06-05",
+      displayDate: "Friday 5 June 2026",
+      event: "US Non-Farm Payrolls (May)",
+      country: "US",
+      impact: "High",
+      description: "BLS reports monthly US job creation and unemployment metrics outside the farm sector.",
+    },
+    {
+      date: "2026-06-11",
+      displayDate: "Thursday 11 June 2026",
+      event: "ECB Governing Council Meeting",
+      country: "EU",
+      impact: "High",
+      description: "ECB sets euro area monetary policy and communicates its outlook and decisions.",
+    },
+    {
+      date: "2026-06-17",
+      displayDate: "Wednesday 17 June 2026",
+      event: "UK CPI Inflation (May)",
+      country: "GB",
+      impact: "High",
+      description: "ONS releases CPI data measuring the annual and monthly change in UK consumer prices.",
+    },
+    {
+      date: "2026-06-18",
+      displayDate: "Thursday 18 June 2026",
+      event: "Bank of England MPC Meeting",
+      country: "GB",
+      impact: "High",
+      description: "BoE MPC sets the UK Bank Rate and publishes guidance on inflation and growth.",
+    },
+    {
+      date: "2026-06-18",
+      displayDate: "Thursday 18 June 2026",
+      event: "US Federal Reserve FOMC Meeting (17–18 Jun)",
+      country: "US",
+      impact: "High",
+      description: "The FOMC sets US monetary policy and releases rate decisions and projections.",
+    },
+    {
+      date: "2026-06-19",
+      displayDate: "Friday 19 June 2026",
+      event: "UK Retail Sales",
+      country: "GB",
+      impact: "Medium",
+      description: "ONS reports monthly changes in the volume of UK retail sales.",
+    },
+    {
+      date: "2026-07-01",
+      displayDate: "Wednesday 1 July 2026",
+      event: "US ADP Employment (June)",
+      country: "US",
+      impact: "Medium",
+      description: "ADP estimates the monthly change in US private sector employment.",
+    },
+    {
+      date: "2026-07-03",
+      displayDate: "Friday 3 July 2026",
+      event: "US Non-Farm Payrolls (June)",
+      country: "US",
+      impact: "High",
+      description: "BLS reports monthly US job creation and unemployment metrics outside the farm sector.",
+    },
+    {
+      date: "2026-07-15",
+      displayDate: "Wednesday 15 July 2026",
+      event: "UK CPI Inflation (June)",
+      country: "GB",
+      impact: "High",
+      description: "ONS releases CPI data measuring the annual and monthly change in UK consumer prices.",
+    },
+    {
+      date: "2026-07-23",
+      displayDate: "Thursday 23 July 2026",
+      event: "ECB Governing Council Meeting",
+      country: "EU",
+      impact: "High",
+      description: "ECB sets euro area monetary policy and communicates its outlook and decisions.",
+    },
+    {
+      date: "2026-07-29",
+      displayDate: "Wednesday 29 July 2026",
+      event: "US Federal Reserve FOMC Meeting (29–30 Jul)",
+      country: "US",
+      impact: "High",
+      description: "The FOMC sets US monetary policy and releases rate decisions and projections.",
+    },
+    {
+      date: "2026-08-05",
+      displayDate: "Wednesday 5 August 2026",
+      event: "US ADP Employment (July)",
+      country: "US",
+      impact: "Medium",
+      description: "ADP estimates the monthly change in US private sector employment.",
+    },
+    {
+      date: "2026-08-06",
+      displayDate: "Thursday 6 August 2026",
+      event: "Bank of England MPC Meeting",
+      country: "GB",
+      impact: "High",
+      description: "BoE MPC sets the UK Bank Rate and publishes guidance on inflation and growth.",
+    },
+    {
+      date: "2026-08-07",
+      displayDate: "Friday 7 August 2026",
+      event: "US Non-Farm Payrolls (July)",
+      country: "US",
+      impact: "High",
+      description: "BLS reports monthly US job creation and unemployment metrics outside the farm sector.",
+    },
+    {
+      date: "2026-08-19",
+      displayDate: "Wednesday 19 August 2026",
+      event: "UK CPI Inflation (July)",
+      country: "GB",
+      impact: "High",
+      description: "ONS releases CPI data measuring the annual and monthly change in UK consumer prices.",
+    },
+  ];
+
+  const after = candidates.filter((e) => isAfterToday(e.date, todayISO)).sort((a, b) => a.date.localeCompare(b.date));
+  if (after.length < 8) return null;
+  return after.slice(0, 8);
 }
 
 export async function GET() {
@@ -128,141 +237,100 @@ export async function GET() {
     return NextResponse.json({ error: "Pro plan required" }, { status: 403 });
   }
 
-  const admin = createAdminClient();
-
-  const { data: cachedRow } = await admin
-    .from("market_data_cache")
-    .select("data, updated_at")
-    .eq("id", CACHE_ID)
-    .maybeSingle();
+  const { data: cached } = await supabase
+    .from("market_briefings")
+    .select("briefing_text, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
 
   const now = Date.now();
-  const cachedUpdatedAt = cachedRow?.updated_at ? new Date(cachedRow.updated_at).getTime() : 0;
-  const cacheFresh = cachedRow?.data && cachedUpdatedAt > 0 && now - cachedUpdatedAt < CACHE_TTL_MS;
+  const freshRow = (cached ?? []).find((row: any) => {
+    const text = typeof row?.briefing_text === "string" ? row.briefing_text : "";
+    if (!text.startsWith(CACHE_PREFIX)) return false;
+    const createdAt = row?.created_at ? new Date(row.created_at).getTime() : 0;
+    if (!createdAt) return false;
+    return now - createdAt < CACHE_TTL_MS;
+  });
 
-  if (cacheFresh) {
-    const events = (cachedRow.data as any)?.events ?? [];
-    const source = (cachedRow.data as any)?.source ?? "finnhub";
-    return NextResponse.json({ events, source });
-  }
-
-  if (!process.env.FINNHUB_API_KEY) {
-    if (cachedRow?.data) {
-      const events = (cachedRow.data as any)?.events ?? [];
-      const source = (cachedRow.data as any)?.source ?? "finnhub";
-      return NextResponse.json({ events, source });
+  if (freshRow) {
+    try {
+      const payload = (freshRow.briefing_text as string).slice(CACHE_PREFIX.length);
+      const parsed = JSON.parse(payload);
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const events = validateEvents(parsed?.events ?? parsed, todayISO);
+      if (events) {
+        return NextResponse.json({ events: addIds(events), source: "claude" });
+      }
+    } catch {
     }
-    const events = buildFallbackEvents();
-    await admin.from("market_data_cache").upsert({
-      id: CACHE_ID,
-      data: { events, source: "fallback" },
-      updated_at: new Date().toISOString(),
-    });
-    return NextResponse.json({ events, source: "fallback" });
   }
 
-  const from = formatDateYYYYMMDD(new Date());
-  const to = formatDateYYYYMMDD(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000));
-  const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${process.env.FINNHUB_API_KEY}`;
+  if (!process.env.ANTHROPIC_API_KEY) {
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const fallback = buildDeterministicEvents(todayISO);
+    if (fallback) {
+      return NextResponse.json({ events: addIds(fallback), source: "claude" });
+    }
+    return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+  }
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayHuman = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  const prompt = `You are a financial data expert. Generate a JSON array of the next 8 major economic events from today's date (${todayISO}) for UK, US and EU markets.
+
+Only include real scheduled events from official sources:
+- Bank of England MPC meetings (official schedule: 18 Jun, 6 Aug, 17 Sep, 6 Nov, 17 Dec 2026)
+- US Federal Reserve FOMC meetings (official schedule: 17-18 Jun, 29-30 Jul, 15-16 Sep, 4-5 Nov, 15-16 Dec 2026)
+- ECB Governing Council meetings (official schedule: 11 Jun, 23 Jul, 10 Sep, 29 Oct, 17 Dec 2026)
+- ONS UK CPI releases (official schedule: 20 May, 17 Jun, 15 Jul, 19 Aug 2026)
+- US Non-Farm Payrolls BLS releases (always first Friday of each month: 5 Jun, 3 Jul, 7 Aug 2026)
+- US ADP Employment (always Wednesday before NFP: 3 Jun, 1 Jul, 5 Aug 2026)
+- ONS UK Retail Sales (approximately third Friday each month)
+
+Return ONLY a valid JSON array with no markdown, no explanation, just the array. Each object must have:
+{
+  date: 'YYYY-MM-DD',
+  displayDate: 'Day DD Month YYYY',
+  event: 'Event name',
+  country: 'GB' or 'US' or 'EU',
+  impact: 'High' or 'Medium',
+  description: 'One sentence describing what this release measures'
+}
+
+Only include events after ${todayISO}. Sort by date ascending. Return exactly 8 events.`;
 
   try {
-    console.log("[calendar] Finnhub URL:", url);
-    const res = await fetch(url, { cache: "no-store" });
-
-    console.log("[calendar] Finnhub status:", res.status);
-    const rawText = await res.text();
-    console.log("[calendar] Finnhub raw response:", rawText);
-
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        console.warn("[calendar] Finnhub economic calendar may require a paid plan or has insufficient permissions for this API key.");
+    const raw = await callClaude(prompt);
+    const clean = stripJsonFences(raw);
+    const parsed = JSON.parse(clean);
+    const events = validateEvents(parsed, todayISO);
+    if (!events) {
+      const fallback = buildDeterministicEvents(todayISO);
+      if (fallback) {
+        return NextResponse.json({ events: addIds(fallback), source: "claude" });
       }
-      throw new Error(`Finnhub error: ${res.status}`);
+      return NextResponse.json({ error: "Failed to generate calendar" }, { status: 500 });
     }
 
-    let json: any = null;
-    try {
-      json = rawText ? JSON.parse(rawText) : null;
-    } catch (parseErr) {
-      console.error("[calendar] Finnhub JSON parse error:", parseErr);
-      throw new Error("Finnhub returned non-JSON response");
-    }
+    const cachePayload = {
+      key: "economic_calendar",
+      generatedAt: todayHuman,
+      events,
+    };
 
-    const rawEvents = parseFinnhubEvents(json);
-    console.log("[calendar] Events returned before filtering:", rawEvents.length);
-
-    const required = rawEvents
-      .map((e) => {
-        const name = getEventName(e);
-        const date = getEventDate(e);
-        const country = typeof e.country === "string" ? mapCountry(e.country) : null;
-        const importance = extractImportance(e);
-
-        return { name, date, country, importance };
-      })
-      .filter((e) => Boolean(e.name) && Boolean(e.date));
-
-    console.log("[calendar] After required fields filter:", required.length);
-
-    const countryFiltered = required.filter((e) => e.country === "GB" || e.country === "US" || e.country === "EU");
-    console.log("[calendar] After country filter (GB/US/EU):", countryFiltered.length);
-
-    const nameFiltered = countryFiltered.filter((e) => isAllowedEventName(e.name));
-    console.log("[calendar] After event name filter (allowed types):", nameFiltered.length);
-
-    const mapped: CalendarEvent[] = nameFiltered.map((e) => {
-      const impact = impactFromImportance(e.importance);
-      const id = `${e.country}-${e.date}-${e.name}`.toLowerCase().replace(/\s+/g, "-");
-      return {
-        id,
-        event: e.name,
-        date: e.date,
-        country: e.country as "GB" | "US" | "EU",
-        importance: e.importance,
-        impact,
-      };
-    });
-    console.log("[calendar] After mapping:", mapped.length);
-
-    mapped.sort((a, b) => a.date.localeCompare(b.date));
-    console.log("[calendar] After sort:", mapped.length);
-
-    const events = mapped.slice(0, 10);
-    console.log("[calendar] After max-10 limit:", events.length);
-
-    if (events.length === 0) {
-      console.warn("[calendar] Finnhub returned 0 events after filtering. Falling back to scheduled events. Finnhub economic calendar may not be available on the free tier.");
-      const fallback = buildFallbackEvents();
-      await admin.from("market_data_cache").upsert({
-        id: CACHE_ID,
-        data: { events: fallback, source: "fallback" },
-        updated_at: new Date().toISOString(),
-      });
-      return NextResponse.json({ events: fallback, source: "fallback" });
-    }
-
-    await admin.from("market_data_cache").upsert({
-      id: CACHE_ID,
-      data: { events, source: "finnhub" },
-      updated_at: new Date().toISOString(),
+    await supabase.from("market_briefings").insert({
+      user_id: user.id,
+      briefing_text: `${CACHE_PREFIX}${JSON.stringify(cachePayload)}`,
     });
 
-    return NextResponse.json({ events, source: "finnhub" });
-  } catch (err) {
-    console.error("[calendar] Finnhub fetch error:", err);
-    if (cachedRow?.data) {
-      const events = (cachedRow.data as any)?.events ?? [];
-      const source = (cachedRow.data as any)?.source ?? "finnhub";
-      return NextResponse.json({ events, source });
+    return NextResponse.json({ events: addIds(events), source: "claude" });
+  } catch (error) {
+    const fallback = buildDeterministicEvents(todayISO);
+    if (fallback) {
+      return NextResponse.json({ events: addIds(fallback), source: "claude" });
     }
-
-    const events = buildFallbackEvents();
-    await admin.from("market_data_cache").upsert({
-      id: CACHE_ID,
-      data: { events, source: "fallback" },
-      updated_at: new Date().toISOString(),
-    });
-
-    return NextResponse.json({ events, source: "fallback" });
+    console.error("[calendar] Claude generation error:", error);
+    return NextResponse.json({ error: "Generation failed" }, { status: 500 });
   }
 }

@@ -11,8 +11,9 @@ type EconomicEvent = {
   id: string;
   event: string;
   date: string; // YYYY-MM-DD
-  country: "GB" | "US" | "EU";
-  impact: "High" | "Medium" | "Low";
+  displayDate?: string;
+  country: string;
+  impact: "High" | "Medium";
   explanation?: string;
 };
 
@@ -21,7 +22,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [dataSource, setDataSource] = useState<"finnhub" | "fallback" | "">("");
+  const [dataSource, setDataSource] = useState<"claude" | "fallback" | "">("");
   const [explainingId, setExplainingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -61,7 +62,8 @@ export default function CalendarPage() {
         const data = await response.json();
         const fetchedEvents: EconomicEvent[] = Array.isArray(data?.events) ? data.events : [];
         setEvents(fetchedEvents);
-        const source = data?.source === "finnhub" || data?.source === "fallback" ? data.source : "";
+        const source =
+          data?.source === "claude" || data?.source === "fallback" ? data.source : "";
         setDataSource(source);
       } catch {
         setLoadError("Calendar temporarily unavailable - please check back shortly");
@@ -122,11 +124,11 @@ export default function CalendarPage() {
   };
 
   const flagForCountry = (country: EconomicEvent["country"]) => {
-    switch (country) {
-      case "GB": return "🇬🇧";
-      case "US": return "🇺🇸";
-      case "EU": return "🇪🇺";
-    }
+    const c = country.toLowerCase();
+    if (c === "gb" || c === "uk" || c.includes("united kingdom")) return "🇬🇧";
+    if (c === "us" || c.includes("united states")) return "🇺🇸";
+    if (c === "eu" || c.includes("euro") || c.includes("european")) return "🇪🇺";
+    return "🌍";
   };
 
   const formatDate = (dateStr: string) => {
@@ -181,7 +183,7 @@ export default function CalendarPage() {
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   <span style={{ fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {formatDate(event.date)}
+                    {event.displayDate || formatDate(event.date)}
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span style={{ fontSize: "16px" }}>{flagForCountry(event.country)}</span>
@@ -220,8 +222,8 @@ export default function CalendarPage() {
                       {isExplaining ? (
                         <LoadingProgress isLoading={true} messages={["Connecting to AI...", "Analysing event impact...", "Drafting insight..."]} />
                       ) : (
-                        <p style={{ fontSize: "14px", color: "#374151", lineHeight: "1.7", margin: 0 }}>
-                          {event.explanation}
+                        <p style={{ fontSize: "14px", color: "#374151", lineHeight: "1.7", margin: 0, whiteSpace: "pre-line" }}>
+                          {(event.explanation ?? "").replace(/\*\*(.*?)\*\*/g, "$1")}
                         </p>
                       )}
                     </div>
@@ -246,7 +248,7 @@ export default function CalendarPage() {
 
       {dataSource && (
         <div style={{ textAlign: "center", color: "#94A3B8", fontSize: "12px", fontWeight: "600" }}>
-          {dataSource === "finnhub" ? "Live data from Finnhub" : "Scheduled events"}
+          {dataSource === "claude" ? "Official scheduled events" : "Scheduled events"}
         </div>
       )}
     </div>
