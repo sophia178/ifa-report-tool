@@ -171,7 +171,7 @@ export default function SOAAustraliaPage() {
           Australian SOA Generator
         </h1>
         <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
-          Generate an ASIC RG 175 compliant Statement of Advice from meeting notes.
+          Generate a draft designed for ASIC Statement of Advice standards (RG 175) from meeting notes.
         </p>
       </div>
 

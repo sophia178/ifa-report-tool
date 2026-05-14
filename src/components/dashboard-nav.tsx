@@ -224,7 +224,7 @@ export function DashboardNav() {
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
           <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#10B981", boxShadow: "0 0 8px rgba(16, 185, 129, 0.4)" }}></div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#FFFFFF" }}>{planTier} Status</span>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: "#FFFFFF" }}>{planTier} Plan</span>
             <span style={{ fontSize: "11px", color: "rgba(255, 255, 255, 0.5)", display: "flex", alignItems: "center", gap: "4px" }}>
               {jurInfo.flag} {jurInfo.name}
             </span>

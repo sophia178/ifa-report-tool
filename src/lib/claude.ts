@@ -16,11 +16,33 @@ export const anthropic = new Anthropic({
   apiKey: apiKey || "dummy-key",
 });
 
+function shouldInjectReportDisclaimer(prompt: string) {
+  const p = prompt.toLowerCase();
+  const reportSignals = [
+    "suitability report",
+    "statement of advice",
+    " soa",
+    "\nsoa",
+    "financial plan",
+  ];
+  const contextSignals = ["client", "adviser", "meeting notes", "paraplanner"];
+  const hasReportSignal = reportSignals.some((s) => p.includes(s));
+  const hasContextSignal = contextSignals.some((s) => p.includes(s));
+  return hasReportSignal && hasContextSignal;
+}
+
 export async function callClaude(prompt: string, maxTokens: number = 1500): Promise<string> {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
       throw new Error("ANTHROPIC_API_KEY is not configured in the environment.");
     }
+
+    const disclaimerInstruction =
+      "Begin every report with this disclaimer on its own line: DRAFT ONLY - FOR ADVISER REVIEW. This report has been AI-generated and must be reviewed by a qualified regulated adviser before use with any client.";
+
+    const finalPrompt = shouldInjectReportDisclaimer(prompt)
+      ? `${disclaimerInstruction}\n\n${prompt}`
+      : prompt;
 
     // Use the specific model version requested by the user or fallback to claude-sonnet-4-5
     const response = await anthropic.messages.create({
@@ -29,7 +51,7 @@ export async function callClaude(prompt: string, maxTokens: number = 1500): Prom
       messages: [
         {
           role: "user",
-          content: prompt,
+          content: finalPrompt,
         },
       ],
     });

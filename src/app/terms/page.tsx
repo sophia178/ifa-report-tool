@@ -7,6 +7,11 @@ const termsSections = [
       "Suitance is a software-as-a-service drafting tool operated as an independent technology business. Suitance is not authorised or regulated by the Financial Conduct Authority (FCA). Suitance does not hold, nor does it require, FCA authorisation because it does not carry on regulated activities as defined under the Financial Services and Markets Act 2000 (FSMA 2000). Suitance provides software that assists FCA-authorised financial advisers and paraplanners in drafting suitability report documents. The generation of a draft document by Suitance does not constitute a personal recommendation, financial advice, investment advice, or any other regulated activity within the meaning of FSMA 2000 or the FCA Handbook. Users of Suitance remain solely responsible for ensuring that all advice they give to their clients complies with applicable FCA rules, including but not limited to COBS 9 (Suitability), COBS 9A, and the Consumer Duty rules set out in PRIN 2A of the FCA Handbook.",
   },
   {
+    title: "Regulatory Status and Limitations",
+    content:
+      "Suitance Limited is a software technology company. We are not authorised or regulated by the Financial Conduct Authority (FCA), the Australian Securities and Investments Commission (ASIC), the Securities and Exchange Commission (SEC), or any other financial regulatory body. Our software is designed to assist regulated financial advisers in drafting documents but does not constitute regulated financial advice. Users of Suitance are solely responsible for ensuring all advice given to clients meets applicable regulatory requirements. All AI-generated content must be reviewed and approved by a suitably qualified and regulated individual before use.",
+  },
+  {
     title: "2. Permitted Users",
     content:
       "Suitance is intended exclusively for use by individuals who are either: (a) directly authorised by the FCA and hold the appropriate permissions to give investment advice; or (b) employed by or acting under the supervision of an FCA-authorised firm with appropriate permissions. By creating an account you confirm that you fall within one of these categories. Suitance reserves the right to suspend or terminate accounts where this condition is not met.",

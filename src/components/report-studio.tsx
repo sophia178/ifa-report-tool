@@ -537,6 +537,9 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
               <Download size={18} /> Download Word
             </button>
           </div>
+          <div style={{ padding: "16px 18px", backgroundColor: "#FFFBEB", border: "1px solid #FEF3C7", borderRadius: "12px", color: "#92400E", fontSize: "13px", fontWeight: "700", lineHeight: "1.6", marginBottom: "20px" }}>
+            IMPORTANT: This report has been drafted by AI software and must be reviewed, amended where necessary, and approved by a qualified regulated financial adviser before being sent to any client. This draft does not constitute regulated financial advice. Suitance Limited is a software company and is not authorised or regulated by the Financial Conduct Authority.
+          </div>
           <div style={{ whiteSpace: "pre-wrap", color: "#374151", fontSize: "15px", lineHeight: "1.8", fontFamily: "inherit" }}>
             {latestReport}
           </div>

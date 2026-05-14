@@ -62,9 +62,9 @@ export default async function DashboardPage() {
       };
     }
     switch (jurisdiction) {
-      case "aus": return { title: "Australian SOA", desc: "Transform your meeting notes into a complete ASIC-compliant Statement of Advice.", link: "/dashboard/soa-australia" };
-      case "usa": return { title: "Financial Plan", desc: "Transform your meeting notes into a complete SEC/FINRA-compliant Financial Plan.", link: "/dashboard/usa-plan" };
-      default: return { title: "Suitability Report", desc: "Transform your meeting notes into a complete FCA-compliant suitability report.", link: "#studio" };
+      case "aus": return { title: "Australian SOA", desc: "Transform your meeting notes into a draft designed for ASIC Statement of Advice standards.", link: "/dashboard/soa-australia" };
+      case "usa": return { title: "Financial Plan", desc: "Transform your meeting notes into a draft designed for CFP Board and SEC planning standards.", link: "/dashboard/usa-plan" };
+      default: return { title: "Suitability Report", desc: "Transform your meeting notes into a draft designed for FCA suitability report standards.", link: "#studio" };
     }
   };
 
