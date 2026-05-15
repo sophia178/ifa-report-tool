@@ -169,7 +169,7 @@ export default function USAPlanPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [planText, setPlanText] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -224,7 +224,7 @@ export default function USAPlanPage() {
       const response = await fetch(`/api/download-usa-plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientName, planText }),
+        body: JSON.stringify({ clientName, content: planText }),
       });
       if (!response.ok) throw new Error("Download failed");
       
@@ -232,10 +232,11 @@ export default function USAPlanPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Financial_Plan_${clientName.replace(/\s+/g, '_')}.docx`;
+      a.download = `${clientName}_Report.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (err) {
       console.error("Download error:", err);
       alert("Failed to download report");
@@ -291,24 +292,38 @@ export default function USAPlanPage() {
 
       // Save to Supabase
       if (user && result) {
-        const { data: savedReport, error: saveError } = await supabase
+        const insertNew = await supabase
           .from("usa_financial_plans")
           .insert({
             user_id: user.id,
             client_name: clientName,
             client_email: clientEmail,
-            plan_text: result,
+            content: result,
             created_at: new Date().toISOString(),
-          })
+          } as any)
           .select()
-          .single();
+          .maybeSingle();
 
-        if (saveError) {
-          console.error("Failed to save Plan:", saveError);
-        } else if (savedReport) {
-          setReportId(savedReport.id);
-          setIsSaved(true);
-          setTimeout(() => setIsSaved(false), 3000);
+        const finalInsert = insertNew.error
+          ? await supabase
+              .from("usa_financial_plans")
+              .insert({
+                user_id: user.id,
+                client_name: clientName,
+                client_email: clientEmail,
+                plan_text: result,
+                created_at: new Date().toISOString(),
+              } as any)
+              .select()
+              .maybeSingle()
+          : insertNew;
+
+        if (finalInsert.error) {
+          console.error("Failed to save Plan:", finalInsert.error);
+        } else if (finalInsert.data) {
+          setReportId(finalInsert.data.id);
+          setShowSavedToast(true);
+          setTimeout(() => setShowSavedToast(false), 2500);
         }
       }
     } catch (err) {
@@ -320,6 +335,25 @@ export default function USAPlanPage() {
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {showSavedToast && (
+        <div
+          style={{
+            position: "fixed",
+            top: "16px",
+            right: "16px",
+            zIndex: 1000,
+            backgroundColor: "#16a34a",
+            color: "white",
+            padding: "10px 14px",
+            borderRadius: "10px",
+            fontSize: "13px",
+            fontWeight: "700",
+            boxShadow: "0 10px 20px rgba(0,0,0,0.12)",
+          }}
+        >
+          Report saved
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
         <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#64748B", textDecoration: "none", fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>
           <ArrowLeft size={16} /> Back to Dashboard
@@ -428,7 +462,6 @@ export default function USAPlanPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <h3 style={{ fontSize: "13px", fontWeight: "700", color: "#C9A84C", letterSpacing: "1.5px", textTransform: "uppercase" }}>Generated Plan</h3>
-                {isSaved && <span style={{ fontSize: "12px", color: "#10B981", fontWeight: "600" }}>✓ Saved to history</span>}
               </div>
               <button 
                 onClick={handleDownload}
@@ -444,7 +477,7 @@ export default function USAPlanPage() {
                   fontSize: "13px", 
                   fontWeight: "600", 
                   color: "#0A1628", 
-                  cursor: (isDownloading || !reportId) ? "not-allowed" : "pointer",
+                  cursor: (isDownloading || !planText) ? "not-allowed" : "pointer",
                   opacity: isDownloading ? 0.7 : 1
                 }}
               >

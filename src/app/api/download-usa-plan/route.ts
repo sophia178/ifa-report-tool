@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 type DownloadBody = {
   clientName?: string;
   planText?: string;
+  content?: string;
 };
 
 function stripMarkdownSymbols(text: string) {
@@ -16,6 +17,11 @@ function stripMarkdownSymbols(text: string) {
     .replace(/\*/g, "")
     .replace(/^---+$/gm, "")
     .trim();
+}
+
+function sanitizeClientFilename(clientName: string) {
+  const safe = clientName.replace(/[/\\"]/g, "").trim();
+  return safe || "Client";
 }
 
 async function getPreparedBy(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
@@ -32,7 +38,7 @@ export async function GET(request: Request) {
   try {
     void request;
     return NextResponse.json(
-      { error: "Method not allowed. Use POST with { clientName, planText } to download the current plan." },
+      { error: "Method not allowed. Use POST with { clientName, content } to download the current plan." },
       { status: 405 }
     );
   } catch (error) {
@@ -53,7 +59,12 @@ export async function POST(request: Request) {
     }
 
     const payload = (await request.json()) as DownloadBody;
-    const planText = typeof payload.planText === "string" ? payload.planText : "";
+    const planText =
+      typeof payload.content === "string"
+        ? payload.content
+        : typeof payload.planText === "string"
+          ? payload.planText
+          : "";
     const clientName = typeof payload.clientName === "string" ? payload.clientName.trim() : "";
 
     const cleanPlanText = stripMarkdownSymbols(planText);
@@ -75,7 +86,7 @@ export async function POST(request: Request) {
       clientName,
     });
 
-    const filename = `${clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-usa-financial-plan.docx`;
+    const filename = `${sanitizeClientFilename(clientName)}_Report.docx`;
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

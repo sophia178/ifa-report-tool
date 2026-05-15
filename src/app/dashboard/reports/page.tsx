@@ -21,6 +21,9 @@ type SavedReport = {
 
 export default function ReportsPage() {
   const router = useRouter();
+  const [fcaReports, setFcaReports] = useState<SavedReport[]>([]);
+  const [soaReports, setSoaReports] = useState<SavedReport[]>([]);
+  const [usaReports, setUsaReports] = useState<SavedReport[]>([]);
   const [reports, setReports] = useState<SavedReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -42,16 +45,50 @@ export default function ReportsPage() {
 
         // Fetch from all three tables
         const [fcaRes, soaRes, usaRes] = await Promise.all([
-          supabase.from("reports").select("id, client_name, created_at, report_text").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("australian_soas").select("id, client_name, created_at, soa_text").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("usa_financial_plans").select("id, client_name, created_at, plan_text").eq("user_id", user.id).order("created_at", { ascending: false })
+          supabase
+            .from("reports")
+            .select("id, client_name, created_at, report_text")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("australian_soas")
+            .select("id, client_name, created_at, content, soa_text")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("usa_financial_plans")
+            .select("id, client_name, created_at, content, plan_text")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
         ]);
 
-        const combined: SavedReport[] = [
-          ...(fcaRes.data || []).map(r => ({ id: r.id, client_name: r.client_name, created_at: r.created_at, type: "fca" as const, content: r.report_text })),
-          ...(soaRes.data || []).map(r => ({ id: r.id, client_name: r.client_name, created_at: r.created_at, type: "soa" as const, content: r.soa_text })),
-          ...(usaRes.data || []).map(r => ({ id: r.id, client_name: r.client_name, created_at: r.created_at, type: "usa" as const, content: r.plan_text }))
-        ];
+        const fca = (fcaRes.data || []).map((r: any) => ({
+          id: r.id,
+          client_name: r.client_name,
+          created_at: r.created_at,
+          type: "fca" as const,
+          content: r.report_text,
+        }));
+        const soa = (soaRes.data || []).map((r: any) => ({
+          id: r.id,
+          client_name: r.client_name,
+          created_at: r.created_at,
+          type: "soa" as const,
+          content: r.content || r.soa_text || "",
+        }));
+        const usa = (usaRes.data || []).map((r: any) => ({
+          id: r.id,
+          client_name: r.client_name,
+          created_at: r.created_at,
+          type: "usa" as const,
+          content: r.content || r.plan_text || "",
+        }));
+
+        setFcaReports(fca);
+        setSoaReports(soa);
+        setUsaReports(usa);
+
+        const combined: SavedReport[] = [...fca, ...soa, ...usa];
 
         // Sort by date descending
         combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -70,11 +107,16 @@ export default function ReportsPage() {
     setIsDeleting(id);
     try {
       const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
       let tableName = "reports";
       if (type === "soa") tableName = "australian_soas";
       if (type === "usa") tableName = "usa_financial_plans";
 
-      const { error } = await supabase.from(tableName).delete().eq("id", id);
+      const { error } = await supabase.from(tableName).delete().eq("id", id).eq("user_id", user.id);
       if (error) throw error;
       
       setReports(prev => prev.filter(r => r.id !== id));
@@ -89,7 +131,20 @@ export default function ReportsPage() {
   async function handleDownload(report: SavedReport) {
     setIsDownloading(report.id);
     try {
-      const response = await fetch(`/api/download-report?id=${report.id}&type=${report.type}`);
+      const response =
+        report.type === "soa"
+          ? await fetch(`/api/download-soa`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content: report.content, clientName: report.client_name }),
+            })
+          : report.type === "usa"
+            ? await fetch(`/api/download-usa-plan`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: report.content, clientName: report.client_name }),
+              })
+            : await fetch(`/api/download-report?id=${report.id}&type=${report.type}`);
 
       if (!response.ok) {
         const err = await response.json();
@@ -100,9 +155,7 @@ export default function ReportsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const typeLabel = report.type === "fca" ? "Suitability_Report" : report.type === "soa" ? "SOA" : "Financial_Plan";
-      const clientName = report.client_name.replace(/\s+/g, '_');
-      a.download = `${typeLabel}_${clientName}.docx`;
+      a.download = `${report.client_name}_Report.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -122,15 +175,15 @@ export default function ReportsPage() {
   });
 
   const getBadgeStyle = (type: ReportType) => ({
-    backgroundColor: "#FFFBEB",
-    color: "#C9A84C",
+    backgroundColor: type === "fca" ? "#0A1628" : type === "soa" ? "#16a34a" : "#1d4ed8",
+    color: "white",
     padding: "4px 10px",
     borderRadius: "6px",
     fontSize: "11px",
     fontWeight: "800",
     textTransform: "uppercase" as const,
     letterSpacing: "0.05em",
-    border: "1px solid #FEF3C7"
+    border: "1px solid rgba(255,255,255,0.15)"
   });
 
   const getTypeLabel = (type: ReportType) => {
@@ -263,7 +316,7 @@ export default function ReportsPage() {
                       <span style={getBadgeStyle(report.type)}>{getTypeLabel(report.type)}</span>
                       <span style={{ fontSize: "13px", color: "#94A3B8" }}>•</span>
                       <span style={{ fontSize: "13px", color: "#94A3B8", fontWeight: "500" }}>
-                        {new Date(report.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(report.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
                       </span>
                     </div>
                   </div>
