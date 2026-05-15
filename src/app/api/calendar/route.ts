@@ -301,7 +301,7 @@ Return ONLY a valid JSON array with no markdown, no explanation, just the array.
 Only include events after ${todayISO}. Sort by date ascending. Return exactly 8 events.`;
 
   try {
-    const raw = await callClaude(prompt);
+    const raw = await callClaude(prompt, 2000);
     const clean = stripJsonFences(raw);
     const parsed = JSON.parse(clean);
     const events = validateEvents(parsed, todayISO);

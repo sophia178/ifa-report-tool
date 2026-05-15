@@ -192,7 +192,9 @@ Annual 401k Contribution (USD): ${typeof annual401kContribution === "string" && 
 Roth IRA Balance (USD): ${typeof rothIraBalance === "string" && rothIraBalance.trim() ? rothIraBalance.trim() : "[Not provided]"}
 
 Meeting notes:
-${String(meetingNotes).trim()}`;
+${String(meetingNotes).trim()}
+
+CRITICAL: Complete the entire financial plan including all 14 sections through to DISCLAIMER. Never stop early. Write concise paragraphs but always finish every section completely.`;
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",

@@ -493,7 +493,7 @@ export default function SOAAustraliaPage() {
                 {isDownloading ? "Downloading..." : "Download Word"}
               </button>
             </div>
-            <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px", backgroundColor: "white", border: "1px solid #E5E7EB", borderRadius: "12px" }}>
+            <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px", backgroundColor: "white", border: "1px solid #E5E7EB", borderRadius: "12px", overflowY: "auto" }}>
               {renderSoaText(soaText)}
             </div>
           </div>

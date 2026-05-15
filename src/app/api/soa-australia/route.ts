@@ -197,7 +197,9 @@ Current super balance (AUD): ${typeof currentSuperBalance === "string" && curren
 Employer super contribution %: ${typeof employerSuperContributionPercent === "string" && employerSuperContributionPercent.trim() ? employerSuperContributionPercent.trim() : "[Not provided]"}
 
 Meeting notes:
-${String(meetingNotes).trim()}`;
+${String(meetingNotes).trim()}
+
+CRITICAL: Complete the entire SOA including all sections through to DISCLAIMER. Never stop early. Write concise paragraphs but always finish every section completely.`;
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
