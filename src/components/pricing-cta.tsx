@@ -3,6 +3,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import Link from "next/link";
 import { useState } from "react";
+import type { Currency } from "@/lib/geo-pricing";
 
 type PricingCtaProps = {
   isLoggedIn: boolean;
@@ -10,10 +11,21 @@ type PricingCtaProps = {
   currentPlan?: "starter" | "plus" | "pro" | null;
   tierPlan: "starter" | "plus" | "pro";
   price?: string;
+  currency?: Currency;
+  priceDisplay?: { symbol: string; starter: string; plus: string; pro: string; locale: string };
   style?: React.CSSProperties;
 };
 
-export function PricingCta({ isLoggedIn, isSubscribed, currentPlan, tierPlan, price = "£19", style }: PricingCtaProps) {
+export function PricingCta({
+  isLoggedIn,
+  isSubscribed,
+  currentPlan,
+  tierPlan,
+  price = "£19",
+  currency = "GBP",
+  priceDisplay,
+  style,
+}: PricingCtaProps) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,7 +43,7 @@ export function PricingCta({ isLoggedIn, isSubscribed, currentPlan, tierPlan, pr
       const response = await fetch("/api/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: tierPlan }),
+        body: JSON.stringify({ plan: tierPlan, currency }),
       });
 
       if (!response.ok) {
@@ -107,7 +119,9 @@ export function PricingCta({ isLoggedIn, isSubscribed, currentPlan, tierPlan, pr
   const getButtonText = () => {
     if (isLoading) return "Redirecting...";
     if (currentPlan) {
-      return `Upgrade to ${tierPlan.charAt(0).toUpperCase() + tierPlan.slice(1)}`;
+      const displayAmount = priceDisplay?.[tierPlan] || price.replace(/^[^\d]+/, "");
+      const displaySymbol = priceDisplay?.symbol || price.replace(/[\d.,]/g, "");
+      return `Upgrade to ${tierPlan.charAt(0).toUpperCase() + tierPlan.slice(1)} — ${displaySymbol}${displayAmount}/mo`;
     }
     return "Start Free Trial";
   };

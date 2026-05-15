@@ -1,82 +1,153 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { TopNav } from "@/components/top-nav";
 import { PricingCta } from "@/components/pricing-cta";
-import { checkSubscription, getUserPlan } from "@/lib/subscription";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
+import { getPriceDisplay, type Currency } from "@/lib/geo-pricing";
 
-type PricingPageProps = {
-  searchParams: Promise<{ message?: string }>;
-};
+type PlanTier = "starter" | "plus" | "pro";
+type PriceDisplay = ReturnType<typeof getPriceDisplay>;
 
-const tiers = [
-  {
-    id: "starter",
-    name: "STARTER",
-    price: "£19",
-    description: "Perfect for sole practitioners. Get the report generator for your regulatory jurisdiction.",
-    features: [
-      "1 jurisdiction report generator (FCA, ASIC, or SEC/FINRA)",
-      "Research summariser",
-      "Client email drafter",
-      "20 reports per month",
-      "Word document download",
-    ],
-    buttonBg: "#0A1628",
-    buttonColor: "white",
-  },
-  {
-    id: "plus",
-    name: "PLUS",
-    price: "£49",
-    description: "All three jurisdictions unlocked plus compliance tools.",
-    features: [
-      "Everything in Starter",
-      "All 3 report generators (FCA, ASIC, SEC/FINRA)",
-      "Compliance checker",
-      "Regulatory Update Alerts",
-      "Unlimited reports",
-    ],
-    isPopular: true,
-    buttonBg: "#C9A84C",
-    buttonColor: "#0A1628",
-  },
-  {
-    id: "pro",
-    name: "PRO",
-    price: "£99",
-    description: "The complete Suitance OS for advice firms.",
-    features: [
-      "Everything in Plus",
-      "Live market dashboard",
-      "AI market briefing",
-      "Economic calendar",
-      "Portfolio risk analyser",
-      "AI Trade journal",
-      "Team seats",
-    ],
-    buttonBg: "#0A1628",
-    buttonColor: "white",
-  },
-];
+export default function PricingPage() {
+  const params = useSearchParams();
+  const message = params.get("message") || "";
 
-export default async function PricingPage({ searchParams }: PricingPageProps) {
-  const params = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const isSubscribed = user ? await checkSubscription(user.id) : false;
-  const currentPlan = user ? await getUserPlan(user.id) : null;
+  const [email, setEmail] = useState<string | undefined>(undefined);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<PlanTier | null>(null);
+  const [currency, setCurrency] = useState<Currency>("GBP");
+  const [priceDisplay, setPriceDisplay] = useState<PriceDisplay>(() => getPriceDisplay("GBP"));
+
+  useEffect(() => {
+    const supabase = createClient();
+    (async () => {
+      try {
+        const res = await fetch("/api/geo");
+        const geo = await res.json().catch(() => ({}));
+        if (res.ok && (geo.currency === "GBP" || geo.currency === "USD" || geo.currency === "AUD")) {
+          setCurrency(geo.currency);
+          if (geo?.prices && typeof geo.prices === "object" && typeof geo.prices.symbol === "string") {
+            setPriceDisplay(geo.prices as PriceDisplay);
+          } else {
+            setPriceDisplay(getPriceDisplay(geo.currency));
+          }
+        }
+      } catch {
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoggedIn(false);
+        setEmail(undefined);
+        setIsSubscribed(false);
+        setCurrentPlan(null);
+        return;
+      }
+
+      setIsLoggedIn(true);
+      setEmail(user.email || undefined);
+
+      const profileRes = await supabase
+        .from("profiles")
+        .select("subscribed, stripe_price_id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const subscribed = Boolean(profileRes.data?.subscribed);
+      setIsSubscribed(subscribed);
+
+      const stripePriceId = typeof profileRes.data?.stripe_price_id === "string" ? profileRes.data.stripe_price_id : "";
+      const proIds = [
+        process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+        process.env.NEXT_PUBLIC_STRIPE_USD_PRO_PRICE_ID,
+        process.env.NEXT_PUBLIC_STRIPE_AUD_PRO_PRICE_ID,
+      ].filter(Boolean);
+      const plusIds = [
+        process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID,
+        process.env.NEXT_PUBLIC_STRIPE_USD_PLUS_PRICE_ID,
+        process.env.NEXT_PUBLIC_STRIPE_AUD_PLUS_PRICE_ID,
+      ].filter(Boolean);
+      const starterIds = [
+        process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
+        process.env.NEXT_PUBLIC_STRIPE_USD_STARTER_PRICE_ID,
+        process.env.NEXT_PUBLIC_STRIPE_AUD_STARTER_PRICE_ID,
+      ].filter(Boolean);
+
+      if (proIds.includes(stripePriceId)) setCurrentPlan("pro");
+      else if (plusIds.includes(stripePriceId)) setCurrentPlan("plus");
+      else if (starterIds.includes(stripePriceId)) setCurrentPlan("starter");
+      else if (subscribed) setCurrentPlan("starter");
+      else setCurrentPlan(null);
+    })();
+  }, []);
+
+  const tiers = useMemo(() => {
+    const displayPrice = (tier: PlanTier) => `${priceDisplay.symbol}${priceDisplay[tier]}`;
+    return [
+      {
+        id: "starter" as const,
+        name: "STARTER",
+        price: displayPrice("starter"),
+        description: "Perfect for sole practitioners. Get the report generator for your regulatory jurisdiction.",
+        features: [
+          "1 jurisdiction report generator (FCA, ASIC, or SEC/FINRA)",
+          "Research summariser",
+          "Client email drafter",
+          "20 reports per month",
+          "Word document download",
+        ],
+        buttonBg: "#0A1628",
+        buttonColor: "white",
+      },
+      {
+        id: "plus" as const,
+        name: "PLUS",
+        price: displayPrice("plus"),
+        description: "All three jurisdictions unlocked plus compliance tools.",
+        features: [
+          "Everything in Starter",
+          "All 3 report generators (FCA, ASIC, SEC/FINRA)",
+          "Compliance checker",
+          "Regulatory Update Alerts",
+          "Unlimited reports",
+        ],
+        isPopular: true,
+        buttonBg: "#C9A84C",
+        buttonColor: "#0A1628",
+      },
+      {
+        id: "pro" as const,
+        name: "PRO",
+        price: displayPrice("pro"),
+        description: "The complete Suitance OS for advice firms.",
+        features: [
+          "Everything in Plus",
+          "Live market dashboard",
+          "AI market briefing",
+          "Economic calendar",
+          "Portfolio risk analyser",
+          "AI Trade journal",
+          "Team seats",
+        ],
+        buttonBg: "#0A1628",
+        buttonColor: "white",
+      },
+    ];
+  }, [priceDisplay]);
 
   return (
     <main style={{ backgroundColor: "white", minHeight: "100vh", paddingTop: "120px" }}>
       <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 48px" }}>
-        <TopNav email={user?.email} />
+        <TopNav email={email} />
 
-        {params.message === "subscribe" ? (
+        {message === "subscribe" ? (
           <div style={{ backgroundColor: "#0A1628", color: "white", padding: "16px", textAlign: "center", borderRadius: "12px", marginBottom: "32px", marginTop: "32px", fontWeight: "600" }}>
             Please subscribe to a plan to access the Suitance dashboard.
           </div>
-        ) : params.message === "upgrade" ? (
+        ) : message === "upgrade" ? (
           <div style={{ backgroundColor: "#C9A84C", color: "#0A1628", padding: "16px", textAlign: "center", borderRadius: "12px", marginBottom: "32px", marginTop: "32px", fontWeight: "700" }}>
             Upgrade your plan to unlock this tool and more advanced features.
           </div>
@@ -87,7 +158,7 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
             Simple, transparent pricing.
           </h1>
           <p style={{ fontSize: "18px", color: "#64748B", textAlign: "center", marginBottom: "64px" }}>
-            Try free for 7 days — then from £19/month. No card commitment.
+            Try free for 7 days — then from {priceDisplay.symbol}{priceDisplay.starter}/month. No card commitment.
           </p>
         </header>
 
@@ -156,11 +227,13 @@ export default async function PricingPage({ searchParams }: PricingPageProps) {
 
               <div style={{ marginTop: "32px" }}>
                 <PricingCta 
-                  isLoggedIn={Boolean(user)} 
+                  isLoggedIn={isLoggedIn}
                   isSubscribed={isSubscribed} 
                   currentPlan={currentPlan}
                   tierPlan={tier.id as any}
                   price={tier.price}
+                  currency={currency}
+                  priceDisplay={priceDisplay}
                   style={{
                     width: "100%",
                     backgroundColor: tier.buttonBg,

@@ -1,14 +1,43 @@
-import Link from "next/link";
-import { checkSubscription } from "@/lib/subscription";
-import { createClient } from "@/lib/supabase/server";
+"use client";
 
-export default async function Home() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const isSubscribed = user ? await checkSubscription(user.id) : false;
-  const startHref = user ? (isSubscribed ? "/dashboard" : "/pricing") : "/signup";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function Home() {
+  const [startHref, setStartHref] = useState("/signup");
+  const [fromPrice, setFromPrice] = useState("£19");
+
+  useEffect(() => {
+    const supabase = createClient();
+    (async () => {
+      try {
+        const res = await fetch("/api/geo");
+        const geo = await res.json().catch(() => ({}));
+        if (res.ok && geo?.prices && typeof geo.prices === "object") {
+          const symbol = typeof geo.prices.symbol === "string" ? geo.prices.symbol : "£";
+          const starter = typeof geo.prices.starter === "string" ? geo.prices.starter : "19";
+          setFromPrice(`${symbol}${starter}`);
+        }
+      } catch {
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setStartHref("/signup");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("subscribed")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const subscribed = Boolean((profile as any)?.subscribed);
+      setStartHref(subscribed ? "/dashboard" : "/pricing");
+    })();
+  }, []);
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif", margin: 0, padding: 0 }}>
@@ -75,7 +104,7 @@ export default async function Home() {
       <section style={{ backgroundColor: "#F8FAFC", padding: "80px 48px", textAlign: "center" }}>
         <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#0A1628", marginBottom: "16px" }}>Simple, transparent pricing.</h2>
         <p style={{ fontSize: "18px", color: "#64748B", textAlign: "center", marginBottom: "64px" }}>
-          Start today from £19/month. Scale as you grow.
+          Start today from {fromPrice}/month. Scale as you grow.
         </p>
         <div style={{ display: "flex", gap: "24px", maxWidth: "900px", margin: "0 auto", justifyContent: "center" }}>
           {[

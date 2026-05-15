@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
+import { getPriceIds } from "@/lib/geo-pricing";
 
 export async function POST(request: Request) {
   try {
@@ -17,11 +18,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const { plan } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const rawPlan = typeof body?.plan === "string" ? body.plan : "starter";
+    const plan = rawPlan === "promo" ? "plus" : rawPlan;
+    const currency =
+      body?.currency === "USD" || body?.currency === "AUD" || body?.currency === "GBP"
+        ? body.currency
+        : "GBP";
 
-    let priceId = process.env.STRIPE_PRICE_ID;
-    if (plan === "plus" || plan === "promo") priceId = process.env.STRIPE_PLUS_PRICE_ID;
-    else if (plan === "pro") priceId = process.env.STRIPE_PRO_PRICE_ID;
+    const priceIds = getPriceIds(currency);
+    const priceId =
+      plan === "pro"
+        ? priceIds.pro
+        : plan === "plus"
+          ? priceIds.plus
+          : priceIds.starter;
 
     if (!priceId) {
       return NextResponse.json(
