@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { TopNav } from "@/components/top-nav";
 import { PricingCta } from "@/components/pricing-cta";
@@ -10,7 +10,7 @@ import { getPriceDisplay, type Currency } from "@/lib/geo-pricing";
 type PlanTier = "starter" | "plus" | "pro";
 type PriceDisplay = ReturnType<typeof getPriceDisplay>;
 
-export default function PricingPage() {
+function PricingContent() {
   const params = useSearchParams();
   const message = params.get("message") || "";
 
@@ -256,5 +256,13 @@ export default function PricingPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PricingContent />
+    </Suspense>
   );
 }
