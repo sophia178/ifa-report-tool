@@ -8,9 +8,20 @@ export const dynamic = "force-dynamic";
 type Jurisdiction = "uk" | "aus" | "usa" | "global";
 
 function normalizeJurisdiction(value: unknown): Jurisdiction {
-  const v = typeof value === "string" ? value.trim().toLowerCase() : "global";
-  if (v === "uk" || v === "aus" || v === "usa" || v === "global") return v;
-  return "global";
+  const v = typeof value === "string" ? value.trim().toLowerCase() : "uk";
+  if (v === "uk" || v === "aus" || v === "usa") return v;
+  return "uk";
+}
+
+function getCacheKey(jurisdiction: Jurisdiction) {
+  if (jurisdiction === "aus") return "daily_briefing_aus";
+  if (jurisdiction === "usa") return "daily_briefing_usa";
+  return "daily_briefing_uk";
+}
+
+function looksLikeMissingColumn(err: unknown) {
+  const m = err && typeof err === "object" && "message" in err ? String((err as any).message) : "";
+  return m.includes("column") && (m.includes("does not exist") || m.includes("not found"));
 }
 
 async function enforceStarterMonthlyLimit(params: {
@@ -99,6 +110,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const jurisdiction = normalizeJurisdiction(body?.jurisdiction);
+    const cacheKey = getCacheKey(jurisdiction);
 
     const plan = (await getUserPlan(user.id)) || "starter";
     if (plan === "starter") {
@@ -124,30 +136,24 @@ export async function POST(request: Request) {
 
     const focus =
       jurisdiction === "uk"
-        ? "UK markets (FTSE), Bank of England, FCA focus"
+        ? "UK markets (FTSE), Bank of England (BoE), FCA updates, ONS data, and key UK economic events."
         : jurisdiction === "aus"
-          ? "Australian markets (ASX), RBA, Australian dollar, ASIC focus"
-          : jurisdiction === "usa"
-            ? "US markets (NYSE), Federal Reserve, S&P 500, SEC focus"
-            : "UK, Australian, and US markets, including key regulators and central banks";
+          ? "Australian markets (ASX), RBA updates, ASIC updates, ABS data, Australian economic events, and superannuation industry news."
+          : "US markets (S&P 500), Federal Reserve updates, SEC updates, BLS jobs data, key US economic events, and 401k/financial planning news.";
 
     const preparedFor =
       jurisdiction === "uk"
         ? `Prepared for UK Financial Advisers | ${today}`
         : jurisdiction === "aus"
           ? `Prepared for Australian Financial Advisers | ${today}`
-          : jurisdiction === "usa"
-            ? `Prepared for US Financial Advisers | ${today}`
-            : `Prepared for Financial Advisers | ${today}`;
+          : `Prepared for US Financial Advisers | ${today}`;
 
     const sections =
       jurisdiction === "uk"
-        ? ["UK Market Overview (FTSE)", "Global Markets", "BoE & FCA Highlights", "Key UK Economic Events"]
+        ? ["UK Market Overview (FTSE)", "BoE & FCA Highlights", "ONS Data Watch", "Key UK Economic Events", "Adviser Talking Points"]
         : jurisdiction === "aus"
-          ? ["Australian Market Overview (ASX)", "Global Markets", "RBA & ASIC Highlights", "Key Australian Economic Events"]
-          : jurisdiction === "usa"
-            ? ["US Market Overview (S&P 500)", "Global Markets", "Fed & SEC Highlights", "Key US Economic Events"]
-            : ["UK Market Overview", "Australian Market Overview", "US Market Overview", "Global Markets", "Regulatory Highlights", "Key Economic Events"];
+          ? ["Australian Market Overview (ASX)", "RBA & ASIC Highlights", "ABS Data Watch", "Key Australian Economic Events", "Superannuation Industry Notes", "Adviser Talking Points"]
+          : ["US Market Overview (S&P 500)", "Fed & SEC Highlights", "BLS Jobs & Macro Data", "Key US Economic Events", "401k & Planning Notes", "Adviser Talking Points"];
 
     const prompt = `You are a market analyst. Generate a professional daily market briefing focused on: ${focus}.
 
@@ -164,24 +170,24 @@ Return plain text only. Maximum 600 words.`;
     const briefingText = await callClaude(prompt, 4000);
     const finalBriefingText = briefingText.replace(/\{DATE\}/g, today);
 
-    // Save to Supabase
-    const insertWithJurisdiction = await supabase
+    const insertWithKey = await supabase
       .from("market_briefings")
-      .insert({
-        user_id: user.id,
-        briefing_text: finalBriefingText,
-        jurisdiction,
-      } as any)
+      .insert({ user_id: user.id, briefing_text: finalBriefingText, cache_key: cacheKey, jurisdiction } as any)
       .select()
       .maybeSingle();
+
+    const insertWithJurisdiction = looksLikeMissingColumn(insertWithKey.error)
+      ? await supabase
+          .from("market_briefings")
+          .insert({ user_id: user.id, briefing_text: finalBriefingText, jurisdiction } as any)
+          .select()
+          .maybeSingle()
+      : insertWithKey;
 
     const insertResult = insertWithJurisdiction.error
       ? await supabase
           .from("market_briefings")
-          .insert({
-            user_id: user.id,
-            briefing_text: finalBriefingText,
-          } as any)
+          .insert({ user_id: user.id, briefing_text: finalBriefingText } as any)
           .select()
           .maybeSingle()
       : insertWithJurisdiction;
@@ -218,7 +224,17 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const jurisdiction = normalizeJurisdiction(searchParams.get("jurisdiction"));
+    const cacheKey = getCacheKey(jurisdiction);
     const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+
+    const attemptByKey = await supabase
+      .from("market_briefings")
+      .select("id, created_at, briefing_text, cache_key")
+      .eq("user_id", user.id)
+      .eq("cache_key", cacheKey as any)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const attemptFiltered = await supabase
       .from("market_briefings")
@@ -237,7 +253,12 @@ export async function GET(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    const latest = attemptFiltered.error ? attemptFallback.data : (attemptFiltered.data || attemptFallback.data);
+    const latest =
+      !attemptByKey.error && attemptByKey.data
+        ? attemptByKey.data
+        : attemptFiltered.error
+          ? attemptFallback.data
+          : (attemptFiltered.data || attemptFallback.data);
     const createdAt = latest?.created_at ? new Date(latest.created_at) : null;
     const isStale = createdAt ? Date.now() - createdAt.getTime() > twentyFourHoursMs : false;
 

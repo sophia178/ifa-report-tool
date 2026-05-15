@@ -8,29 +8,40 @@ export const maxDuration = 300;
 type Jurisdiction = "uk" | "aus" | "usa" | "global";
 
 function normalizeJurisdiction(value: unknown): Jurisdiction {
-  const v = typeof value === "string" ? value.trim().toLowerCase() : "global";
-  if (v === "uk" || v === "aus" || v === "usa" || v === "global") return v;
-  return "global";
+  const v = typeof value === "string" ? value.trim().toLowerCase() : "uk";
+  if (v === "uk" || v === "aus" || v === "usa") return v;
+  return "uk";
 }
 
 function getKeywords(jurisdiction: Jurisdiction) {
   return jurisdiction === "uk"
-    ? ["FCA", "Bank of England", "UK financial markets", "HMRC"]
+    ? ["FCA", "Bank of England", "UK regulation", "UK pensions", "UK markets"]
     : jurisdiction === "aus"
-      ? ["ASIC", "RBA", "ASX", "Australian financial advice"]
+      ? ["ASIC", "RBA", "ASX", "Superannuation", "AFSL regulation"]
       : jurisdiction === "usa"
-        ? ["SEC", "FINRA", "Federal Reserve", "NYSE/NASDAQ", "US financial planning"]
-        : ["FCA", "ASIC", "SEC", "Bank of England", "RBA", "Federal Reserve"];
+        ? ["SEC", "FINRA", "Federal Reserve", "CFP Board", "401k news"]
+        : ["FCA", "Bank of England", "UK regulation", "UK pensions", "UK markets"];
 }
 
 function getFocus(jurisdiction: Jurisdiction) {
   return jurisdiction === "uk"
-    ? "Generate 4 news items focused on FCA regulation, Bank of England, UK financial markets, HMRC updates."
+    ? "Generate 4 news items focused on FCA, Bank of England, UK financial regulation, UK pension news, and UK investment news."
     : jurisdiction === "aus"
-      ? "Generate 4 news items focused on ASIC regulation, RBA decisions, ASX markets, Australian financial advice."
+      ? "Generate 4 news items focused on ASIC, RBA, Australian superannuation, AFSL regulation, and ASX news."
       : jurisdiction === "usa"
-        ? "Generate 4 news items focused on SEC, FINRA, Federal Reserve, NYSE/NASDAQ, US financial planning."
-        : "Generate 4 news items covering UK, Australia, and USA adviser-relevant developments.";
+        ? "Generate 4 news items focused on SEC, Federal Reserve, CFP Board, 401k news, US financial regulation, and FINRA updates."
+        : "Generate 4 news items focused on FCA, Bank of England, UK financial regulation, UK pension news, and UK investment news.";
+}
+
+function getCacheKey(jurisdiction: Jurisdiction) {
+  if (jurisdiction === "aus") return "news_briefing_aus";
+  if (jurisdiction === "usa") return "news_briefing_usa";
+  return "news_briefing_uk";
+}
+
+function looksLikeMissingColumn(err: unknown) {
+  const m = err && typeof err === "object" && "message" in err ? String((err as any).message) : "";
+  return m.includes("column") && (m.includes("does not exist") || m.includes("not found"));
 }
 
 function getFallbackNews(jurisdiction: Jurisdiction) {
@@ -117,6 +128,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const jurisdiction = normalizeJurisdiction(body?.jurisdiction);
+    const cacheKey = getCacheKey(jurisdiction);
     const keywords = getKeywords(jurisdiction);
     let briefingJson: any;
     try {
@@ -126,17 +138,30 @@ export async function POST(request: Request) {
       briefingJson = getFallbackNews(jurisdiction);
     }
 
-    // Save to Supabase
-    const insertWithJurisdiction = await supabase
+    const insertWithKey = await supabase
       .from("news_briefings")
       .insert({
         user_id: user.id,
         keywords,
         briefing_json: briefingJson,
+        cache_key: cacheKey,
         jurisdiction,
       } as any)
       .select()
       .maybeSingle();
+
+    const insertWithJurisdiction = looksLikeMissingColumn(insertWithKey.error)
+      ? await supabase
+          .from("news_briefings")
+          .insert({
+            user_id: user.id,
+            keywords,
+            briefing_json: briefingJson,
+            jurisdiction,
+          } as any)
+          .select()
+          .maybeSingle()
+      : insertWithKey;
 
     const insertResult = insertWithJurisdiction.error
       ? await supabase
@@ -174,6 +199,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const jurisdiction = normalizeJurisdiction(searchParams.get("jurisdiction"));
+    const cacheKey = getCacheKey(jurisdiction);
 
     const isSubscribed = await checkSubscription(user.id);
     if (!isSubscribed) {
@@ -181,6 +207,15 @@ export async function GET(request: Request) {
     }
 
     const sixHoursMs = 6 * 60 * 60 * 1000;
+
+    const attemptByKey = await supabase
+      .from("news_briefings")
+      .select("id, created_at, briefing_json, cache_key")
+      .eq("user_id", user.id)
+      .eq("cache_key", cacheKey as any)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const attemptFiltered = await supabase
       .from("news_briefings")
@@ -199,7 +234,12 @@ export async function GET(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    const latest = attemptFiltered.error ? attemptFallback.data : (attemptFiltered.data || attemptFallback.data);
+    const latest =
+      !attemptByKey.error && attemptByKey.data
+        ? attemptByKey.data
+        : attemptFiltered.error
+          ? attemptFallback.data
+          : (attemptFiltered.data || attemptFallback.data);
     const createdAt = latest?.created_at ? new Date(latest.created_at) : null;
     const isFresh = createdAt ? Date.now() - createdAt.getTime() < sixHoursMs : false;
 
@@ -228,11 +268,19 @@ export async function GET(request: Request) {
       });
     }
 
-    const insertWithJurisdiction = await supabase
+    const insertWithKey = await supabase
       .from("news_briefings")
-      .insert({ user_id: user.id, keywords, briefing_json: briefingJson, jurisdiction } as any)
+      .insert({ user_id: user.id, keywords, briefing_json: briefingJson, cache_key: cacheKey, jurisdiction } as any)
       .select()
       .maybeSingle();
+
+    const insertWithJurisdiction = looksLikeMissingColumn(insertWithKey.error)
+      ? await supabase
+          .from("news_briefings")
+          .insert({ user_id: user.id, keywords, briefing_json: briefingJson, jurisdiction } as any)
+          .select()
+          .maybeSingle()
+      : insertWithKey;
 
     const insertResult = insertWithJurisdiction.error
       ? await supabase

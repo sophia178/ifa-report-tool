@@ -6,13 +6,66 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingProgress } from "@/components/loading-progress";
 
+type Jurisdiction = "uk" | "aus" | "usa";
+
+function stripEmbeddedCalendarPayload(text: string) {
+  return text
+    .replace(/economic_?calendar::[\s\S]*?(?:\n\s*\n|$)/gi, "")
+    .replace(/economiccalendar::[\s\S]*?(?:\n\s*\n|$)/gi, "");
+}
+
+function stripJsonBlocks(text: string) {
+  const lines = text.replace(/\r/g, "").split("\n");
+  const kept: string[] = [];
+  let skippingJson = false;
+
+  for (const line of lines) {
+    const t = line.trim();
+    const looksLikeJsonStart = t.startsWith("{") || t.startsWith("[");
+    const looksLikeJsonEnd = t.endsWith("}") || t.endsWith("]");
+
+    if (!skippingJson && looksLikeJsonStart && (t.includes(":") || t.includes("\""))) {
+      skippingJson = true;
+    }
+
+    if (!skippingJson) {
+      kept.push(line);
+    }
+
+    if (skippingJson && looksLikeJsonEnd) {
+      skippingJson = false;
+    }
+  }
+
+  return kept.join("\n");
+}
+
+function cleanBriefingForDisplay(text: string) {
+  let t = text;
+
+  const trimmed = t.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed: any = JSON.parse(trimmed);
+      if (typeof parsed === "string") t = parsed;
+      else if (typeof parsed?.result === "string") t = parsed.result;
+      else if (typeof parsed?.briefing_text === "string") t = parsed.briefing_text;
+    } catch {
+    }
+  }
+
+  t = stripEmbeddedCalendarPayload(t);
+  t = stripJsonBlocks(t);
+  return t.trim();
+}
+
 export default function BriefingPage() {
   const router = useRouter();
   const [briefing, setBriefing] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [jurisdiction, setJurisdiction] = useState<"uk" | "aus" | "usa" | "global">("global");
+  const [jurisdiction, setJurisdiction] = useState<Jurisdiction>("uk");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,9 +100,9 @@ export default function BriefingPage() {
         }
 
         const rawJurisdiction =
-          typeof profile?.jurisdiction === "string" ? profile.jurisdiction.trim().toLowerCase() : "global";
-        const effectiveJurisdiction: "uk" | "aus" | "usa" | "global" =
-          rawJurisdiction === "uk" || rawJurisdiction === "aus" || rawJurisdiction === "usa" ? rawJurisdiction : "global";
+          typeof profile?.jurisdiction === "string" ? profile.jurisdiction.trim().toLowerCase() : "uk";
+        const effectiveJurisdiction: Jurisdiction =
+          rawJurisdiction === "uk" || rawJurisdiction === "aus" || rawJurisdiction === "usa" ? rawJurisdiction : "uk";
 
         setJurisdiction(effectiveJurisdiction);
 
@@ -73,62 +126,10 @@ export default function BriefingPage() {
       case "uk": return "The Daily Briefing — UK Markets";
       case "aus": return "The Daily Briefing — Australian Markets";
       case "usa": return "The Daily Briefing — US Markets";
-      default: return "The Daily Briefing — Global Markets";
     }
   }
 
-  function stripEmbeddedCalendarPayload(text: string) {
-    return text
-      .replace(/economic_?calendar::[\s\S]*?(?:\n\s*\n|$)/gi, "")
-      .replace(/economiccalendar::[\s\S]*?(?:\n\s*\n|$)/gi, "");
-  }
-
-  function stripJsonBlocks(text: string) {
-    const lines = text.replace(/\r/g, "").split("\n");
-    const kept: string[] = [];
-    let skippingJson = false;
-
-    for (const line of lines) {
-      const t = line.trim();
-      const looksLikeJsonStart = t.startsWith("{") || t.startsWith("[");
-      const looksLikeJsonEnd = t.endsWith("}") || t.endsWith("]");
-
-      if (!skippingJson && looksLikeJsonStart && (t.includes(":") || t.includes("\""))) {
-        skippingJson = true;
-      }
-
-      if (!skippingJson) {
-        kept.push(line);
-      }
-
-      if (skippingJson && looksLikeJsonEnd) {
-        skippingJson = false;
-      }
-    }
-
-    return kept.join("\n");
-  }
-
-  function cleanBriefingForDisplay(text: string) {
-    let t = text;
-
-    const trimmed = t.trim();
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      try {
-        const parsed: any = JSON.parse(trimmed);
-        if (typeof parsed === "string") t = parsed;
-        else if (typeof parsed?.result === "string") t = parsed.result;
-        else if (typeof parsed?.briefing_text === "string") t = parsed.briefing_text;
-      } catch {
-      }
-    }
-
-    t = stripEmbeddedCalendarPayload(t);
-    t = stripJsonBlocks(t);
-    return t.trim();
-  }
-
-  async function handleGenerate() {
+  async function generateFor(selected: Jurisdiction) {
     setIsGenerating(true);
     setError("");
     setBriefing(null);
@@ -138,22 +139,26 @@ export default function BriefingPage() {
       const response = await fetch("/api/briefing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jurisdiction }),
+        body: JSON.stringify({ jurisdiction: selected }),
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to generate briefing");
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as any)?.error || "Failed to generate briefing");
       }
 
       const data = await response.json();
       setBriefing(typeof data.result === "string" ? cleanBriefingForDisplay(data.result) : null);
       setLastUpdated(typeof data.lastUpdated === "string" ? data.lastUpdated : new Date().toISOString());
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(err?.message || "Something went wrong. Please try again.");
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function handleGenerate() {
+    await generateFor(jurisdiction);
   }
 
   function renderFormattedContent(text: string) {
@@ -259,6 +264,41 @@ export default function BriefingPage() {
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 48px", minHeight: "100vh", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "40px" }}>
+        <div className="no-print" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          {(
+            [
+              { key: "uk" as const, label: "🇬🇧 UK" },
+              { key: "aus" as const, label: "🇦🇺 Australia" },
+              { key: "usa" as const, label: "🇺🇸 USA" },
+            ] satisfies Array<{ key: Jurisdiction; label: string }>
+          ).map((opt) => {
+            const selected = jurisdiction === opt.key;
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={async () => {
+                  if (jurisdiction === opt.key) return;
+                  setJurisdiction(opt.key);
+                  await generateFor(opt.key);
+                }}
+                style={{
+                  backgroundColor: selected ? "#C9A84C" : "#0A1628",
+                  color: selected ? "#0A1628" : "white",
+                  border: "none",
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  letterSpacing: "0.3px",
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
         <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
           {getTitle()}
         </h1>

@@ -13,11 +13,13 @@ interface NewsItem {
   riskFlags: string;
 }
 
+type Jurisdiction = "uk" | "aus" | "usa";
+
 export default function NewsPage() {
   const [briefings, setBriefings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [jurisdiction, setJurisdiction] = useState<"uk" | "aus" | "usa" | "global">("global");
+  const [jurisdiction, setJurisdiction] = useState<Jurisdiction>("uk");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   function getTitle() {
@@ -29,7 +31,7 @@ export default function NewsPage() {
     }
   }
 
-  const fetchNews = useCallback(async (j: "uk" | "aus" | "usa" | "global") => {
+  const fetchNews = useCallback(async (j: Jurisdiction) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -90,18 +92,17 @@ export default function NewsPage() {
             .eq("id", user.id)
             .single();
 
-          const j = typeof profile?.jurisdiction === "string" ? profile.jurisdiction : "global";
-          if (j === "uk" || j === "aus" || j === "usa") {
-            setJurisdiction(j);
-            await fetchNews(j);
-            return;
-          }
+          const j = typeof profile?.jurisdiction === "string" ? profile.jurisdiction.trim().toLowerCase() : "uk";
+          const effective: Jurisdiction = j === "uk" || j === "aus" || j === "usa" ? j : "uk";
+          setJurisdiction(effective);
+          await fetchNews(effective);
+          return;
         }
 
-        await fetchNews("global");
+        await fetchNews("uk");
       } catch (err) {
         console.error("News init error:", err);
-        await fetchNews("global");
+        await fetchNews("uk");
       }
     }
     init();
@@ -111,6 +112,41 @@ export default function NewsPage() {
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 24px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", marginBottom: "32px", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {(
+              [
+                { key: "uk" as const, label: "🇬🇧 UK" },
+                { key: "aus" as const, label: "🇦🇺 Australia" },
+                { key: "usa" as const, label: "🇺🇸 USA" },
+              ] satisfies Array<{ key: Jurisdiction; label: string }>
+            ).map((opt) => {
+              const selected = jurisdiction === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={async () => {
+                    if (jurisdiction === opt.key) return;
+                    setJurisdiction(opt.key);
+                    await fetchNews(opt.key);
+                  }}
+                  style={{
+                    backgroundColor: selected ? "#C9A84C" : "#0A1628",
+                    color: selected ? "#0A1628" : "white",
+                    border: "none",
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    fontWeight: "800",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    letterSpacing: "0.3px",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
           <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
             {getTitle()}
           </h1>

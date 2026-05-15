@@ -8,9 +8,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClientComponentClient } from "@/lib/supabase/client";
 
 type TemplateRow = {
   id: string;
@@ -23,7 +23,7 @@ type TemplateRow = {
 
 export default function TemplatesPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createClientComponentClient();
 
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [name, setName] = useState("");
@@ -31,8 +31,10 @@ export default function TemplatesPage() {
   const [type, setType] = useState("FCA");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  async function fetchTemplates() {
+  const fetchTemplates = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push("/login");
@@ -45,34 +47,46 @@ export default function TemplatesPage() {
       .order("created_at", { ascending: false });
     setTemplates(Array.isArray(data) ? (data as any) : []);
     setLoading(false);
-  }
+  }, [router, supabase]);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
       void fetchTemplates();
     }, 0);
     return () => window.clearTimeout(t);
-  }, []);
+  }, [fetchTemplates]);
 
   async function saveTemplate() {
     if (!name || !content) return;
     setSaving(true);
+    setSaveError(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push("/login");
       setSaving(false);
       return;
     }
-    await supabase.from("report_templates").insert({
+
+    const { error } = await supabase.from("report_templates").insert({
       user_id: user.id,
       name,
       content,
       type,
       created_at: new Date().toISOString(),
     } as any);
+
+    if (error) {
+      console.error("Template save error:", error);
+      setSaveError("Failed to save template");
+      setSaving(false);
+      return;
+    }
+
     setName("");
     setContent("");
     await fetchTemplates();
+    setSaveSuccess(true);
+    window.setTimeout(() => setSaveSuccess(false), 3000);
     setSaving(false);
   }
 
@@ -117,6 +131,8 @@ export default function TemplatesPage() {
         >
           {saving ? "Saving..." : "Save Template"}
         </button>
+        {saveError && <div style={{ marginTop: "10px", color: "#dc2626", fontSize: "13px", fontWeight: "600" }}>{saveError}</div>}
+        {saveSuccess && <div style={{ marginTop: "10px", color: "#16a34a", fontSize: "13px", fontWeight: "700" }}>Template saved!</div>}
       </div>
 
       {loading ? (
