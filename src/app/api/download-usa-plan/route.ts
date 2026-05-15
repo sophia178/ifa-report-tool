@@ -8,22 +8,6 @@ type DownloadBody = {
   content?: string;
 };
 
-function stripMarkdownSymbols(text: string) {
-  return text
-    .replace(/\r/g, "")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/#/g, "")
-    .replace(/\*\*/g, "")
-    .replace(/\*/g, "")
-    .replace(/^---+$/gm, "")
-    .trim();
-}
-
-function sanitizeClientFilename(clientName: string) {
-  const safe = clientName.replace(/[/\\"]/g, "").trim();
-  return safe || "Client";
-}
-
 async function getPreparedBy(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data: profile } = await supabase
     .from("profiles")
@@ -67,9 +51,7 @@ export async function POST(request: Request) {
           : "";
     const clientName = typeof payload.clientName === "string" ? payload.clientName.trim() : "";
 
-    const cleanPlanText = stripMarkdownSymbols(planText);
-
-    if (!cleanPlanText.trim() || !clientName) {
+    if (!planText.trim() || !clientName) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
@@ -80,7 +62,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     const preparedBy = await getPreparedBy(supabase, user.id);
-    const buffer = await buildReportDocx(cleanPlanText, "USA FINANCIAL PLAN", whiteLabel, {
+    const buffer = await buildReportDocx(planText, "USA FINANCIAL PLAN", whiteLabel, {
       preparedBy,
       preparedAt: new Date(),
       clientName,

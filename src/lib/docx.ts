@@ -16,9 +16,20 @@ import {
   ShadingType,
 } from "docx";
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^---+$/gm, "")
+    .replace(/^[*-]\s+/gm, "")
+    .replace(/^>\s+/gm, "")
+    .trim();
+}
+
 function sectionHeading(text: string) {
   return new Paragraph({
-    text: text.replace(/^#{1,6}\s+/, "").trim(),
+    text: stripMarkdown(text),
     heading: HeadingLevel.HEADING_1,
     spacing: { before: 320, after: 120 },
   });
@@ -36,13 +47,7 @@ function isAllCapsHeading(line: string) {
 }
 
 function sanitizeText(text: string) {
-  return text
-    .replace(/\r/g, "")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/#/g, "")
-    .replace(/\*\*/g, "")
-    .replace(/\*/g, "")
-    .trim();
+  return stripMarkdown(text.replace(/\r/g, ""));
 }
 
 function runsFromText(text: string) {
@@ -147,6 +152,33 @@ function buildTable(lines: string[]) {
 
 function paragraphFromLine(line: string) {
   const trimmed = line.trim();
+
+  const sentinelHeading = trimmed.match(/^__MD_H([1-6])__\s+(.*)$/);
+  if (sentinelHeading && sentinelHeading[2]) {
+    const level = Number(sentinelHeading[1]);
+    const heading =
+      level <= 1 ? HeadingLevel.HEADING_1 : level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3;
+    const text = sanitizeText(sentinelHeading[2]).replace(/\|/g, "");
+    return new Paragraph({
+      heading,
+      spacing: { before: 300, after: 120 },
+      children: [new TextRun({ text, bold: true })],
+    });
+  }
+
+  const mdHeading = trimmed.match(/^(#{1,6})\s+(.*)$/);
+  if (mdHeading && mdHeading[2]) {
+    const level = mdHeading[1].length;
+    const heading =
+      level <= 1 ? HeadingLevel.HEADING_1 : level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3;
+    const text = sanitizeText(mdHeading[2]).replace(/\|/g, "");
+    return new Paragraph({
+      heading,
+      spacing: { before: 300, after: 120 },
+      children: [new TextRun({ text, bold: true })],
+    });
+  }
+
   const cleaned = sanitizeText(trimmed).replace(/\|/g, "");
 
   if (isAllCapsHeading(cleaned)) {
@@ -243,7 +275,7 @@ export async function buildReportDocx(
     clientName?: string;
   }
 ) {
-  const normalizedText = sanitizeText(reportText);
+  const normalizedText = reportText.replace(/\r/g, "");
   const hasSectionHeadings = /^SECTION\s+\d+\s*[-—:]/im.test(normalizedText);
 
   const content = hasSectionHeadings

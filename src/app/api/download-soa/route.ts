@@ -7,11 +7,6 @@ type DownloadBody = {
   content?: string;
 };
 
-function sanitizeClientFilename(clientName: string) {
-  const safe = clientName.replace(/[/\\"]/g, "").trim();
-  return safe || "Client";
-}
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);

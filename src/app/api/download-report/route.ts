@@ -8,6 +8,18 @@ type DownloadBody = {
   reportText?: string;
 };
 
+function normalizeMarkdownForDocx(text: string) {
+  return text
+    .replace(/\r/g, "")
+    .replace(/^(#{1,6})\s+/gm, (_m, hashes: string) => `__MD_H${hashes.length}__ `)
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^---+$/gm, "")
+    .replace(/^[*-]\s+/gm, "")
+    .replace(/^>\s+/gm, "")
+    .trim();
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -69,18 +81,16 @@ export async function GET(request: Request) {
       (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
 
     const reportData = data as any;
-    const reportText = reportData[textField] as string;
+    const reportText = normalizeMarkdownForDocx(String(reportData[textField] || ""));
     const clientName = reportData.client_name as string;
     const buffer = await buildReportDocx(reportText, title, whiteLabel, { preparedBy, preparedAt: new Date(), clientName });
-    const filename = `${clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${type}-report.docx`;
-
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="Report.docx"`,
       },
     });
   } catch (error) {
@@ -101,7 +111,7 @@ export async function POST(request: Request) {
     }
 
     const payload = (await request.json().catch(() => ({}))) as DownloadBody;
-    const reportText = typeof payload.reportText === "string" ? payload.reportText : "";
+    const reportText = typeof payload.reportText === "string" ? normalizeMarkdownForDocx(payload.reportText) : "";
     const clientName = typeof payload.clientName === "string" ? payload.clientName.trim() : "";
 
     if (!reportText.trim() || !clientName) {
