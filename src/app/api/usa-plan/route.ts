@@ -142,7 +142,22 @@ English. Use ONLY US financial terminology:
 Medicare, Medicaid, federal tax brackets,
 fiduciary duty, SEC, FINRA, CFP Board standards.
 
-Write ALL of these sections in full:
+CRITICAL SECTIONS THAT MUST NEVER BE OMITTED:
+- Section 12: IMPLEMENTATION PLAN
+- Section 13: MONITORING AND REVIEW
+- Section 14: DISCLOSURES AND DISCLAIMER
+These three sections are legally required and
+must always appear even if earlier sections
+are shorter than usual.
+
+Write each section in maximum 150 words.
+Be extremely concise. Every section must be
+completed. Sections 10 through 14 are critical
+and must not be skipped under any circumstances.
+Section 14 DISCLOSURES AND DISCLAIMER must always
+be the final section and must always be completed.
+
+Write ALL of these sections in full, in this exact order:
 1. COVER PAGE (client name, adviser name,
    date, DRAFT watermark)
 2. EXECUTIVE SUMMARY
@@ -172,10 +187,6 @@ Write ALL of these sections in full:
 
 Use plain text only. NO markdown symbols.
 Use CAPITALS for section headings.
-Be concise in each section - maximum 200 words
-per section - so that all sections fit within
-the output limit. You MUST complete every section
-including the final DISCLAIMER.
 Include specific numbers and projections based on client data.
 You MUST reach and complete the final disclaimer
 section. Never stop early.
@@ -195,7 +206,7 @@ Roth IRA Balance (USD): ${typeof rothIraBalance === "string" && rothIraBalance.t
 Meeting notes:
 ${String(meetingNotes).trim()}
 
-CRITICAL: Complete the entire financial plan including all 14 sections through to DISCLAIMER. Never stop early. Write concise paragraphs but always finish every section completely.`;
+CRITICAL: Write each section in maximum 150 words. Be extremely concise. Every section must be completed. Sections 10 through 14 are critical and must not be skipped under any circumstances. Section 14 DISCLOSURES AND DISCLAIMER must always be the final section and must always be completed.`;
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
