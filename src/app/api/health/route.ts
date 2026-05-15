@@ -12,6 +12,8 @@ export async function GET() {
     finnhubKey: !!process.env.FINNHUB_API_KEY,
     supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
     stripeKey: !!process.env.STRIPE_SECRET_KEY,
+    webhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
+    model: process.env.ANTHROPIC_MODEL || "not set",
     status: "healthy",
     timestamp: new Date().toISOString(),
   });

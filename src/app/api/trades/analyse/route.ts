@@ -32,17 +32,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Trades are required" }, { status: 400 });
     }
 
-    const prompt = `You are a trading performance coach. Analyse the following trade journal entries for psychological patterns, technical mistakes, and improvement areas.
-    Trades: ${JSON.stringify(trades)}
-    
-    Return a JSON object with:
-    - winRate: String percentage
-    - profitFactor: Number
-    - psychologicalAnalysis: Detailed text
-    - technicalPatterns: Array of strings
-    - coachRecommendations: Array of strings
-    
-    Return ONLY the raw JSON object. Do not use markdown code fences.`;
+    const prompt = `You are a trading performance coach. Analyse the following trade journal entries and return clear insights suitable for a trading journal review.
+Trades: ${JSON.stringify(trades)}
+
+Return a JSON object with:
+- winRate: string (percentage)
+- avgProfitLoss: string (e.g. "+$123.45" or "-$45.10")
+- bestAssets: string[] (tickers/symbols)
+- worstAssets: string[] (tickers/symbols)
+- patterns: string (key behavioral/technical patterns, concise)
+- recommendations: string[] (actionable improvements)
+
+Return ONLY the raw JSON object. Do not use markdown code fences.`;
 
     const rawResult = await callClaude(prompt);
     

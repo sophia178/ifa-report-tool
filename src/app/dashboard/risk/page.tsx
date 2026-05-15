@@ -16,10 +16,9 @@ type Holding = {
 
 type AnalysisResult = {
   overallRiskScore: number;
-  concentrationWarnings: string[];
-  geographicExposure: { region: string; percentage: number }[];
-  assetClassBreakdown: { class: string; percentage: number }[];
-  correlationRisks: string;
+  diversificationAssessment: string;
+  concentrationRisk: string;
+  correlationAnalysis: string;
   recommendations: string[];
 };
 
@@ -279,18 +278,33 @@ export default function RiskPage() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
+                  <h4 style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <PieChart size={16} color="#C9A84C" />
+                    Diversification Assessment
+                  </h4>
+                  <p style={{ margin: 0, fontSize: "14px", color: "#374151", lineHeight: "1.7" }}>
+                    {result.diversificationAssessment}
+                  </p>
+                </div>
+
+                <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
                   <h4 style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
                     <AlertTriangle size={16} color="#F59E0B" />
-                    Concentration Warnings
+                    Concentration Risk
                   </h4>
-                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {result.concentrationWarnings.map((w, i) => (
-                      <li key={i} style={{ fontSize: "14px", color: "#374151", paddingLeft: "20px", position: "relative" }}>
-                        <span style={{ position: "absolute", left: 0, top: "8px", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#E5E7EB" }}></span>
-                        {w}
-                      </li>
-                    ))}
-                  </ul>
+                  <p style={{ margin: 0, fontSize: "14px", color: "#374151", lineHeight: "1.7" }}>
+                    {result.concentrationRisk}
+                  </p>
+                </div>
+
+                <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
+                  <h4 style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628", textTransform: "uppercase", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Globe size={16} color="#0A1628" />
+                    Correlation Analysis
+                  </h4>
+                  <p style={{ margin: 0, fontSize: "14px", color: "#374151", lineHeight: "1.7" }}>
+                    {result.correlationAnalysis}
+                  </p>
                 </div>
 
                 <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>

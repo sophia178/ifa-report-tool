@@ -35,9 +35,42 @@ export default function MarketsPage() {
       const response = await fetch("/api/markets");
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to fetch markets");
+      const indices = Array.isArray(result?.indices) ? result.indices : [];
+      const fx = Array.isArray(result?.fx) ? result.fx : [];
+      const commodities = Array.isArray(result?.commodities) ? result.commodities : [];
+      if (indices.length === 0 && fx.length === 0 && commodities.length === 0) {
+        throw new Error("No live market data returned");
+      }
       setData(result);
+      try {
+        localStorage.setItem(
+          "market_data_cache",
+          JSON.stringify({ savedAt: new Date().toISOString(), payload: result })
+        );
+      } catch {
+      }
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+      try {
+        const raw = localStorage.getItem("market_data_cache");
+        const parsed = raw ? JSON.parse(raw) : null;
+        const cachedPayload = parsed?.payload;
+        const cachedAt = typeof parsed?.savedAt === "string" ? parsed.savedAt : null;
+        if (cachedPayload && (cachedPayload.indices || cachedPayload.fx || cachedPayload.commodities)) {
+          setData({
+            ...cachedPayload,
+            lastUpdated: cachedAt || cachedPayload.lastUpdated,
+            warning: "Showing cached data (live market data temporarily unavailable).",
+            isLive: false,
+          });
+          setError("");
+        } else {
+          setData(null);
+          setError("Market data temporarily unavailable");
+        }
+      } catch {
+        setData(null);
+        setError("Market data temporarily unavailable");
+      }
     } finally {
       setIsRefreshing(false);
       setIsLoading(false);
@@ -173,6 +206,12 @@ export default function MarketsPage() {
         <div style={{ padding: "16px", backgroundColor: "#FEF2F2", border: "1px solid #FEE2E2", borderRadius: "12px", color: "#DC2626", fontSize: "14px", display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <ShieldAlert size={18} />
           {error}
+        </div>
+      )}
+
+      {!data && !isLoading && (
+        <div style={{ padding: "48px", backgroundColor: "#F8FAFC", border: "1px dashed #E5E7EB", borderRadius: "16px", color: "#64748B", fontWeight: "600", textAlign: "center" }}>
+          Market data temporarily unavailable
         </div>
       )}
 

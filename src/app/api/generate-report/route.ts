@@ -48,6 +48,9 @@ export async function POST(request: Request) {
     
     const prompt = `You are a Chartered Financial Planner. Write a comprehensive, detailed, and full FCA-compliant suitability report as plain text. 
     Be extremely thorough and professional.
+    Write each section concisely but completely. 
+    You MUST reach and complete the final disclaimer 
+    section. Never stop early.
     
     Client Details:
     - Name: ${clientName}
@@ -108,7 +111,7 @@ export async function POST(request: Request) {
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [{ role: "user", content: prompt }],
     });
 

@@ -134,9 +134,9 @@ export default function ReportsPage() {
   });
 
   const getTypeLabel = (type: ReportType) => {
-    if (type === "fca") return "FCA Suitability";
-    if (type === "soa") return "Australian SOA";
-    return "USA Financial Plan";
+    if (type === "fca") return "FCA";
+    if (type === "soa") return "SOA";
+    return "USA";
   };
 
   if (isLoading) {
@@ -215,7 +215,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {filteredReports.length === 0 ? (
+      {reports.length === 0 ? (
         <div style={{ padding: "100px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "24px", border: "2px dashed #E2E8F0" }}>
           <div style={{ width: "80px", height: "80px", borderRadius: "20px", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", color: "#CBD5E1", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
             <Archive size={40} />
@@ -227,6 +227,16 @@ export default function ReportsPage() {
           <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "8px", backgroundColor: "#0A1628", color: "white", padding: "12px 24px", borderRadius: "10px", fontWeight: "700", textDecoration: "none", fontSize: "14px" }}>
             Go to Report Studio
           </Link>
+        </div>
+      ) : filteredReports.length === 0 ? (
+        <div style={{ padding: "100px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "24px", border: "2px dashed #E2E8F0" }}>
+          <div style={{ width: "80px", height: "80px", borderRadius: "20px", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", color: "#CBD5E1", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+            <Search size={40} />
+          </div>
+          <h3 style={{ fontSize: "20px", fontWeight: "700", color: "#0A1628", marginBottom: "8px" }}>No matching reports</h3>
+          <p style={{ color: "#64748B", maxWidth: "460px", margin: "0 auto 0" }}>
+            Try adjusting your search or switching the report type filter.
+          </p>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(450px, 1fr))", gap: "24px" }}>

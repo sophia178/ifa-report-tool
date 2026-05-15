@@ -20,6 +20,7 @@ export default function SettingsPage() {
   // Profile
   const [displayName, setDisplayName] = useState("");
   const [jurisdiction, setJurisdiction] = useState("uk");
+  const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
 
   // White Label
   const [firmName, setFirmName] = useState("");
@@ -27,6 +28,7 @@ export default function SettingsPage() {
   const [registeredAddress, setRegisteredAddress] = useState("");
   const [customFooterText, setCustomFooterText] = useState("");
   const [firmLogoUrl, setFirmLogoUrl] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -58,6 +60,7 @@ export default function SettingsPage() {
         setRegisteredAddress(profile.registered_address || "");
         setCustomFooterText(profile.custom_footer_text || "");
         setFirmLogoUrl(profile.firm_logo_url || "");
+        setStripeCustomerId(profile.stripe_customer_id || null);
         
         // Determine plan
         if (profile.stripe_price_id === process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID) {
@@ -110,6 +113,59 @@ export default function SettingsPage() {
       alert("Password reset email sent!");
     } catch (err: any) {
       alert(err.message);
+    }
+  }
+
+  async function handleSaveWhiteLabel() {
+    if (!userId) return;
+    setIsSaving(true);
+    setError("");
+    const supabase = createClient();
+    try {
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          firm_name: firmName,
+          firm_logo_url: firmLogoUrl,
+        })
+        .eq("id", userId);
+
+      if (updateError) throw updateError;
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to save white label settings");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleUploadLogo(file: File) {
+    if (!userId) return;
+    setIsUploadingLogo(true);
+    setError("");
+    const supabase = createClient();
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const objectPath = `${userId}/${crypto.randomUUID()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("firm-logos")
+        .upload(objectPath, file, {
+          contentType: file.type || "image/png",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("firm-logos").getPublicUrl(objectPath);
+      const publicUrl = data?.publicUrl;
+      if (!publicUrl) throw new Error("Could not create public URL for uploaded logo.");
+      setFirmLogoUrl(publicUrl);
+    } catch (err: any) {
+      setError(err.message || "Logo upload failed");
+    } finally {
+      setIsUploadingLogo(false);
     }
   }
 
@@ -286,41 +342,49 @@ export default function SettingsPage() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                <Link 
-                  href="/api/customer-portal"
-                  onMouseEnter={() => setHoveredBtn("portal")}
-                  onMouseLeave={() => setHoveredBtn(null)}
-                  style={{
-                    backgroundColor: "#0A1628",
-                    color: "white",
-                    padding: "12px 24px",
-                    borderRadius: "10px",
-                    textDecoration: "none",
-                    fontWeight: "700",
-                    fontSize: "14px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    transition: "all 0.2s ease",
-                    transform: hoveredBtn === "portal" ? "translateY(-1px)" : "none"
-                  }}
-                >
-                  <CreditCard size={18} /> Manage subscription
-                </Link>
-                
-                <Link 
-                  href="/api/customer-portal"
-                  style={{ 
-                    fontSize: "13px", 
-                    color: "#EF4444", 
-                    textDecoration: "none", 
-                    fontWeight: "600" 
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
-                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-                >
-                  Cancel subscription
-                </Link>
+                {stripeCustomerId ? (
+                  <>
+                    <Link 
+                      href="/api/customer-portal"
+                      onMouseEnter={() => setHoveredBtn("portal")}
+                      onMouseLeave={() => setHoveredBtn(null)}
+                      style={{
+                        backgroundColor: "#0A1628",
+                        color: "white",
+                        padding: "12px 24px",
+                        borderRadius: "10px",
+                        textDecoration: "none",
+                        fontWeight: "700",
+                        fontSize: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        transition: "all 0.2s ease",
+                        transform: hoveredBtn === "portal" ? "translateY(-1px)" : "none"
+                      }}
+                    >
+                      <CreditCard size={18} /> Manage Subscription
+                    </Link>
+                    
+                    <Link 
+                      href="/api/customer-portal"
+                      style={{ 
+                        fontSize: "13px", 
+                        color: "#EF4444", 
+                        textDecoration: "none", 
+                        fontWeight: "600" 
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                      onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                    >
+                      Cancel Subscription
+                    </Link>
+                  </>
+                ) : (
+                  <div style={{ fontSize: "13px", color: "#64748B", fontWeight: "600" }}>
+                    No active subscription found
+                  </div>
+                )}
               </div>
 
               <p style={{ fontSize: "13px", color: "#64748B", fontStyle: "italic" }}>
@@ -329,6 +393,76 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+        
+        {isPro && (
+          <section style={{ backgroundColor: "#FFFFFF", borderRadius: "24px", padding: "40px", border: "1px solid #E5E7EB", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
+              <Upload size={24} color="#0A1628" />
+              <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628", margin: 0 }}>White Label</h2>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Firm Name</label>
+                  <input 
+                    style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }} 
+                    value={firmName} 
+                    onChange={(e) => setFirmName(e.target.value)} 
+                    placeholder="e.g. Example Wealth Pty Ltd"
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "700", color: "#0A1628" }}>Firm Logo</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={isUploadingLogo}
+                      onChange={(e) => {
+                        const file = e.currentTarget.files?.[0];
+                        if (file) handleUploadLogo(file);
+                      }}
+                    />
+                    {isUploadingLogo && <Loader2 className="animate-spin" size={18} />}
+                  </div>
+                  <input
+                    style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid #E2E8F0", fontSize: "14px" }}
+                    value={firmLogoUrl}
+                    onChange={(e) => setFirmLogoUrl(e.target.value)}
+                    placeholder="Or paste a public logo URL"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveWhiteLabel}
+                disabled={isSaving}
+                onMouseEnter={() => setHoveredBtn("white-label")}
+                onMouseLeave={() => setHoveredBtn(null)}
+                style={{
+                  backgroundColor: "#0A1628",
+                  color: "white",
+                  padding: "14px 28px",
+                  borderRadius: "10px",
+                  border: "none",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                  width: "fit-content",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  transition: "all 0.2s ease",
+                  transform: hoveredBtn === "white-label" && !isSaving ? "translateY(-1px)" : "none",
+                  boxShadow: hoveredBtn === "white-label" && !isSaving ? "0 4px 12px rgba(10, 22, 40, 0.15)" : "none"
+                }}
+              >
+                <Save size={18} /> Save White Label Settings
+              </button>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

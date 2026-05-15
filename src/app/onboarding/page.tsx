@@ -32,9 +32,10 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found. Please log in again.");
 
+      const jurisdiction = selected.trim().toLowerCase();
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ jurisdiction: selected })
+        .update({ jurisdiction })
         .eq("id", user.id);
 
       if (updateError) throw updateError;
@@ -43,6 +44,7 @@ export default function OnboardingPage() {
     } catch (err: any) {
       console.error("Failed to save jurisdiction:", err);
       setError(err.message || "Failed to save your selection. Please try again.");
+    } finally {
       setIsSubmitting(false);
     }
   }

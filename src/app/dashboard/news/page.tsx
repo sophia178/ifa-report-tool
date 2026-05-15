@@ -18,6 +18,7 @@ export default function NewsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [jurisdiction, setJurisdiction] = useState<"uk" | "aus" | "usa" | "global">("global");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   function getTitle() {
     switch (jurisdiction) {
@@ -32,10 +33,32 @@ export default function NewsPage() {
     setIsLoading(true);
     setError(null);
     try {
+      const res = await fetch(`/api/news?jurisdiction=${encodeURIComponent(j)}`);
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to fetch news");
+      }
+
+      const data = await res.json();
+      setBriefings(data.result || []);
+      setLastUpdated(typeof data.lastUpdated === "string" ? data.lastUpdated : null);
+    } catch (err) {
+      console.error("News fetch error:", err);
+      setError(err instanceof Error ? err.message : "An unexpected error occurred while loading news.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const refreshNews = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
       const res = await fetch("/api/news", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jurisdiction: j }),
+        body: JSON.stringify({ jurisdiction }),
       });
 
       if (!res.ok) {
@@ -45,13 +68,14 @@ export default function NewsPage() {
 
       const data = await res.json();
       setBriefings(data.result || []);
+      setLastUpdated(typeof data.lastUpdated === "string" ? data.lastUpdated : null);
     } catch (err) {
-      console.error("News fetch error:", err);
+      console.error("News refresh error:", err);
       setError(err instanceof Error ? err.message : "An unexpected error occurred while loading news.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [jurisdiction]);
 
   useEffect(() => {
     async function init() {
@@ -93,9 +117,14 @@ export default function NewsPage() {
           <p style={{ color: "#64748B", margin: 0, fontSize: "15px" }}>
             Daily insights and regulatory developments for professional financial advisers.
           </p>
+          {lastUpdated && (
+            <p style={{ color: "#94A3B8", margin: 0, fontSize: "13px", fontWeight: "600" }}>
+              Last updated: {new Date(lastUpdated).toLocaleString()}
+            </p>
+          )}
         </div>
         <button
-          onClick={() => fetchNews(jurisdiction)}
+          onClick={refreshNews}
           disabled={isLoading}
           style={{
             display: "flex",

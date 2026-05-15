@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -17,6 +18,7 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setMessage(null);
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -26,6 +28,8 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
+      // If new users are being blocked from logging in, check Supabase Dashboard → Authentication → Settings.
+      // Turning OFF "Enable email confirmations" allows immediate access without requiring email verification.
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -33,7 +37,14 @@ export default function SignupPage() {
 
       if (signUpError) {
         setError(signUpError.message);
-        setIsLoading(false);
+        return;
+      }
+
+      const identities = (data.user as any)?.identities;
+      const requiresEmailConfirmation = !!data.user && Array.isArray(identities) && identities.length === 0;
+
+      if (requiresEmailConfirmation) {
+        setMessage("Please check your email and click the confirmation link before logging in.");
         return;
       }
 
@@ -42,6 +53,7 @@ export default function SignupPage() {
       }
     } catch (err: any) {
       setError(err.message || "An error occurred during signup");
+    } finally {
       setIsLoading(false);
     }
   }
@@ -64,6 +76,12 @@ export default function SignupPage() {
         {error && (
           <div style={{ padding: "12px 16px", backgroundColor: "#FEF2F2", color: "#B91C1C", borderRadius: "8px", marginBottom: "24px", fontSize: "14px", border: "1px solid #FEE2E2" }}>
             {error}
+          </div>
+        )}
+
+        {message && (
+          <div style={{ padding: "12px 16px", backgroundColor: "#ECFDF5", color: "#047857", borderRadius: "8px", marginBottom: "24px", fontSize: "14px", border: "1px solid #A7F3D0" }}>
+            {message}
           </div>
         )}
 

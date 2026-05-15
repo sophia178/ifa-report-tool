@@ -5,6 +5,53 @@ import { checkSubscription } from "@/lib/subscription";
 
 export const maxDuration = 300;
 
+type Jurisdiction = "uk" | "aus" | "usa" | "global";
+
+function normalizeJurisdiction(value: unknown): Jurisdiction {
+  const v = typeof value === "string" ? value.trim().toLowerCase() : "global";
+  if (v === "uk" || v === "aus" || v === "usa" || v === "global") return v;
+  return "global";
+}
+
+function getKeywords(jurisdiction: Jurisdiction) {
+  return jurisdiction === "uk"
+    ? ["FCA", "Bank of England", "UK financial markets", "HMRC"]
+    : jurisdiction === "aus"
+      ? ["ASIC", "RBA", "ASX", "Australian financial advice"]
+      : jurisdiction === "usa"
+        ? ["SEC", "FINRA", "Federal Reserve", "NYSE/NASDAQ", "US financial planning"]
+        : ["FCA", "ASIC", "SEC", "Bank of England", "RBA", "Federal Reserve"];
+}
+
+function getFocus(jurisdiction: Jurisdiction) {
+  return jurisdiction === "uk"
+    ? "Generate 4 news items focused on FCA regulation, Bank of England, UK financial markets, HMRC updates."
+    : jurisdiction === "aus"
+      ? "Generate 4 news items focused on ASIC regulation, RBA decisions, ASX markets, Australian financial advice."
+      : jurisdiction === "usa"
+        ? "Generate 4 news items focused on SEC, FINRA, Federal Reserve, NYSE/NASDAQ, US financial planning."
+        : "Generate 4 news items covering UK, Australia, and USA adviser-relevant developments.";
+}
+
+async function generateNews(jurisdiction: Jurisdiction) {
+  const focus = getFocus(jurisdiction);
+  const prompt = `You are a financial news editor.
+${focus}
+
+Return a JSON array of exactly 4 objects, where each object has:
+    - topic: The news topic
+    - developments: Key news developments
+    - implications: Implications for financial advisers
+    - adviserAdvice: Specific advice for client conversations
+    - riskFlags: Any risks to flag
+    
+Return ONLY the raw JSON array. Do not use markdown code fences.`;
+
+  const rawResult = await callClaude(prompt);
+  const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+  return JSON.parse(cleanJson);
+}
+
 export async function POST(request: Request) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -27,64 +74,41 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const jurisdictionRaw = typeof body?.jurisdiction === "string" ? body.jurisdiction : "global";
-    const jurisdiction: "uk" | "aus" | "usa" | "global" =
-      jurisdictionRaw === "uk" || jurisdictionRaw === "aus" || jurisdictionRaw === "usa" || jurisdictionRaw === "global"
-        ? jurisdictionRaw
-        : "global";
-
-    const keywords =
-      jurisdiction === "uk"
-        ? ["FCA", "Bank of England", "UK financial markets", "HMRC"]
-        : jurisdiction === "aus"
-          ? ["ASIC", "RBA", "ASX", "Australian financial advice"]
-          : jurisdiction === "usa"
-            ? ["SEC", "FINRA", "Federal Reserve", "NYSE/NASDAQ", "US financial planning"]
-            : ["FCA", "ASIC", "SEC", "Bank of England", "RBA", "Federal Reserve"];
-
-    const focus =
-      jurisdiction === "uk"
-        ? "Generate 4 news items focused on FCA regulation, Bank of England, UK financial markets, HMRC updates."
-        : jurisdiction === "aus"
-          ? "Generate 4 news items focused on ASIC regulation, RBA decisions, ASX markets, Australian financial advice."
-          : jurisdiction === "usa"
-            ? "Generate 4 news items focused on SEC, FINRA, Federal Reserve, NYSE/NASDAQ, US financial planning."
-            : "Generate 4 news items covering UK, Australia, and USA adviser-relevant developments.";
-
-    const prompt = `You are a financial news editor.
-${focus}
-
-Return a JSON array of exactly 4 objects, where each object has:
-    - topic: The news topic
-    - developments: Key news developments
-    - implications: Implications for financial advisers
-    - adviserAdvice: Specific advice for client conversations
-    - riskFlags: Any risks to flag
-    
-    Return ONLY the raw JSON array. Do not use markdown code fences.`;
-
-    const rawResult = await callClaude(prompt);
-    
-    // Clean and parse JSON safely
-    const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-    const briefingJson = JSON.parse(cleanJson);
+    const jurisdiction = normalizeJurisdiction(body?.jurisdiction);
+    const keywords = getKeywords(jurisdiction);
+    const briefingJson = await generateNews(jurisdiction);
 
     // Save to Supabase
-    const { data, error: dbError } = await supabase
+    const insertWithJurisdiction = await supabase
       .from("news_briefings")
       .insert({
         user_id: user.id,
         keywords,
         briefing_json: briefingJson,
-      })
+        jurisdiction,
+      } as any)
       .select()
       .maybeSingle();
+
+    const insertResult = insertWithJurisdiction.error
+      ? await supabase
+          .from("news_briefings")
+          .insert({
+            user_id: user.id,
+            keywords,
+            briefing_json: briefingJson,
+          } as any)
+          .select()
+          .maybeSingle()
+      : insertWithJurisdiction;
+
+    const { data, error: dbError } = insertResult;
 
     if (dbError || !data) {
       console.error("DB Error:", dbError);
     }
 
-    return NextResponse.json({ result: briefingJson });
+    return NextResponse.json({ result: briefingJson, lastUpdated: data?.created_at || new Date().toISOString(), cached: false });
   } catch (error) {
     console.error("API route error:", error);
     return NextResponse.json(
@@ -94,7 +118,7 @@ Return a JSON array of exactly 4 objects, where each object has:
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -103,14 +127,69 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const jurisdiction = normalizeJurisdiction(searchParams.get("jurisdiction"));
+
+    const isSubscribed = await checkSubscription(user.id);
+    if (!isSubscribed) {
+      return NextResponse.json({ error: "Subscription required" }, { status: 403 });
+    }
+
+    const sixHoursMs = 6 * 60 * 60 * 1000;
+
+    const attemptFiltered = await supabase
       .from("news_briefings")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("id, created_at, briefing_json, jurisdiction")
+      .eq("user_id", user.id)
+      .eq("jurisdiction", jurisdiction)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error) throw error;
+    const attemptFallback = await supabase
+      .from("news_briefings")
+      .select("id, created_at, briefing_json")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    return NextResponse.json(data);
+    const latest = attemptFiltered.error ? attemptFallback.data : (attemptFiltered.data || attemptFallback.data);
+    const createdAt = latest?.created_at ? new Date(latest.created_at) : null;
+    const isFresh = createdAt ? Date.now() - createdAt.getTime() < sixHoursMs : false;
+
+    if (latest?.briefing_json && isFresh) {
+      return NextResponse.json({ result: latest.briefing_json, lastUpdated: latest.created_at, cached: true });
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      if (latest?.briefing_json) {
+        return NextResponse.json({ result: latest.briefing_json, lastUpdated: latest.created_at, cached: true, stale: true });
+      }
+      return NextResponse.json({ error: "API key not configured" }, { status: 500 });
+    }
+
+    const keywords = getKeywords(jurisdiction);
+    const briefingJson = await generateNews(jurisdiction);
+
+    const insertWithJurisdiction = await supabase
+      .from("news_briefings")
+      .insert({ user_id: user.id, keywords, briefing_json: briefingJson, jurisdiction } as any)
+      .select()
+      .maybeSingle();
+
+    const insertResult = insertWithJurisdiction.error
+      ? await supabase
+          .from("news_briefings")
+          .insert({ user_id: user.id, keywords, briefing_json: briefingJson } as any)
+          .select()
+          .maybeSingle()
+      : insertWithJurisdiction;
+
+    const { data, error } = insertResult;
+    if (error || !data) throw error || new Error("Could not save briefing");
+
+    return NextResponse.json({ result: briefingJson, lastUpdated: data.created_at, cached: false });
   } catch (error) {
     console.error("API route error:", error);
     return NextResponse.json({ error: "Failed to fetch briefings" }, { status: 500 });

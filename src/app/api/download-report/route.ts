@@ -24,16 +24,16 @@ export async function GET(request: Request) {
 
     let tableName = "reports";
     let textField = "report_text";
-    let title = "FCA Suitability Report";
+    let title = "FCA SUITABILITY REPORT";
 
     if (type === "soa") {
       tableName = "australian_soas";
       textField = "soa_text";
-      title = "Australian Statement of Advice";
+      title = "AUSTRALIAN STATEMENT OF ADVICE";
     } else if (type === "usa") {
       tableName = "usa_financial_plans";
       textField = "plan_text";
-      title = "USA Financial Plan";
+      title = "USA FINANCIAL PLAN";
     }
 
     const { data, error } = await supabase

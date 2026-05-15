@@ -2,15 +2,47 @@ import { NextResponse } from "next/server";
 import { buildReportDocx } from "@/lib/docx";
 import { createClient } from "@/lib/supabase/server";
 
+type DownloadBody = {
+  clientName?: string;
+  planText?: string;
+};
+
+function stripMarkdownSymbols(text: string) {
+  return text
+    .replace(/\r/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/#/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/^---+$/gm, "")
+    .trim();
+}
+
+async function getPreparedBy(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
+}
+
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const planId = searchParams.get("id");
+    void request;
+    return NextResponse.json(
+      { error: "Method not allowed. Use POST with { clientName, planText } to download the current plan." },
+      { status: 405 }
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected error.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
-    if (!planId) {
-      return NextResponse.json({ error: "Plan ID is required." }, { status: 400 });
-    }
-
+export async function POST(request: Request) {
+  try {
     const supabase = await createClient();
     const {
       data: { user },
@@ -20,36 +52,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await supabase
-      .from("usa_financial_plans")
-      .select("client_name, plan_text")
-      .eq("id", planId)
-      .eq("user_id", user.id)
-      .single();
+    const payload = (await request.json()) as DownloadBody;
+    const planText = typeof payload.planText === "string" ? payload.planText : "";
+    const clientName = typeof payload.clientName === "string" ? payload.clientName.trim() : "";
 
-    if (error || !data) {
-      return NextResponse.json({ error: "Plan not found." }, { status: 404 });
+    const cleanPlanText = stripMarkdownSymbols(planText);
+
+    if (!cleanPlanText.trim() || !clientName) {
+      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    // Check for white label settings
     const { data: whiteLabel } = await supabase
       .from("white_label_settings")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", user.id)
-      .maybeSingle();
+    const preparedBy = await getPreparedBy(supabase, user.id);
+    const buffer = await buildReportDocx(cleanPlanText, "USA FINANCIAL PLAN", whiteLabel, {
+      preparedBy,
+      preparedAt: new Date(),
+      clientName,
+    });
 
-    const preparedBy =
-      (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
-
-    const buffer = await buildReportDocx(data.plan_text, "USA Financial Plan", whiteLabel, { preparedBy, preparedAt: new Date(), clientName: data.client_name });
-
-    const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-usa-financial-plan.docx`;
+    const filename = `${clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-usa-financial-plan.docx`;
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

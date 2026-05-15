@@ -32,16 +32,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Holdings are required" }, { status: 400 });
     }
 
-    const prompt = `You are a risk management expert. Analyse the following portfolio holdings for risk and diversification.
-    Holdings: ${JSON.stringify(holdings)}
-    
-    Return a JSON object with:
-    - overallRiskScore: 1-10
-    - diversificationScore: 1-10
-    - analysis: Detailed text analysis
-    - recommendations: Array of strings
-    
-    Return ONLY the raw JSON object. Do not use markdown code fences.`;
+    const prompt = `You are a portfolio risk analyst. Analyse the following portfolio holdings for professional adviser use.
+Holdings: ${JSON.stringify(holdings)}
+
+Return a JSON object with:
+- overallRiskScore: number 1-10
+- diversificationAssessment: string
+- concentrationRisk: string
+- correlationAnalysis: string
+- recommendations: string[] (actionable, specific)
+
+Return ONLY the raw JSON object. Do not use markdown code fences.`;
 
     const rawResult = await callClaude(prompt);
     

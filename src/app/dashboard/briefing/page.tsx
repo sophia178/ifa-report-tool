@@ -13,24 +13,9 @@ export default function BriefingPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [jurisdiction, setJurisdiction] = useState<"uk" | "aus" | "usa" | "global">("global");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchLatestBriefing() {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase
-          .from("market_briefings")
-          .select("briefing_text")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (data) setBriefing(data.briefing_text);
-      } catch (err) {
-        console.error("Failed to fetch briefing", err);
-      }
-    }
-
     async function checkAccessAndFetch() {
       try {
         const supabase = createClient();
@@ -61,14 +46,19 @@ export default function BriefingPage() {
           return;
         }
 
-        const j = typeof profile?.jurisdiction === "string" ? profile.jurisdiction : "global";
-        if (j === "uk" || j === "aus" || j === "usa") {
-          setJurisdiction(j);
-        } else {
-          setJurisdiction("global");
+        const rawJurisdiction =
+          typeof profile?.jurisdiction === "string" ? profile.jurisdiction.trim().toLowerCase() : "global";
+        const effectiveJurisdiction: "uk" | "aus" | "usa" | "global" =
+          rawJurisdiction === "uk" || rawJurisdiction === "aus" || rawJurisdiction === "usa" ? rawJurisdiction : "global";
+
+        setJurisdiction(effectiveJurisdiction);
+
+        const res = await fetch(`/api/briefing?jurisdiction=${encodeURIComponent(effectiveJurisdiction)}`);
+        const json = await res.json();
+        if (res.ok) {
+          setBriefing(typeof json.result === "string" ? json.result : null);
+          setLastUpdated(typeof json.lastUpdated === "string" ? json.lastUpdated : null);
         }
-        
-        await fetchLatestBriefing();
       } catch (err) {
         console.error("Briefing page init error:", err);
       } finally {
@@ -91,6 +81,7 @@ export default function BriefingPage() {
     setIsGenerating(true);
     setError("");
     setBriefing(null);
+    setLastUpdated(null);
 
     try {
       const response = await fetch("/api/briefing", {
@@ -106,6 +97,7 @@ export default function BriefingPage() {
 
       const data = await response.json();
       setBriefing(data.result); // Use .result as per our new API pattern
+      setLastUpdated(typeof data.lastUpdated === "string" ? data.lastUpdated : new Date().toISOString());
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -221,6 +213,11 @@ export default function BriefingPage() {
         <p style={{ color: "#64748B", margin: 0, fontSize: "16px" }}>
           Market intelligence and strategic advice for professional financial advisers.
         </p>
+        {lastUpdated && (
+          <p style={{ color: "#94A3B8", margin: 0, fontSize: "13px", fontWeight: "600" }}>
+            Last updated: {new Date(lastUpdated).toLocaleString()}
+          </p>
+        )}
       </div>
 
       <div style={{ maxWidth: "780px", margin: "0 auto", width: "100%" }}>

@@ -10,12 +10,16 @@ import { LoadingProgress } from "@/components/loading-progress";
 
 type Trade = {
   id: string;
-  asset_name: string;
+  symbol?: string;
+  asset_name?: string;
   entry_price: number;
   exit_price: number;
-  position_size: number;
+  quantity?: number;
+  position_size?: number;
+  direction?: "long" | "short";
   trade_date: string;
-  rationale: string;
+  notes?: string;
+  rationale?: string;
 };
 
 type AnalysisResult = {
@@ -31,12 +35,13 @@ export default function TradeJournalPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"log" | "history">("log");
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [assetName, setAssetName] = useState("");
+  const [symbol, setSymbol] = useState("");
+  const [direction, setDirection] = useState<"long" | "short">("long");
   const [entryPrice, setEntryPrice] = useState("");
   const [exitPrice, setExitPrice] = useState("");
-  const [positionSize, setPositionSize] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [tradeDate, setTradeDate] = useState(new Date().toISOString().slice(0, 10));
-  const [rationale, setRationale] = useState("");
+  const [notes, setNotes] = useState("");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalysing, setIsAnalysing] = useState(false);
@@ -103,12 +108,13 @@ export default function TradeJournalPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          asset_name: assetName,
+          symbol,
+          direction,
           entry_price: parseFloat(entryPrice),
           exit_price: parseFloat(exitPrice),
-          position_size: parseFloat(positionSize),
+          quantity: parseFloat(quantity),
           trade_date: tradeDate,
-          rationale
+          notes
         }),
       });
 
@@ -117,11 +123,12 @@ export default function TradeJournalPage() {
         throw new Error(err.error || "Failed to log trade");
       }
 
-      setAssetName("");
+      setSymbol("");
+      setDirection("long");
       setEntryPrice("");
       setExitPrice("");
-      setPositionSize("");
-      setRationale("");
+      setQuantity("");
+      setNotes("");
       await fetchTrades();
       setActiveTab("history");
     } catch (err: any) {
@@ -238,12 +245,23 @@ export default function TradeJournalPage() {
             <form onSubmit={handleLogTrade} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Asset / Ticker</label>
-                  <input type="text" value={assetName} onChange={e => setAssetName(e.target.value)} required placeholder="e.g. BTC/USD" style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} />
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Symbol</label>
+                  <input type="text" value={symbol} onChange={e => setSymbol(e.target.value)} required placeholder="e.g. AAPL" style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Trade Date</label>
                   <input type="date" value={tradeDate} onChange={e => setTradeDate(e.target.value)} required style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Direction</label>
+                  <select value={direction} onChange={(e) => setDirection(e.target.value as "long" | "short")} style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%", backgroundColor: "white" }}>
+                    <option value="long">Long</option>
+                    <option value="short">Short</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Quantity</label>
+                  <input type="number" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} required placeholder="e.g. 10" style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Entry Price</label>
@@ -255,8 +273,8 @@ export default function TradeJournalPage() {
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Rationale / Strategy</label>
-                <textarea value={rationale} onChange={e => setRationale(e.target.value)} required rows={4} placeholder="Why did you take this trade?" style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", resize: "none", fontFamily: "inherit", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} />
+                <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Notes</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} required rows={4} placeholder="Setup, rationale, execution notes..." style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", resize: "none", fontFamily: "inherit", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} />
               </div>
 
               {error && <p style={{ color: "#EF4444", fontSize: "12px", margin: 0 }}>{error}</p>}
@@ -307,33 +325,92 @@ export default function TradeJournalPage() {
                   <div style={{ fontSize: "40px", fontWeight: "900", color: "#0A1628", marginTop: "8px" }}>{analysis.winRate}</div>
                 </div>
                 <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B" }}>Average P&amp;L</span>
+                  <div style={{ fontSize: "24px", fontWeight: "900", color: "#0A1628", marginTop: "8px" }}>{analysis.avgProfitLoss}</div>
+                </div>
+                <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC", gridColumn: "1 / -1" }}>
                   <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B" }}>Market Patterns</span>
                   <p style={{ fontSize: "14px", color: "#374151", margin: "8px 0 0", lineHeight: "1.6" }}>{analysis.patterns}</p>
+                </div>
+                <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B" }}>Best Symbols</span>
+                  <p style={{ fontSize: "14px", color: "#374151", margin: "8px 0 0", lineHeight: "1.6" }}>
+                    {analysis.bestAssets?.length ? analysis.bestAssets.join(", ") : "---"}
+                  </p>
+                </div>
+                <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B" }}>Worst Symbols</span>
+                  <p style={{ fontSize: "14px", color: "#374151", margin: "8px 0 0", lineHeight: "1.6" }}>
+                    {analysis.worstAssets?.length ? analysis.worstAssets.join(", ") : "---"}
+                  </p>
+                </div>
+                <div style={{ padding: "24px", borderRadius: "12px", border: "1px solid #E5E7EB", backgroundColor: "#F8FAFC", gridColumn: "1 / -1" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.1em", color: "#64748B" }}>Recommendations</span>
+                  <ul style={{ margin: "10px 0 0", paddingLeft: "18px", color: "#374151", lineHeight: "1.7" }}>
+                    {analysis.recommendations?.map((r, i) => (
+                      <li key={i} style={{ fontSize: "14px" }}>{r}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {trades.map((trade) => {
-                const profit = trade.exit_price - trade.entry_price;
-                const isWin = profit > 0;
-                return (
-                  <div key={trade.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px", backgroundColor: "white", borderRadius: "12px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "16px", fontWeight: "800", color: "#0A1628" }}>{trade.asset_name}</span>
-                        <span style={{ fontSize: "12px", fontWeight: "700", color: isWin ? "#059669" : "#DC2626", backgroundColor: isWin ? "#ECFDF5" : "#FEF2F2", padding: "4px 10px", borderRadius: "6px" }}>
-                          {isWin ? "+" : ""}{profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: "12px", color: "#94A3B8", fontWeight: "500" }}>{format(new Date(trade.trade_date), "EEEE, dd MMMM yyyy")}</span>
-                    </div>
-                    <button onClick={() => deleteTrade(trade.id)} style={{ padding: "10px", color: "#94A3B8", backgroundColor: "transparent", border: "none", cursor: "pointer", transition: "color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.color = "#EF4444"} onMouseLeave={(e) => e.currentTarget.style.color = "#94A3B8"}>
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                );
-              })}
+            <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "760px" }}>
+                  <thead>
+                    <tr>
+                      {["Date", "Symbol", "Dir", "Qty", "Entry", "Exit", "P&L", ""].map((h) => (
+                        <th key={h} style={{ textAlign: "left", fontSize: "11px", fontWeight: "800", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em", padding: "12px 10px", borderBottom: "1px solid #E5E7EB" }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trades.map((trade, idx) => {
+                      const tradeSymbol = (trade.symbol || trade.asset_name || "").toString();
+                      const tradeDirection = trade.direction || "long";
+                      const qty = Number(trade.quantity ?? trade.position_size ?? 0);
+                      const pnl =
+                        tradeDirection === "short"
+                          ? (trade.entry_price - trade.exit_price) * qty
+                          : (trade.exit_price - trade.entry_price) * qty;
+                      const isWin = pnl >= 0;
+                      return (
+                        <tr key={trade.id} style={{ backgroundColor: idx % 2 === 0 ? "white" : "#F9FAFB" }}>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#374151" }}>
+                            {format(new Date(trade.trade_date), "dd MMM yyyy")}
+                          </td>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#0A1628", fontWeight: 800 }}>
+                            {tradeSymbol || "---"}
+                          </td>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#374151" }}>
+                            {tradeDirection.toUpperCase()}
+                          </td>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#374151" }}>
+                            {Number.isFinite(qty) && qty ? qty : "---"}
+                          </td>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#374151" }}>
+                            {trade.entry_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                          </td>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9", fontSize: "13px", color: "#374151" }}>
+                            {trade.exit_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                          </td>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9", fontSize: "13px", fontWeight: 800, color: isWin ? "#059669" : "#DC2626" }}>
+                            {isWin ? "+" : ""}{pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td style={{ padding: "12px 10px", borderBottom: "1px solid #F1F5F9" }}>
+                            <button onClick={() => deleteTrade(trade.id)} style={{ padding: "8px", color: "#94A3B8", backgroundColor: "transparent", border: "none", cursor: "pointer" }} aria-label="Delete trade">
+                              <Trash2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
               {trades.length === 0 && (
                 <div style={{ padding: "60px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "12px", border: "1px dashed #E5E7EB" }}>
                   <TrendingUp size={48} color="#CBD5E1" style={{ marginBottom: "16px" }} />

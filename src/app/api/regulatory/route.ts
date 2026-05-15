@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     
     Return ONLY the raw JSON array. Do not use markdown code fences.`;
 
-    const rawResult = await callClaude(prompt);
+    const rawResult = await callClaude(prompt, 3000);
     const cleanJson = stripJsonFences(rawResult);
     const parsed = JSON.parse(cleanJson);
 
@@ -134,7 +134,7 @@ Return ONLY the raw JSON array. Do not use markdown code fences.
 JSON array:
 ${JSON.stringify(updates)}`;
 
-      const fillRaw = await callClaude(fillPrompt);
+      const fillRaw = await callClaude(fillPrompt, 3000);
       const fillClean = stripJsonFences(fillRaw);
       const filledParsed = JSON.parse(fillClean);
       const filledUpdates: NormalizedUpdate[] = Array.isArray(filledParsed) ? filledParsed.map(normalizeUpdate) : [];

@@ -39,7 +39,9 @@ function sanitizeText(text: string) {
   return text
     .replace(/\r/g, "")
     .replace(/^#{1,6}\s+/gm, "")
+    .replace(/#/g, "")
     .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
     .trim();
 }
 
@@ -145,7 +147,7 @@ function buildTable(lines: string[]) {
 
 function paragraphFromLine(line: string) {
   const trimmed = line.trim();
-  const cleaned = sanitizeText(trimmed);
+  const cleaned = sanitizeText(trimmed).replace(/\|/g, "");
 
   if (isAllCapsHeading(cleaned)) {
     return new Paragraph({
@@ -189,19 +191,7 @@ function toBlocks(text: string) {
     }
 
     if (isHorizontalRule(cleaned)) {
-      blocks.push(
-        new Paragraph({
-          spacing: { before: 180, after: 180 },
-          border: {
-            bottom: {
-              color: "E5E7EB",
-              space: 1,
-              style: BorderStyle.SINGLE,
-              size: 6,
-            },
-          },
-        })
-      );
+      blocks.push(new Paragraph({ spacing: { before: 120, after: 120 } }));
       i += 1;
       continue;
     }
@@ -325,15 +315,6 @@ export async function buildReportDocx(
         })
       );
     }
-  } else {
-    headerChildren.push(
-      new Paragraph({
-        alignment: AlignmentType.RIGHT,
-        children: [
-          new TextRun({ text: "Suitance Professional", bold: true, color: "C1A362" }),
-        ],
-      })
-    );
   }
 
   const preparedAt = meta?.preparedAt ?? new Date();
@@ -378,6 +359,17 @@ export async function buildReportDocx(
               }),
             ],
             spacing: { before: 480, after: 240 },
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: "DRAFT - FOR ADVISER REVIEW ONLY",
+                bold: true,
+                color: "666666",
+              }),
+            ],
+            spacing: { after: 180 },
           }),
           ...(clientName
             ? [
@@ -441,5 +433,5 @@ export async function buildSuitabilityReportDocx(
     footer_message?: string | null;
   }
 ) {
-  return buildReportDocx(reportText, "FCA Suitability Report", whiteLabel);
+  return buildReportDocx(reportText, "FCA SUITABILITY REPORT", whiteLabel);
 }

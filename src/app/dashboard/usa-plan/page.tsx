@@ -218,10 +218,14 @@ export default function USAPlanPage() {
   }
 
   async function handleDownload() {
-    if (!reportId) return;
+    if (!planText) return;
     setIsDownloading(true);
     try {
-      const response = await fetch(`/api/download-report?id=${reportId}&type=usa`);
+      const response = await fetch(`/api/download-usa-plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientName, planText }),
+      });
       if (!response.ok) throw new Error("Download failed");
       
       const blob = await response.blob();
@@ -428,7 +432,7 @@ export default function USAPlanPage() {
               </div>
               <button 
                 onClick={handleDownload}
-                disabled={isDownloading || !reportId}
+                disabled={isDownloading || !planText}
                 style={{ 
                   display: "flex", 
                   alignItems: "center", 

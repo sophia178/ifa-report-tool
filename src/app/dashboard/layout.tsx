@@ -1,6 +1,6 @@
 import { DashboardNav } from "@/components/dashboard-nav";
 import { requireUser } from "@/lib/auth";
-import { LogOut, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ClientLogout } from "@/components/client-logout";
@@ -42,9 +42,10 @@ export default async function DashboardLayout({
   const displayName = user.email ? formatName(user.email, profile?.display_name ?? undefined) : (profile?.display_name || "Adviser");
 
   return (
-    <div style={{ display: "flex", height: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif", overflow: "hidden" }}>
+    <div className="dashboard-shell" style={{ display: "flex", height: "100vh", backgroundColor: "#F4F6F9", color: "#132033", fontFamily: "system-ui, -apple-system, sans-serif", overflow: "hidden" }}>
+      <input id="dashboard-nav-toggle" className="dashboard-nav-toggle" type="checkbox" />
       {/* Sidebar */}
-      <aside className="no-print" style={{ 
+      <aside className="no-print dashboard-sidebar" style={{ 
         width: "240px", 
         minWidth: "240px",
         flexShrink: 0,
@@ -57,11 +58,12 @@ export default async function DashboardLayout({
       }}>
         <DashboardNav />
       </aside>
+      <label htmlFor="dashboard-nav-toggle" className="dashboard-overlay no-print" />
 
       {/* Main Content Container */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <div className="dashboard-content" style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
         {/* Top Navigation Bar */}
-        <header className="no-print" style={{ 
+        <header className="no-print dashboard-topbar" style={{ 
           height: "64px", 
           minHeight: "64px",
           backgroundColor: "#FFFFFF", 
@@ -73,6 +75,13 @@ export default async function DashboardLayout({
           zIndex: 40 
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
+            <label
+              htmlFor="dashboard-nav-toggle"
+              className="dashboard-nav-toggle-btn"
+              aria-label="Toggle menu"
+            >
+              <Menu size={18} />
+            </label>
             <h1 style={{ fontSize: "18px", fontWeight: "700", color: "#0A1628" }}>Workspace</h1>
             <div style={{ 
               display: "none", 
@@ -124,7 +133,7 @@ export default async function DashboardLayout({
         </header>
 
         {/* Scrollable Content Area */}
-        <main style={{ flex: 1, overflowY: "auto", padding: "32px" }}>
+        <main className="dashboard-main-content" style={{ flex: 1, overflowY: "auto", padding: "32px" }}>
           {children}
         </main>
       </div>

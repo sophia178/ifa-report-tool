@@ -39,8 +39,8 @@ export async function POST(request: Request) {
           const { error } = await supabaseAdmin
             .from("profiles")
             .update({
-              stripe_customer_id: stripeCustomerId,
-              stripe_price_id: stripePriceId?.trim(),
+              stripe_customer_id: typeof stripeCustomerId === "string" ? stripeCustomerId.trim() : stripeCustomerId,
+              stripe_price_id: typeof stripePriceId === "string" ? stripePriceId.trim() : stripePriceId,
               subscribed: true,
             })
             .eq("email", customerEmail);
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
             stripe_price_id: null,
             subscribed: false,
           })
-          .eq("stripe_customer_id", stripeCustomerId);
+          .eq("stripe_customer_id", typeof stripeCustomerId === "string" ? stripeCustomerId.trim() : stripeCustomerId);
 
         if (error) throw error;
         console.log(`Cancelled subscription for customer ${stripeCustomerId}.`);
@@ -76,10 +76,10 @@ export async function POST(request: Request) {
         const { error } = await supabaseAdmin
           .from("profiles")
           .update({
-            stripe_price_id: stripePriceId.trim(),
+            stripe_price_id: typeof stripePriceId === "string" ? stripePriceId.trim() : stripePriceId,
             subscribed: true,
           })
-          .eq("stripe_customer_id", stripeCustomerId);
+          .eq("stripe_customer_id", typeof stripeCustomerId === "string" ? stripeCustomerId.trim() : stripeCustomerId);
 
         if (error) throw error;
         console.log(`Updated subscription for customer ${stripeCustomerId} to ${stripePriceId}.`);

@@ -76,6 +76,11 @@ export function DashboardNav() {
   const [planTier, setPlanTier] = useState<"Starter" | "Plus" | "Pro" | "Unknown">("Starter");
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
+  const closeMobileNav = () => {
+    const el = document.getElementById("dashboard-nav-toggle") as HTMLInputElement | null;
+    if (el) el.checked = false;
+  };
+
   useEffect(() => {
     async function getProfileAndPlan() {
       const supabase = createClient();
@@ -147,7 +152,7 @@ export function DashboardNav() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", color: "#FFFFFF", overflowY: "hidden", backgroundColor: "#0A1628" }}>
       <div style={{ padding: "24px", flexShrink: 0 }}>
-        <Link href="/" style={{ textDecoration: "none" }}>
+        <Link href="/" onClick={closeMobileNav} style={{ textDecoration: "none" }}>
           <SuitanceLogo textColor="#FFFFFF" size={24} />
         </Link>
       </div>
@@ -181,7 +186,8 @@ export function DashboardNav() {
                   return (
                     <Link
                       key={item.href}
-                      href={locked ? "/pricing?message=upgrade" : item.href}
+                      href={locked ? "/pricing" : item.href}
+                      onClick={closeMobileNav}
                       onMouseEnter={() => setHoveredItem(item.href)}
                       onMouseLeave={() => setHoveredItem(null)}
                       style={{
@@ -244,6 +250,7 @@ export function DashboardNav() {
             borderRadius: "6px",
             transition: "all 0.2s ease"
           }}
+          onClick={closeMobileNav}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(201, 168, 76, 0.2)")}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "rgba(201, 168, 76, 0.1)")}
           >

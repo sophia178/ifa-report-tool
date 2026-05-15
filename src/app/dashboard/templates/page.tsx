@@ -5,10 +5,13 @@ import { Layout, Loader2, Plus, Trash2, Edit3, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+type TemplateType = "fca" | "soa" | "usa";
+
 type Template = {
   id: string;
   name: string;
   content: string;
+  type: TemplateType;
   created_at: string;
 };
 
@@ -23,6 +26,13 @@ export default function TemplatesPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [newType, setNewType] = useState<TemplateType>("fca");
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editType, setEditType] = useState<TemplateType>("fca");
 
   useEffect(() => {
     async function checkAccess() {
@@ -63,6 +73,39 @@ export default function TemplatesPage() {
     }
   }
 
+  function openCreate() {
+    setIsEditing(false);
+    setEditId(null);
+    setEditName("");
+    setEditContent("");
+    setEditType("fca");
+    setNewName("");
+    setNewContent("");
+    setNewType("fca");
+    setError("");
+    setIsCreating(true);
+  }
+
+  function openEdit(t: Template) {
+    setIsCreating(false);
+    setNewName("");
+    setNewContent("");
+    setNewType("fca");
+    setError("");
+    setIsEditing(true);
+    setEditId(t.id);
+    setEditName(t.name || "");
+    setEditContent(t.content || "");
+    setEditType(t.type || "fca");
+  }
+
+  function closeForm() {
+    setIsCreating(false);
+    setIsEditing(false);
+    setEditId(null);
+    setError("");
+  }
+
   async function handleCreateTemplate(e: React.FormEvent) {
     e.preventDefault();
     if (!newName || !newContent) return;
@@ -73,7 +116,7 @@ export default function TemplatesPage() {
       const response = await fetch("/api/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName, content: newContent }),
+        body: JSON.stringify({ name: newName, content: newContent, type: newType }),
       });
 
       if (!response.ok) {
@@ -83,7 +126,35 @@ export default function TemplatesPage() {
 
       setNewName("");
       setNewContent("");
+      setNewType("fca");
       setIsCreating(false);
+      await fetchTemplates();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleUpdateTemplate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editId || !editName || !editContent) return;
+    setIsSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/templates", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editId, name: editName, content: editContent, type: editType }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to update template");
+      }
+
+      closeForm();
       await fetchTemplates();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -139,7 +210,7 @@ export default function TemplatesPage() {
               cursor: "pointer",
               transition: "background-color 0.2s"
             }} 
-            onClick={() => setIsCreating(true)}
+            onClick={openCreate}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#1a2a40"}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#0A1628"}
           >
@@ -149,12 +220,14 @@ export default function TemplatesPage() {
         )}
       </div>
 
-            {isCreating && (
+            {(isCreating || isEditing) && (
               <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "32px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-                <form onSubmit={handleCreateTemplate} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                <form onSubmit={isEditing ? handleUpdateTemplate : handleCreateTemplate} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0 }}>Create New Template</h3>
-                    <button type="button" onClick={() => setIsCreating(false)} style={{ color: "#64748B", cursor: "pointer" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0A1628", margin: 0 }}>
+                      {isEditing ? "Edit Template" : "Create New Template"}
+                    </h3>
+                    <button type="button" onClick={closeForm} style={{ color: "#64748B", cursor: "pointer" }}>
                       <X size={24} />
                     </button>
                   </div>
@@ -164,11 +237,28 @@ export default function TemplatesPage() {
                     <input
                       className="input"
                       placeholder="e.g. Standard Pension Review"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
+                      value={isEditing ? editName : newName}
+                      onChange={(e) => (isEditing ? setEditName(e.target.value) : setNewName(e.target.value))}
                       required
                       style={{ padding: "12px", borderRadius: "8px", border: "1px solid #E5E7EB" }}
                     />
+                  </div>
+
+                  <div className="field">
+                    <label style={{ fontSize: "12px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>Template Type</label>
+                    <select
+                      value={isEditing ? editType : newType}
+                      onChange={(e) => {
+                        const v = e.target.value as TemplateType;
+                        if (isEditing) setEditType(v);
+                        else setNewType(v);
+                      }}
+                      style={{ padding: "12px", borderRadius: "8px", border: "1px solid #E5E7EB", backgroundColor: "white" }}
+                    >
+                      <option value="fca">FCA</option>
+                      <option value="soa">SOA</option>
+                      <option value="usa">USA</option>
+                    </select>
                   </div>
 
                   <div className="field">
@@ -176,8 +266,8 @@ export default function TemplatesPage() {
                     <textarea
                       className="textarea"
                       placeholder="Paste your report structure or boilerplate text here..."
-                      value={newContent}
-                      onChange={(e) => setNewContent(e.target.value)}
+                      value={isEditing ? editContent : newContent}
+                      onChange={(e) => (isEditing ? setEditContent(e.target.value) : setNewContent(e.target.value))}
                       required
                       style={{ padding: "12px", borderRadius: "8px", border: "1px solid #E5E7EB", minHeight: "200px", resize: "vertical" }}
                     />
@@ -207,7 +297,7 @@ export default function TemplatesPage() {
                     onMouseLeave={(e) => { if (!isSaving) e.currentTarget.style.backgroundColor = "#0A1628"; }}
                   >
                     {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                    Save Template
+                    {isEditing ? "Save Changes" : "Save Template"}
                   </button>
                 </form>
               </div>
@@ -218,10 +308,22 @@ export default function TemplatesPage() {
                 templates.map((template) => (
                   <div key={template.id} style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", border: "1px solid #E5E7EB", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <h4 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{template.name}</h4>
-                      <button onClick={() => handleDeleteTemplate(template.id)} style={{ color: "#94A3B8", cursor: "pointer" }}>
-                        <Trash2 size={16} />
-                      </button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <h4 style={{ fontSize: "16px", fontWeight: "700", color: "#0A1628", margin: 0 }}>{template.name}</h4>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: "800", padding: "4px 8px", borderRadius: "999px", backgroundColor: "#FFFBEB", border: "1px solid #FEF3C7", color: "#C9A84C", letterSpacing: "0.08em" }}>
+                            {template.type.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <button onClick={() => openEdit(template)} style={{ color: "#94A3B8", cursor: "pointer" }} aria-label="Edit template">
+                          <Edit3 size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteTemplate(template.id)} style={{ color: "#94A3B8", cursor: "pointer" }} aria-label="Delete template">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                     <p style={{ fontSize: "13px", color: "#64748B", margin: 0, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", lineHeight: "1.5", fontStyle: "italic" }}>
                       {template.content}
@@ -241,4 +343,3 @@ export default function TemplatesPage() {
           </div>
   );
 }
-

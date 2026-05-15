@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     
     Return ONLY the raw JSON object. Do not use markdown code fences.`;
 
-    const rawResult = await callClaude(prompt);
+    const rawResult = await callClaude(prompt, 3000);
     
     // Clean and parse JSON safely
     const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();

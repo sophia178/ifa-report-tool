@@ -1,9 +1,72 @@
 import { NextResponse } from "next/server";
 import { anthropic } from "@/lib/claude";
 import { createClient } from "@/lib/supabase/server";
-import { checkSubscription } from "@/lib/subscription";
+import { checkSubscription, getUserPlan } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
+
+async function enforceStarterMonthlyLimit(params: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+  route: string;
+  limit: number;
+}): Promise<{ allowed: boolean }> {
+  const now = new Date();
+  const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const resetDateIso = periodStart.toISOString();
+
+  const existing = await params.supabase
+    .from("usage_tracking")
+    .select("count, reset_date")
+    .eq("user_id", params.userId)
+    .eq("route", params.route)
+    .maybeSingle();
+
+  if (existing.error) {
+    console.error("Usage tracking read error:", existing.error);
+    return { allowed: true };
+  }
+
+  const currentCount = typeof existing.data?.count === "number" ? existing.data.count : 0;
+  const existingReset = typeof existing.data?.reset_date === "string" ? new Date(existing.data.reset_date) : null;
+  const needsReset =
+    !existingReset ||
+    existingReset.getUTCFullYear() !== periodStart.getUTCFullYear() ||
+    existingReset.getUTCMonth() !== periodStart.getUTCMonth();
+
+  if (needsReset) {
+    if (existing.data) {
+      const updated = await params.supabase
+        .from("usage_tracking")
+        .update({ count: 1, reset_date: resetDateIso } as any)
+        .eq("user_id", params.userId)
+        .eq("route", params.route);
+      if (updated.error) console.error("Usage tracking reset error:", updated.error);
+    } else {
+      const inserted = await params.supabase
+        .from("usage_tracking")
+        .insert({ user_id: params.userId, route: params.route, count: 1, reset_date: resetDateIso } as any);
+      if (inserted.error) console.error("Usage tracking insert error:", inserted.error);
+    }
+    return { allowed: true };
+  }
+
+  if (currentCount >= params.limit) {
+    return { allowed: false };
+  }
+
+  const updated = await params.supabase
+    .from("usage_tracking")
+    .update({ count: currentCount + 1 } as any)
+    .eq("user_id", params.userId)
+    .eq("route", params.route);
+
+  if (updated.error) {
+    console.error("Usage tracking increment error:", updated.error);
+  }
+
+  return { allowed: true };
+}
 
 export async function POST(request: Request) {
   try {
@@ -40,6 +103,22 @@ export async function POST(request: Request) {
     
     if (!clientName || !meetingNotes) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const plan = (await getUserPlan(user.id)) || "starter";
+    if (plan === "starter") {
+      const { allowed } = await enforceStarterMonthlyLimit({
+        supabase,
+        userId: user.id,
+        route: "soa-australia",
+        limit: 20,
+      });
+      if (!allowed) {
+        return NextResponse.json(
+          { error: "You have reached your monthly limit. Upgrade to Plus for unlimited reports." },
+          { status: 429 }
+        );
+      }
     }
 
     const { data: profile } = await supabase
@@ -100,6 +179,9 @@ Use plain text only. NO markdown symbols
 (no ## ** --- or *). Use CAPITALS for
 section headings. Write minimum 2500 words.
 Complete every section. Never stop early.
+Write each section concisely but completely.
+You MUST reach and complete the final disclaimer
+section. Never stop early.
 
 Client data:
 Client full name: ${String(clientName).trim()}
@@ -119,7 +201,7 @@ ${String(meetingNotes).trim()}`;
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [{ role: "user", content: prompt }],
     });
 

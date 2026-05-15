@@ -114,8 +114,21 @@ export default function TeamPage() {
   }
 
   if (!isPro && !isLoading) {
-    router.push("/pricing?message=upgrade-pro");
-    return null;
+    return (
+      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "40px 48px", backgroundColor: "white", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+        <div style={{ backgroundColor: "#F8FAFC", border: "1px dashed #E5E7EB", borderRadius: "16px", padding: "40px", textAlign: "center" }}>
+          <h1 style={{ fontSize: "22px", fontWeight: "800", color: "#0A1628", margin: "0 0 10px" }}>
+            Team Management is a Pro feature
+          </h1>
+          <p style={{ color: "#64748B", margin: "0 0 20px", fontSize: "15px" }}>
+            Upgrade to Pro to invite colleagues and manage firm access.
+          </p>
+          <a href="/pricing" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "12px 20px", backgroundColor: "#0A1628", color: "white", borderRadius: "10px", fontWeight: "700", textDecoration: "none" }}>
+            Upgrade to Pro
+          </a>
+        </div>
+      </div>
+    );
   }
 
   return (

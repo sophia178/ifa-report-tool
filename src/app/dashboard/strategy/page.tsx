@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Zap, Target, AlertCircle, ShieldCheck, TrendingUp, Star, ArrowLeft, Loader2 } from "lucide-react";
+import { Zap, Target, AlertCircle, ShieldCheck, TrendingUp, Star, ArrowLeft, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -39,6 +39,7 @@ export default function StrategyPage() {
   const [currentStrategy, setCurrentStrategy] = useState<Strategy | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAccess() {
@@ -82,6 +83,35 @@ export default function StrategyPage() {
       setSavedStrategies(data);
     } catch (err) {
       console.error("Failed to fetch strategies", err);
+    }
+  }
+
+  async function handleDeleteStrategy(id: string) {
+    if (!confirm("Delete this saved strategy?")) return;
+    setIsDeleting(id);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { error: deleteError } = await supabase
+        .from("trade_strategies")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if (deleteError) throw deleteError;
+      if (currentStrategy && savedStrategies.find((s) => s.id === id)?.strategy_json.strategyName === currentStrategy.strategyName) {
+        setCurrentStrategy(null);
+      }
+      await fetchStrategies();
+    } catch (err) {
+      console.error("Failed to delete strategy", err);
+    } finally {
+      setIsDeleting(null);
     }
   }
 
@@ -215,7 +245,33 @@ export default function StrategyPage() {
                     transition: "all 0.2s"
                   }}
                 >
-                  <div style={{ fontWeight: "700", color: "#0A1628", fontSize: "14px" }}>{s.strategy_json.strategyName}</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                    <div style={{ fontWeight: "700", color: "#0A1628", fontSize: "14px" }}>{s.strategy_json.strategyName}</div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteStrategy(s.id);
+                      }}
+                      disabled={isDeleting === s.id}
+                      style={{
+                        width: "34px",
+                        height: "34px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "10px",
+                        border: "1px solid #FEE2E2",
+                        backgroundColor: "#FEF2F2",
+                        color: "#EF4444",
+                        cursor: isDeleting === s.id ? "not-allowed" : "pointer",
+                        opacity: isDeleting === s.id ? 0.7 : 1,
+                      }}
+                    >
+                      {isDeleting === s.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
+                    </button>
+                  </div>
                   <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>{new Date(s.created_at).toLocaleDateString()}</div>
                 </button>
               ))}
