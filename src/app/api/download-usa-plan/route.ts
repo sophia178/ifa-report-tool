@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildSuitabilityReportDocx } from "@/lib/docx";
+import { buildReportDocx } from "@/lib/docx";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -38,7 +38,16 @@ export async function GET(request: Request) {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const buffer = await buildSuitabilityReportDocx(data.plan_text, whiteLabel);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const preparedBy =
+      (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
+
+    const buffer = await buildReportDocx(data.plan_text, "USA Financial Plan", whiteLabel, { preparedBy, preparedAt: new Date() });
 
     const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-usa-financial-plan.docx`;
 

@@ -54,9 +54,18 @@ export async function GET(request: Request) {
       .eq("user_id", user.id)
       .maybeSingle();
 
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const preparedBy =
+      (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
+
     const reportData = data as any;
     const reportText = reportData[textField] as string;
-    const buffer = await buildReportDocx(reportText, title, whiteLabel);
+    const buffer = await buildReportDocx(reportText, title, whiteLabel, { preparedBy, preparedAt: new Date() });
 
     const clientName = reportData.client_name as string;
     const filename = `${clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${type}-report.docx`;

@@ -1,13 +1,154 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Map, Loader2, FileDown, ArrowLeft, AlertCircle } from "lucide-react";
+import { useState, useEffect, type ReactNode } from "react";
+import { Map, Loader2, FileDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { LoadingProgress } from "@/components/loading-progress";
 
 const today = new Date().toISOString().slice(0, 10);
+
+function isAllCapsHeading(line: string) {
+  const normalized = line.replace(/\s+/g, " ").trim();
+  const withoutNumbering = normalized.replace(/^\d{1,2}\.\s+/, "");
+  if (!withoutNumbering) return false;
+  if (!/[A-Z]/.test(withoutNumbering)) return false;
+  if (/[a-z]/.test(withoutNumbering)) return false;
+  if (withoutNumbering.length < 3) return false;
+  if (withoutNumbering.length > 140) return false;
+  return /^[A-Z0-9][A-Z0-9 \-&,()'/.:%]+$/.test(withoutNumbering);
+}
+
+function renderInline(text: string) {
+  const safe = text.replace(/\r/g, "");
+  const parts = safe.split(/\*\*(.*?)\*\*/g);
+  return parts.map((part, index) => {
+    const isBold = index % 2 === 1;
+    return isBold ? (
+      <strong key={index} style={{ fontWeight: "800", color: "#0A1628" }}>
+        {part}
+      </strong>
+    ) : (
+      <span key={index}>{part}</span>
+    );
+  });
+}
+
+function looksLikePipeTableRow(line: string) {
+  const pipeCount = (line.match(/\|/g) || []).length;
+  return pipeCount >= 2 && line.trim().length >= 5;
+}
+
+function splitPipeRow(line: string) {
+  const cells = line
+    .split("|")
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+  return cells;
+}
+
+function renderSoaText(text: string) {
+  const sanitized = text
+    .replace(/\r/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*/g, "");
+
+  const lines = sanitized.split("\n");
+  const blocks: ReactNode[] = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i] ?? "";
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      blocks.push(<div key={`spacer-${i}`} style={{ height: "12px" }} />);
+      i += 1;
+      continue;
+    }
+
+    if (looksLikePipeTableRow(trimmed)) {
+      const start = i;
+      const tableLines: string[] = [];
+      while (i < lines.length && looksLikePipeTableRow((lines[i] ?? "").trim())) {
+        tableLines.push((lines[i] ?? "").trim());
+        i += 1;
+      }
+
+      const rows = tableLines.map(splitPipeRow).filter((r) => r.length > 0);
+      const maxCols = rows.reduce((max, r) => Math.max(max, r.length), 0);
+
+      blocks.push(
+        <div
+          key={`table-${start}`}
+          style={{
+            overflowX: "auto",
+            border: "1px solid #E5E7EB",
+            borderRadius: "10px",
+            backgroundColor: "white",
+          }}
+        >
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "520px" }}>
+            <tbody>
+              {rows.map((row, rIndex) => (
+                <tr key={rIndex} style={{ backgroundColor: rIndex === 0 ? "#F8FAFC" : "white" }}>
+                  {Array.from({ length: maxCols }).map((_, cIndex) => (
+                    <td
+                      key={cIndex}
+                      style={{
+                        borderTop: rIndex === 0 ? "none" : "1px solid #E5E7EB",
+                        borderRight: cIndex === maxCols - 1 ? "none" : "1px solid #E5E7EB",
+                        padding: "10px 12px",
+                        verticalAlign: "top",
+                        color: "#374151",
+                        fontSize: "14px",
+                        fontWeight: rIndex === 0 ? "700" : "500",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {row[cIndex] ?? ""}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+
+    if (isAllCapsHeading(trimmed)) {
+      blocks.push(
+        <div
+          key={`h-${i}`}
+          style={{
+            marginTop: blocks.length === 0 ? 0 : "18px",
+            marginBottom: "10px",
+            fontSize: "16px",
+            fontWeight: "900",
+            color: "#0A1628",
+            letterSpacing: "0.2px",
+          }}
+        >
+          {trimmed}
+        </div>
+      );
+      i += 1;
+      continue;
+    }
+
+    blocks.push(
+      <p key={`p-${i}`} style={{ margin: 0, lineHeight: "1.8", color: "#374151", fontSize: "15px" }}>
+        {renderInline(trimmed)}
+      </p>
+    );
+    i += 1;
+  }
+
+  return <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>{blocks}</div>;
+}
 
 export default function SOAAustraliaPage() {
   const router = useRouter();
@@ -23,7 +164,6 @@ export default function SOAAustraliaPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [hoveredBtn, setHoveredBtn] = useState(false);
 
   useEffect(() => {
     async function checkAccess() {
@@ -63,7 +203,15 @@ export default function SOAAustraliaPage() {
   if (isLoading) {
     return (
       <div style={{ minHeight: "100vh", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <LoadingProgress isLoading={true} />
+        <LoadingProgress
+          isLoading={true}
+          messages={[
+            "Reviewing client circumstances...",
+            "Applying ASIC best interests duty...",
+            "Structuring your SOA...",
+            "Finalising Statement of Advice...",
+          ]}
+        />
       </div>
     );
   }
@@ -178,7 +326,15 @@ export default function SOAAustraliaPage() {
       <div style={{ maxWidth: "780px", margin: "0 auto", width: "100%" }}>
         {isGenerating && (
           <div style={{ marginBottom: "24px" }}>
-            <LoadingProgress isLoading={isGenerating} />
+            <LoadingProgress
+              isLoading={isGenerating}
+              messages={[
+                "Reviewing client circumstances...",
+                "Applying ASIC best interests duty...",
+                "Structuring your SOA...",
+                "Finalising Statement of Advice...",
+              ]}
+            />
           </div>
         )}
 
@@ -273,8 +429,8 @@ export default function SOAAustraliaPage() {
                 {isDownloading ? "Downloading..." : "Download Word"}
               </button>
             </div>
-            <div style={{ whiteSpace: "pre-wrap", color: "#374151", fontSize: "15px", lineHeight: "1.8", padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px" }}>
-              {soaText}
+            <div style={{ padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px" }}>
+              {renderSoaText(soaText)}
             </div>
           </div>
         )}

@@ -27,27 +27,55 @@ export async function POST(request: Request) {
     }
 
     const payload = await request.json();
-    const { clientName, meetingNotes } = payload;
+    const { clientName, clientEmail, dateOfBirth, meetingDate, meetingNotes } = payload;
     
     if (!clientName || !meetingNotes) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const prompt = `You are a US financial planner. Generate a concise comprehensive financial plan for:
-    Client: ${clientName}
-    Notes: ${meetingNotes}
-    
-    Ensure you cover exactly these 8 core sections:
-    1. Executive Summary
-    2. Client Profile and Objectives
-    3. Risk Assessment
-    4. Suitability Analysis
-    5. Recommendation and Rationale
-    6. Charges and Value Assessment
-    7. Fiduciary Duty Outcomes
-    8. Disclaimer
-    
-    Return the plan as plain structured text. Maximum 8 sections.`;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const adviserName =
+      (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const preparedOn = now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+    const prompt = `You are a US financial planner. Write a professional US Financial Plan draft as plain text (no markdown).
+
+Use today's date: ${preparedOn} (${year}).
+
+Use this exact header block at the top of the plan:
+USA FINANCIAL PLAN
+Prepared on: ${preparedOn}
+Prepared by: ${adviserName}
+Client: ${clientName}
+${clientEmail ? `Client email: ${clientEmail}` : ""}
+${dateOfBirth ? `Client date of birth: ${dateOfBirth}` : ""}
+${meetingDate ? `Meeting date: ${meetingDate}` : ""}
+
+Do NOT invent or guess any firm name. If a firm name is not provided, omit it entirely.
+Do NOT use markdown symbols like ##, **, *, _, or --- anywhere. Use plain text with clear section headings only.
+
+Meeting notes (verbatim):
+${meetingNotes}
+
+Write exactly these 8 sections with clear headings:
+1. Executive Summary
+2. Client Profile and Objectives
+3. Risk Assessment
+4. Suitability Analysis
+5. Recommendation and Rationale
+6. Charges and Value Assessment
+7. Fiduciary Duty Outcomes
+8. Disclaimer
+
+Keep the writing concise, clear, and client-ready.`;
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",

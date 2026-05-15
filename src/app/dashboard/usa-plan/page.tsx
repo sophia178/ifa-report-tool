@@ -1,13 +1,89 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Flag, Loader2, FileDown, ArrowLeft, AlertCircle } from "lucide-react";
+import { Flag, Loader2, FileDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { LoadingProgress } from "@/components/loading-progress";
 
 const today = new Date().toISOString().slice(0, 10);
+
+function renderInline(text: string) {
+  const parts = text.split(/\*\*(.*?)\*\*/g);
+  return parts.map((part, index) => {
+    if (!part) return null;
+    const isBold = index % 2 === 1;
+    if (isBold) {
+      return (
+        <strong key={index} style={{ fontWeight: "800", color: "#0A1628" }}>
+          {part}
+        </strong>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function renderPlanText(text: string) {
+  const lines = text.replace(/\r/g, "").split("\n");
+
+  return lines.map((rawLine, index) => {
+    const line = rawLine.trimEnd();
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      return <div key={index} style={{ height: "12px" }} />;
+    }
+
+    if (/^---+$/.test(trimmed)) {
+      return (
+        <hr
+          key={index}
+          style={{
+            border: "none",
+            borderTop: "1px solid #E5E7EB",
+            margin: "18px 0",
+          }}
+        />
+      );
+    }
+
+    const headingMatch = trimmed.match(/^(#{2,6})\s+(.*)$/);
+    if (headingMatch) {
+      const headingText = headingMatch[2].trim();
+      return (
+        <div
+          key={index}
+          style={{
+            marginTop: "18px",
+            marginBottom: "8px",
+            fontSize: "16px",
+            fontWeight: "900",
+            color: "#0A1628",
+            letterSpacing: "0.2px",
+          }}
+        >
+          {headingText.replace(/\*\*(.*?)\*\*/g, "$1")}
+        </div>
+      );
+    }
+
+    return (
+      <p
+        key={index}
+        style={{
+          margin: 0,
+          color: "#374151",
+          fontSize: "15px",
+          lineHeight: "1.8",
+        }}
+      >
+        {renderInline(trimmed)}
+      </p>
+    );
+  });
+}
 
 export default function USAPlanPage() {
   const router = useRouter();
@@ -273,8 +349,8 @@ export default function USAPlanPage() {
                 {isDownloading ? "Downloading..." : "Download Word"}
               </button>
             </div>
-            <div style={{ whiteSpace: "pre-wrap", color: "#374151", fontSize: "15px", lineHeight: "1.8", padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px" }}>
-              {planText}
+            <div style={{ padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              {renderPlanText(planText)}
             </div>
           </div>
         )}
