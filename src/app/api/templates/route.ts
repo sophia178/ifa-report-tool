@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { checkSubscription } from "@/lib/subscription";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-type TemplateType = "fca" | "soa" | "usa";
+type TemplateType = "FCA" | "SOA" | "USA";
 
 function normalizeTemplateType(value: unknown): TemplateType | null {
-  if (value === "fca" || value === "soa" || value === "usa") return value;
+  if (value === "FCA" || value === "SOA" || value === "USA") return value;
   if (typeof value !== "string") return null;
-  const v = value.trim().toLowerCase();
-  if (v === "fca" || v === "soa" || v === "usa") return v;
+  const v = value.trim().toUpperCase();
+  if (v === "FCA" || v === "SOA" || v === "USA") return v as TemplateType;
   return null;
+}
+
+function getWriteClient(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const hasServiceRoleKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  if (!hasServiceRoleKey) return supabase;
+  return createAdminClient();
 }
 
 export async function POST(request: Request) {
@@ -19,11 +25,6 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const isSubscribed = await checkSubscription(user.id);
-    if (!isSubscribed) {
-      return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
     const { name, content, type } = await request.json();
@@ -38,21 +39,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data, error: dbError } = await supabase
+    const writeClient = getWriteClient(supabase);
+    const { data, error: dbError } = await writeClient
       .from("report_templates")
       .insert({
         user_id: user.id,
         name: templateName,
         content: templateContent,
         type: templateType,
+        created_at: new Date().toISOString(),
       })
       .select()
       .maybeSingle();
 
+    console.log("Insert error:", dbError);
+    console.log("Insert data:", data);
+    console.log("User:", user?.id);
+
     if (dbError) throw dbError;
     if (!data) throw new Error("Could not save template.");
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, template: data });
   } catch (error) {
     console.error("Templates error:", error);
     const message = error instanceof Error ? error.message : "Unexpected error.";
@@ -69,7 +76,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await supabase
+    const readClient = getWriteClient(supabase);
+    const { data, error } = await readClient
       .from("report_templates")
       .select("*")
       .eq("user_id", user.id)
@@ -77,7 +85,7 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, templates: data ?? [] });
   } catch (error) {
     console.error("Templates fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch templates" }, { status: 500 });
@@ -93,11 +101,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isSubscribed = await checkSubscription(user.id);
-    if (!isSubscribed) {
-      return NextResponse.json({ error: "Subscription required" }, { status: 403 });
-    }
-
     const body = await request.json().catch(() => ({}));
     const id = typeof body?.id === "string" ? body.id : "";
     const name = typeof body?.name === "string" ? body.name.trim() : "";
@@ -111,7 +114,8 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { data, error } = await supabase
+    const writeClient = getWriteClient(supabase);
+    const { data, error } = await writeClient
       .from("report_templates")
       .update({ name, content, type })
       .eq("id", id)
@@ -122,7 +126,7 @@ export async function PATCH(request: Request) {
     if (error) throw error;
     if (!data) return NextResponse.json({ error: "Template not found" }, { status: 404 });
 
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, template: data });
   } catch (error) {
     console.error("Templates update error:", error);
     const message = error instanceof Error ? error.message : "Unexpected error.";
@@ -139,18 +143,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isSubscribed = await checkSubscription(user.id);
-    if (!isSubscribed) {
-      return NextResponse.json({ error: "Subscription required" }, { status: 403 });
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id") || "";
     if (!id) {
       return NextResponse.json({ error: "Template id is required" }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const writeClient = getWriteClient(supabase);
+    const { error } = await writeClient
       .from("report_templates")
       .delete()
       .eq("id", id)
@@ -158,7 +158,7 @@ export async function DELETE(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Templates delete error:", error);
     const message = error instanceof Error ? error.message : "Unexpected error.";

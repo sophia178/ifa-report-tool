@@ -40,12 +40,17 @@ export default function TemplatesPage() {
       router.push("/login");
       return;
     }
-    const { data } = await supabase
-      .from("report_templates")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    setTemplates(Array.isArray(data) ? (data as any) : []);
+    const res = await fetch("/api/templates");
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Templates fetch failed:", json);
+      setTemplates([]);
+      setLoading(false);
+      return;
+    }
+
+    const list = Array.isArray((json as any)?.templates) ? (json as any).templates : [];
+    setTemplates(list);
     setLoading(false);
   }, [router, supabase]);
 
@@ -65,23 +70,26 @@ export default function TemplatesPage() {
     setSaving(true);
     setSaveError(null);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/login");
-      setSaving(false);
-      return;
-    }
 
-    const { error } = await supabase.from("report_templates").insert({
-      user_id: user.id,
-      name,
-      content,
-      type,
-      created_at: new Date().toISOString(),
-    } as any);
-
-    if (error) {
-      console.error("Template save error:", error);
-      setSaveError("Failed to save template");
+    try {
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, content, type }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !(data as any)?.success) {
+        console.log("Insert error:", (data as any)?.error || data);
+        console.log("Insert data:", data);
+        console.log("User:", user?.id);
+        throw new Error((data as any)?.error || "Failed to save template");
+      }
+    } catch (err) {
+      console.log("Insert error:", err);
+      console.log("Insert data:", null);
+      console.log("User:", user?.id);
+      console.error("Template save error:", err);
+      setSaveError(err instanceof Error ? err.message : "Failed to save template");
       setSaving(false);
       return;
     }
@@ -95,7 +103,7 @@ export default function TemplatesPage() {
   }
 
   async function deleteTemplate(id: string) {
-    await supabase.from("report_templates").delete().eq("id", id);
+    await fetch(`/api/templates?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   }
 
