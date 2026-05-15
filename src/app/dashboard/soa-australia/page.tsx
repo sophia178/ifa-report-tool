@@ -297,12 +297,12 @@ export default function SOAAustraliaPage() {
         setSoaText(result);
       }
 
-      // Save to Supabase
-      if (user && result) {
-        const insertNew = await supabase
+      const { data: { user: freshUser } } = await supabase.auth.getUser();
+      if (freshUser && result) {
+        const insert = await supabase
           .from("australian_soas")
           .insert({
-            user_id: user.id,
+            user_id: freshUser.id,
             client_name: clientName,
             client_email: clientEmail,
             content: result,
@@ -311,24 +311,10 @@ export default function SOAAustraliaPage() {
           .select()
           .maybeSingle();
 
-        const finalInsert = insertNew.error
-          ? await supabase
-              .from("australian_soas")
-              .insert({
-                user_id: user.id,
-                client_name: clientName,
-                client_email: clientEmail,
-                soa_text: result,
-                created_at: new Date().toISOString(),
-              } as any)
-              .select()
-              .maybeSingle()
-          : insertNew;
-
-        if (finalInsert.error) {
-          console.error("Failed to save SOA:", finalInsert.error);
-        } else if (finalInsert.data) {
-          setReportId(finalInsert.data.id);
+        if (insert.error) {
+          console.error("Failed to save SOA:", insert.error);
+        } else if (insert.data) {
+          setReportId(insert.data.id);
           setShowSavedToast(true);
           setTimeout(() => setShowSavedToast(false), 2500);
         }

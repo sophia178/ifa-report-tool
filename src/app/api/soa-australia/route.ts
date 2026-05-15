@@ -177,9 +177,11 @@ Write ALL of these sections in full:
 
 Use plain text only. NO markdown symbols
 (no ## ** --- or *). Use CAPITALS for
-section headings. Write minimum 2500 words.
-Complete every section. Never stop early.
-Write each section concisely but completely.
+section headings.
+Be concise in each section - maximum 200 words
+per section - so that all sections fit within
+the output limit. You MUST complete every section
+including the final DISCLAIMER.
 You MUST reach and complete the final disclaimer
 section. Never stop early.
 
@@ -203,7 +205,7 @@ CRITICAL: Complete the entire SOA including all sections through to DISCLAIMER. 
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
-      max_tokens: 8000,
+      max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
     });
 

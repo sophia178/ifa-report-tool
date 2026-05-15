@@ -172,10 +172,11 @@ Write ALL of these sections in full:
 
 Use plain text only. NO markdown symbols.
 Use CAPITALS for section headings.
-Write minimum 2500 words. Complete every
-section fully. Include specific numbers
-and projections based on client data.
-Write each section concisely but completely.
+Be concise in each section - maximum 200 words
+per section - so that all sections fit within
+the output limit. You MUST complete every section
+including the final DISCLAIMER.
+Include specific numbers and projections based on client data.
 You MUST reach and complete the final disclaimer
 section. Never stop early.
 
@@ -198,7 +199,7 @@ CRITICAL: Complete the entire financial plan including all 14 sections through t
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
-      max_tokens: 8000,
+      max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
     });
 
