@@ -23,10 +23,12 @@ type Strategy = {
   adviserConsiderations: string;
 };
 
+type StrategyResult = Strategy | { strategy: string; error: null };
+
 type SavedStrategy = {
   id: string;
   idea: string;
-  strategy_json: Strategy;
+  strategy_json: StrategyResult;
   created_at: string;
 };
 
@@ -36,7 +38,7 @@ export default function StrategyPage() {
   const [savedStrategies, setSavedStrategies] = useState<SavedStrategy[]>([]);
   const [isBuilding, setIsBuilding] = useState(false);
   const [hoveredBtn, setHoveredBtn] = useState(false);
-  const [currentStrategy, setCurrentStrategy] = useState<Strategy | null>(null);
+  const [currentStrategy, setCurrentStrategy] = useState<StrategyResult | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -104,9 +106,7 @@ export default function StrategyPage() {
         .eq("user_id", user.id);
 
       if (deleteError) throw deleteError;
-      if (currentStrategy && savedStrategies.find((s) => s.id === id)?.strategy_json.strategyName === currentStrategy.strategyName) {
-        setCurrentStrategy(null);
-      }
+      if (savedStrategies.some((s) => s.id === id)) setCurrentStrategy(null);
       await fetchStrategies();
     } catch (err) {
       console.error("Failed to delete strategy", err);
@@ -129,12 +129,27 @@ export default function StrategyPage() {
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to build strategy");
+        let errJson: any = null;
+        try {
+          errJson = await response.json();
+        } catch {
+        }
+        throw new Error(errJson?.error || "Failed to build strategy");
       }
 
-      const data = await response.json();
-      setCurrentStrategy(data.result);
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Unexpected response from server. Please try again.");
+      }
+
+      if (data?.error) {
+        throw new Error(String(data.error));
+      }
+
+      setCurrentStrategy(data.result as StrategyResult);
+      setIdea("");
       await fetchStrategies();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -145,6 +160,10 @@ export default function StrategyPage() {
 
   const cleanText = (text: string) => {
     return text.replace(/[⊙☆★☐☑☒✓✔✕✖✗✘•●○]/g, "").trim();
+  };
+
+  const getStrategyName = (s: StrategyResult) => {
+    return "strategyName" in s ? s.strategyName : "Generated Strategy";
   };
 
   if (isLoading) {
@@ -238,15 +257,15 @@ export default function StrategyPage() {
                     padding: "16px 20px",
                     borderRadius: "12px",
                     border: "1px solid",
-                    borderColor: currentStrategy?.strategyName === s.strategy_json.strategyName ? "#C9A84C" : "#E5E7EB",
-                    backgroundColor: currentStrategy?.strategyName === s.strategy_json.strategyName ? "#FFFBF0" : "white",
+                    borderColor: currentStrategy && getStrategyName(currentStrategy) === getStrategyName(s.strategy_json) ? "#C9A84C" : "#E5E7EB",
+                    backgroundColor: currentStrategy && getStrategyName(currentStrategy) === getStrategyName(s.strategy_json) ? "#FFFBF0" : "white",
                     textAlign: "left",
                     cursor: "pointer",
                     transition: "all 0.2s"
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                    <div style={{ fontWeight: "700", color: "#0A1628", fontSize: "14px" }}>{s.strategy_json.strategyName}</div>
+                    <div style={{ fontWeight: "700", color: "#0A1628", fontSize: "14px" }}>{getStrategyName(s.strategy_json)}</div>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -281,20 +300,31 @@ export default function StrategyPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           {currentStrategy ? (
-            <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
-                <div>
-                  <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#0A1628", margin: "0 0 4px" }}>{currentStrategy.strategyName}</h2>
-                  <div style={{ fontSize: "12px", fontWeight: "700", color: "#C9A84C", textTransform: "uppercase", letterSpacing: "1px" }}>AI Generated Strategy</div>
-                </div>
-                <div style={{ textAlign: "right", minWidth: "120px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Viability Score</div>
-                  <div style={{ height: "6px", width: "100%", backgroundColor: "#F1F5F9", borderRadius: "3px", overflow: "hidden", marginBottom: "6px" }}>
-                    <div style={{ height: "100%", width: `${currentStrategy.viabilityRating * 10}%`, backgroundColor: currentStrategy.viabilityRating >= 7 ? "#10B981" : currentStrategy.viabilityRating >= 4 ? "#F59E0B" : "#EF4444", transition: "width 1s ease-out" }} />
+            "strategy" in currentStrategy ? (
+              <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+                  <div>
+                    <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#0A1628", margin: "0 0 4px" }}>Generated Strategy</h2>
+                    <div style={{ fontSize: "12px", fontWeight: "700", color: "#C9A84C", textTransform: "uppercase", letterSpacing: "1px" }}>AI Generated Strategy</div>
                   </div>
-                  <div style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628" }}>{currentStrategy.viabilityRating}/10</div>
                 </div>
+                <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontSize: "14px", lineHeight: "1.7", color: "#111827" }}>{currentStrategy.strategy}</pre>
               </div>
+            ) : (
+              <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "40px", border: "1px solid #E5E7EB", borderLeft: "3px solid #C9A84C", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
+                  <div>
+                    <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#0A1628", margin: "0 0 4px" }}>{currentStrategy.strategyName}</h2>
+                    <div style={{ fontSize: "12px", fontWeight: "700", color: "#C9A84C", textTransform: "uppercase", letterSpacing: "1px" }}>AI Generated Strategy</div>
+                  </div>
+                  <div style={{ textAlign: "right", minWidth: "120px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Viability Score</div>
+                    <div style={{ height: "6px", width: "100%", backgroundColor: "#F1F5F9", borderRadius: "3px", overflow: "hidden", marginBottom: "6px" }}>
+                      <div style={{ height: "100%", width: `${currentStrategy.viabilityRating * 10}%`, backgroundColor: currentStrategy.viabilityRating >= 7 ? "#10B981" : currentStrategy.viabilityRating >= 4 ? "#F59E0B" : "#EF4444", transition: "width 1s ease-out" }} />
+                    </div>
+                    <div style={{ fontSize: "14px", fontWeight: "800", color: "#0A1628" }}>{currentStrategy.viabilityRating}/10</div>
+                  </div>
+                </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
                 {currentStrategy.summary && (
@@ -389,7 +419,8 @@ export default function StrategyPage() {
                   </div>
                 )}
               </div>
-            </div>
+              </div>
+            )
           ) : (
             <div style={{ padding: "100px 0", textAlign: "center", backgroundColor: "#F8FAFC", borderRadius: "16px", border: "1px dashed #E5E7EB", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
               <div style={{ width: "64px", height: "64px", borderRadius: "20px", backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>

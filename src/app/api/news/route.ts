@@ -33,6 +33,48 @@ function getFocus(jurisdiction: Jurisdiction) {
         : "Generate 4 news items covering UK, Australia, and USA adviser-relevant developments.";
 }
 
+function getFallbackNews(jurisdiction: Jurisdiction) {
+  const prefix =
+    jurisdiction === "uk"
+      ? "UK"
+      : jurisdiction === "aus"
+        ? "Australia"
+        : jurisdiction === "usa"
+          ? "USA"
+          : "Global";
+
+  return [
+    {
+      topic: `${prefix} markets snapshot`,
+      developments: "Markets are mixed as investors weigh inflation, rates and growth data.",
+      implications: "Clients may react emotionally to short-term volatility; reinforce long-term plan discipline.",
+      adviserAdvice: "Reconfirm objectives, time horizon and cash needs before making allocation changes.",
+      riskFlags: "Chasing performance; selling into drawdowns.",
+    },
+    {
+      topic: "Rates and inflation watch",
+      developments: "Policy expectations remain sensitive to inflation prints and central bank commentary.",
+      implications: "Bond duration and equity valuations can move quickly as rate expectations shift.",
+      adviserAdvice: "Stress-test portfolios for rate shocks and review diversification across asset classes.",
+      riskFlags: "Over-concentration in a single duration profile.",
+    },
+    {
+      topic: "Regulatory and compliance headlines",
+      developments: "Regulators continue to scrutinize advice processes, disclosures and product governance.",
+      implications: "Documentation and suitability rationale remain critical for adviser defensibility.",
+      adviserAdvice: "Ensure file notes, disclosures and client communications are complete and consistent.",
+      riskFlags: "Gaps in disclosure; inconsistent advice records.",
+    },
+    {
+      topic: "Client communication opportunities",
+      developments: "High-profile headlines are driving increased client questions and inbound messages.",
+      implications: "Proactive communication reduces anxiety and improves retention.",
+      adviserAdvice: "Send a short client note explaining what matters, what doesn’t, and your next review cadence.",
+      riskFlags: "Clients acting on headlines without context.",
+    },
+  ];
+}
+
 async function generateNews(jurisdiction: Jurisdiction) {
   const focus = getFocus(jurisdiction);
   const prompt = `You are a financial news editor.
@@ -76,7 +118,13 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const jurisdiction = normalizeJurisdiction(body?.jurisdiction);
     const keywords = getKeywords(jurisdiction);
-    const briefingJson = await generateNews(jurisdiction);
+    let briefingJson: any;
+    try {
+      briefingJson = await generateNews(jurisdiction);
+    } catch (e) {
+      console.error("News generation failed (POST):", e);
+      briefingJson = getFallbackNews(jurisdiction);
+    }
 
     // Save to Supabase
     const insertWithJurisdiction = await supabase
@@ -110,11 +158,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ result: briefingJson, lastUpdated: data?.created_at || new Date().toISOString(), cached: false });
   } catch (error) {
-    console.error("API route error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Generation failed" },
-      { status: 500 }
-    );
+    console.error("API route error (POST /api/news):", error);
+    return NextResponse.json({ result: getFallbackNews("global"), lastUpdated: new Date().toISOString(), cached: false, fallback: true });
   }
 }
 
@@ -170,7 +215,18 @@ export async function GET(request: Request) {
     }
 
     const keywords = getKeywords(jurisdiction);
-    const briefingJson = await generateNews(jurisdiction);
+    let briefingJson: any;
+    try {
+      briefingJson = await generateNews(jurisdiction);
+    } catch (e) {
+      console.error("News generation failed (GET):", e);
+      return NextResponse.json({
+        result: latest?.briefing_json || getFallbackNews(jurisdiction),
+        lastUpdated: latest?.created_at || new Date().toISOString(),
+        cached: Boolean(latest?.briefing_json),
+        fallback: true,
+      });
+    }
 
     const insertWithJurisdiction = await supabase
       .from("news_briefings")
@@ -191,7 +247,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ result: briefingJson, lastUpdated: data.created_at, cached: false });
   } catch (error) {
-    console.error("API route error:", error);
-    return NextResponse.json({ error: "Failed to fetch briefings" }, { status: 500 });
+    console.error("API route error (GET /api/news):", error);
+    return NextResponse.json({ result: getFallbackNews("global"), lastUpdated: new Date().toISOString(), cached: false, fallback: true });
   }
 }

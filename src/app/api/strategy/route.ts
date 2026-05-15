@@ -69,10 +69,14 @@ export async function POST(request: Request) {
     Return ONLY the raw JSON object. Do not use markdown code fences.`;
 
     const rawResult = await callClaude(prompt, 3000);
-    
-    // Clean and parse JSON safely
+
     const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-    const strategyJson = JSON.parse(cleanJson);
+    let strategyJson: any;
+    try {
+      strategyJson = JSON.parse(cleanJson);
+    } catch {
+      strategyJson = { strategy: rawResult, error: null };
+    }
 
     // Save to Supabase
     const { data, error: dbError } = await supabase
@@ -89,13 +93,10 @@ export async function POST(request: Request) {
       console.error("DB Error:", dbError);
     }
 
-    return NextResponse.json({ result: strategyJson });
+    return NextResponse.json({ result: strategyJson, error: null });
   } catch (error) {
     console.error("API route error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Generation failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ result: null, error: "Strategy generation failed. Please try again." });
   }
 }
 

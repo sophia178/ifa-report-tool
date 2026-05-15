@@ -56,7 +56,7 @@ export default function BriefingPage() {
         const res = await fetch(`/api/briefing?jurisdiction=${encodeURIComponent(effectiveJurisdiction)}`);
         const json = await res.json();
         if (res.ok) {
-          setBriefing(typeof json.result === "string" ? json.result : null);
+          setBriefing(typeof json.result === "string" ? cleanBriefingForDisplay(json.result) : null);
           setLastUpdated(typeof json.lastUpdated === "string" ? json.lastUpdated : null);
         }
       } catch (err) {
@@ -75,6 +75,57 @@ export default function BriefingPage() {
       case "usa": return "The Daily Briefing — US Markets";
       default: return "The Daily Briefing — Global Markets";
     }
+  }
+
+  function stripEmbeddedCalendarPayload(text: string) {
+    return text
+      .replace(/economic_?calendar::[\s\S]*?(?:\n\s*\n|$)/gi, "")
+      .replace(/economiccalendar::[\s\S]*?(?:\n\s*\n|$)/gi, "");
+  }
+
+  function stripJsonBlocks(text: string) {
+    const lines = text.replace(/\r/g, "").split("\n");
+    const kept: string[] = [];
+    let skippingJson = false;
+
+    for (const line of lines) {
+      const t = line.trim();
+      const looksLikeJsonStart = t.startsWith("{") || t.startsWith("[");
+      const looksLikeJsonEnd = t.endsWith("}") || t.endsWith("]");
+
+      if (!skippingJson && looksLikeJsonStart && (t.includes(":") || t.includes("\""))) {
+        skippingJson = true;
+      }
+
+      if (!skippingJson) {
+        kept.push(line);
+      }
+
+      if (skippingJson && looksLikeJsonEnd) {
+        skippingJson = false;
+      }
+    }
+
+    return kept.join("\n");
+  }
+
+  function cleanBriefingForDisplay(text: string) {
+    let t = text;
+
+    const trimmed = t.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed: any = JSON.parse(trimmed);
+        if (typeof parsed === "string") t = parsed;
+        else if (typeof parsed?.result === "string") t = parsed.result;
+        else if (typeof parsed?.briefing_text === "string") t = parsed.briefing_text;
+      } catch {
+      }
+    }
+
+    t = stripEmbeddedCalendarPayload(t);
+    t = stripJsonBlocks(t);
+    return t.trim();
   }
 
   async function handleGenerate() {
@@ -96,7 +147,7 @@ export default function BriefingPage() {
       }
 
       const data = await response.json();
-      setBriefing(data.result); // Use .result as per our new API pattern
+      setBriefing(typeof data.result === "string" ? cleanBriefingForDisplay(data.result) : null);
       setLastUpdated(typeof data.lastUpdated === "string" ? data.lastUpdated : new Date().toISOString());
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -106,8 +157,9 @@ export default function BriefingPage() {
   }
 
   function renderFormattedContent(text: string) {
+    const cleanedBriefingText = cleanBriefingForDisplay(text);
     // 1. Remove all emojis
-    let cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}]/gu, '');
+    let cleanText = cleanedBriefingText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}]/gu, '');
     
     // 2. Remove asterisks and other markdown symbols
     cleanText = cleanText.replace(/[*_~`]/g, '');
