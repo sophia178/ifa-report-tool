@@ -178,12 +178,13 @@ Write ALL of these sections in full:
 Use plain text only. NO markdown symbols
 (no ## ** --- or *). Use CAPITALS for
 section headings.
-Be concise in each section - maximum 200 words
-per section - so that all sections fit within
-the output limit. You MUST complete every section
-including the final DISCLAIMER.
-You MUST reach and complete the final disclaimer
-section. Never stop early.
+STRICT LIMIT: Maximum 100 words per section.
+Write in bullet points not paragraphs where
+possible. Be extremely concise throughout.
+You MUST complete ALL sections including
+the final DISCLAIMER within 8000 tokens total.
+The DISCLAIMER section is mandatory and must
+always be the last thing you write.
 
 Client data:
 Client full name: ${String(clientName).trim()}

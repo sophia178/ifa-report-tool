@@ -31,6 +31,45 @@ function shouldInjectReportDisclaimer(prompt: string) {
   return hasReportSignal && hasContextSignal;
 }
 
+function shouldInjectCompletionInstruction(prompt: string) {
+  return shouldInjectReportDisclaimer(prompt);
+}
+
+function getUserText(messages: any) {
+  const list = Array.isArray(messages) ? messages : [];
+  return list
+    .filter((m) => m && m.role === "user")
+    .map((m) => (typeof m.content === "string" ? m.content : ""))
+    .join("\n");
+}
+
+const completionInstruction =
+  "STRICT LIMIT: Maximum 100 words per section. Write in bullet points not paragraphs where possible. Be extremely concise throughout. You MUST complete ALL sections including the final DISCLAIMER within 8000 tokens total. The DISCLAIMER section is mandatory and must always be the last thing you write.";
+
+const originalStream = (anthropic as any).messages.stream?.bind((anthropic as any).messages);
+if (typeof originalStream === "function") {
+  (anthropic as any).messages.stream = (params: any) => {
+    const userText = getUserText(params?.messages);
+    if (!userText || !shouldInjectCompletionInstruction(userText)) {
+      return originalStream(params);
+    }
+
+    const patched = {
+      ...params,
+      messages: Array.isArray(params?.messages)
+        ? params.messages.map((m: any, idx: number) => {
+            if (idx === 0 && m?.role === "user" && typeof m?.content === "string") {
+              return { ...m, content: `${completionInstruction}\n\n${m.content}` };
+            }
+            return m;
+          })
+        : params?.messages,
+    };
+
+    return originalStream(patched);
+  };
+}
+
 export async function callClaude(prompt: string, maxTokens: number = 1500): Promise<string> {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {

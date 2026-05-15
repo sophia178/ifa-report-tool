@@ -150,12 +150,21 @@ These three sections are legally required and
 must always appear even if earlier sections
 are shorter than usual.
 
-Write each section in maximum 150 words.
-Be extremely concise. Every section must be
-completed. Sections 10 through 14 are critical
-and must not be skipped under any circumstances.
-Section 14 DISCLOSURES AND DISCLAIMER must always
-be the final section and must always be completed.
+STRICT LIMIT: Maximum 100 words per section.
+Write in bullet points not paragraphs where
+possible. Be extremely concise throughout.
+You MUST complete ALL sections including
+the final DISCLAIMER within 8000 tokens total.
+The DISCLAIMER section is mandatory and must
+always be the last thing you write.
+
+If you are approaching your output limit and
+have not yet written sections 12, 13 and 14,
+STOP the current section immediately and jump
+directly to:
+SECTION 12: IMPLEMENTATION PLAN (3 bullet points)
+SECTION 13: MONITORING AND REVIEW (2 sentences)
+SECTION 14: DISCLOSURES AND DISCLAIMER (required text)
 
 Write ALL of these sections in full, in this exact order:
 1. COVER PAGE (client name, adviser name,
@@ -206,7 +215,7 @@ Roth IRA Balance (USD): ${typeof rothIraBalance === "string" && rothIraBalance.t
 Meeting notes:
 ${String(meetingNotes).trim()}
 
-CRITICAL: Write each section in maximum 150 words. Be extremely concise. Every section must be completed. Sections 10 through 14 are critical and must not be skipped under any circumstances. Section 14 DISCLOSURES AND DISCLAIMER must always be the final section and must always be completed.`;
+CRITICAL: The DISCLAIMER section is mandatory and must always be the last thing you write.`;
 
     const stream = await anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
