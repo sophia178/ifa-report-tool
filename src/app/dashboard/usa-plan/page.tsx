@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Flag, Loader2, FileDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -9,80 +9,150 @@ import { LoadingProgress } from "@/components/loading-progress";
 
 const today = new Date().toISOString().slice(0, 10);
 
+function isAllCapsHeading(line: string) {
+  const normalized = line.replace(/\s+/g, " ").trim();
+  const withoutNumbering = normalized.replace(/^\d{1,2}\.\s+/, "");
+  if (!withoutNumbering) return false;
+  if (!/[A-Z]/.test(withoutNumbering)) return false;
+  if (/[a-z]/.test(withoutNumbering)) return false;
+  if (withoutNumbering.length < 3) return false;
+  if (withoutNumbering.length > 140) return false;
+  return /^[A-Z0-9][A-Z0-9 \-&,()'/.:%]+$/.test(withoutNumbering);
+}
+
 function renderInline(text: string) {
-  const parts = text.split(/\*\*(.*?)\*\*/g);
+  const safe = text.replace(/\r/g, "");
+  const parts = safe.split(/\*\*(.*?)\*\*/g);
   return parts.map((part, index) => {
-    if (!part) return null;
     const isBold = index % 2 === 1;
-    if (isBold) {
-      return (
-        <strong key={index} style={{ fontWeight: "800", color: "#0A1628" }}>
-          {part}
-        </strong>
-      );
-    }
-    return <span key={index}>{part}</span>;
+    return isBold ? (
+      <strong key={index} style={{ fontWeight: "800", color: "#0A1628" }}>
+        {part}
+      </strong>
+    ) : (
+      <span key={index}>{part}</span>
+    );
   });
 }
 
-function renderPlanText(text: string) {
-  const lines = text.replace(/\r/g, "").split("\n");
+function looksLikePipeTableRow(line: string) {
+  const pipeCount = (line.match(/\|/g) || []).length;
+  return pipeCount >= 2 && line.trim().length >= 5;
+}
 
-  return lines.map((rawLine, index) => {
-    const line = rawLine.trimEnd();
-    const trimmed = line.trim();
+function splitPipeRow(line: string) {
+  return line
+    .split("|")
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+}
+
+function renderPlanText(text: string) {
+  const sanitized = text
+    .replace(/\r/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*/g, "");
+
+  const lines = sanitized.split("\n");
+  const blocks: ReactNode[] = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i] ?? "";
+    const trimmed = raw.trim();
 
     if (!trimmed) {
-      return <div key={index} style={{ height: "12px" }} />;
+      blocks.push(<div key={`spacer-${i}`} style={{ height: "12px" }} />);
+      i += 1;
+      continue;
     }
 
-    if (/^---+$/.test(trimmed)) {
-      return (
-        <hr
-          key={index}
-          style={{
-            border: "none",
-            borderTop: "1px solid #E5E7EB",
-            margin: "18px 0",
-          }}
-        />
-      );
-    }
+    if (looksLikePipeTableRow(trimmed)) {
+      const start = i;
+      const tableLines: string[] = [];
+      while (i < lines.length && looksLikePipeTableRow((lines[i] ?? "").trim())) {
+        tableLines.push((lines[i] ?? "").trim());
+        i += 1;
+      }
 
-    const headingMatch = trimmed.match(/^(#{2,6})\s+(.*)$/);
-    if (headingMatch) {
-      const headingText = headingMatch[2].trim();
-      return (
+      const rows = tableLines.map(splitPipeRow).filter((r) => r.length > 0);
+      const maxCols = rows.reduce((max, r) => Math.max(max, r.length), 0);
+
+      blocks.push(
         <div
-          key={index}
+          key={`table-${start}`}
           style={{
-            marginTop: "18px",
-            marginBottom: "8px",
-            fontSize: "16px",
-            fontWeight: "900",
-            color: "#0A1628",
-            letterSpacing: "0.2px",
+            overflowX: "auto",
+            border: "1px solid #E5E7EB",
+            borderRadius: "10px",
+            backgroundColor: "white",
           }}
         >
-          {headingText.replace(/\*\*(.*?)\*\*/g, "$1")}
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "520px" }}>
+            <tbody>
+              {rows.map((row, rIndex) => (
+                <tr
+                  key={rIndex}
+                  style={{
+                    backgroundColor: rIndex === 0 ? "#F8FAFC" : rIndex % 2 === 0 ? "white" : "#F8FAFC",
+                  }}
+                >
+                  {Array.from({ length: maxCols }).map((_, cIndex) => (
+                    <td
+                      key={cIndex}
+                      style={{
+                        borderTop: "1px solid #E5E7EB",
+                        borderLeft: cIndex === 0 ? "1px solid #E5E7EB" : "none",
+                        borderRight: cIndex === maxCols - 1 ? "1px solid #E5E7EB" : "1px solid #E5E7EB",
+                        borderBottom: "1px solid #E5E7EB",
+                        padding: "10px 12px",
+                        verticalAlign: "top",
+                        color: "#374151",
+                        fontSize: "14px",
+                        fontWeight: rIndex === 0 ? "700" : "500",
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {row[cIndex] ?? ""}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       );
+      continue;
     }
 
-    return (
-      <p
-        key={index}
-        style={{
-          margin: 0,
-          color: "#374151",
-          fontSize: "15px",
-          lineHeight: "1.8",
-        }}
-      >
+    if (isAllCapsHeading(trimmed)) {
+      blocks.push(
+        <div
+          key={`h-${i}`}
+          style={{
+            marginTop: blocks.length === 0 ? 0 : "24px",
+            marginBottom: "10px",
+            fontSize: "18px",
+            fontWeight: "700",
+            color: "#0A1628",
+          }}
+        >
+          {trimmed}
+        </div>
+      );
+      i += 1;
+      continue;
+    }
+
+    blocks.push(
+      <p key={`p-${i}`} style={{ margin: 0, color: "#374151", fontSize: "15px", lineHeight: "1.8" }}>
         {renderInline(trimmed)}
       </p>
     );
-  });
+    i += 1;
+  }
+
+  return <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>{blocks}</div>;
 }
 
 export default function USAPlanPage() {
@@ -91,6 +161,10 @@ export default function USAPlanPage() {
   const [clientEmail, setClientEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [meetingDate, setMeetingDate] = useState(today);
+  const [k401Provider, setK401Provider] = useState("");
+  const [current401kBalance, setCurrent401kBalance] = useState("");
+  const [annual401kContribution, setAnnual401kContribution] = useState("");
+  const [rothIraBalance, setRothIraBalance] = useState("");
   const [meetingNotes, setMeetingNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [planText, setPlanText] = useState<string | null>(null);
@@ -99,7 +173,6 @@ export default function USAPlanPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [hoveredBtn, setHoveredBtn] = useState(false);
 
   useEffect(() => {
     async function checkAccess() {
@@ -186,6 +259,10 @@ export default function USAPlanPage() {
           clientEmail,
           dateOfBirth,
           meetingDate,
+          k401Provider,
+          current401kBalance,
+          annual401kContribution,
+          rothIraBalance,
           meetingNotes,
         }),
       });
@@ -279,6 +356,28 @@ export default function USAPlanPage() {
                   <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Meeting Date</label>
                   <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} required />
                 </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>401k Provider</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} value={k401Provider} onChange={(e) => setK401Provider(e.target.value)} placeholder="e.g. Fidelity" />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Current 401k Balance</label>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #E5E7EB", borderRadius: "8px", overflow: "hidden" }}>
+                    <div style={{ padding: "12px 12px", backgroundColor: "#F8FAFC", color: "#0A1628", fontWeight: "700", borderRight: "1px solid #E5E7EB" }}>$</div>
+                    <input style={{ border: "none", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.parentElement && (e.currentTarget.parentElement.style.borderColor = "#C9A84C")} onBlur={(e) => e.currentTarget.parentElement && (e.currentTarget.parentElement.style.borderColor = "#E5E7EB")} type="number" inputMode="decimal" value={current401kBalance} onChange={(e) => setCurrent401kBalance(e.target.value)} placeholder="150000" />
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Annual 401k Contribution</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} type="number" inputMode="decimal" value={annual401kContribution} onChange={(e) => setAnnual401kContribution(e.target.value)} placeholder="e.g. 22500" />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Roth IRA Balance</label>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #E5E7EB", borderRadius: "8px", overflow: "hidden" }}>
+                    <div style={{ padding: "12px 12px", backgroundColor: "#F8FAFC", color: "#0A1628", fontWeight: "700", borderRight: "1px solid #E5E7EB" }}>$</div>
+                    <input style={{ border: "none", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.parentElement && (e.currentTarget.parentElement.style.borderColor = "#C9A84C")} onBlur={(e) => e.currentTarget.parentElement && (e.currentTarget.parentElement.style.borderColor = "#E5E7EB")} type="number" inputMode="decimal" value={rothIraBalance} onChange={(e) => setRothIraBalance(e.target.value)} placeholder="50000" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -349,7 +448,7 @@ export default function USAPlanPage() {
                 {isDownloading ? "Downloading..." : "Download Word"}
               </button>
             </div>
-            <div style={{ padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px", backgroundColor: "white", border: "1px solid #E5E7EB", borderRadius: "12px" }}>
               {renderPlanText(planText)}
             </div>
           </div>

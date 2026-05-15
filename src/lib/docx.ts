@@ -2,6 +2,8 @@ import {
   AlignmentType,
   Document,
   HeadingLevel,
+  Header,
+  PageBreak,
   Packer,
   Paragraph,
   Table,
@@ -11,6 +13,7 @@ import {
   ImageRun,
   WidthType,
   BorderStyle,
+  ShadingType,
 } from "docx";
 
 function sectionHeading(text: string) {
@@ -21,14 +24,29 @@ function sectionHeading(text: string) {
   });
 }
 
-function runsFromMarkdown(text: string) {
-  const parts = text.split(/\*\*(.*?)\*\*/g);
-  return parts
-    .filter((p) => p !== "")
-    .map((part, index) => {
-      const isBold = index % 2 === 1;
-      return new TextRun({ text: part, bold: isBold });
-    });
+function isAllCapsHeading(line: string) {
+  const normalized = line.replace(/\s+/g, " ").trim();
+  const withoutNumbering = normalized.replace(/^\d{1,2}\.\s+/, "");
+  if (!withoutNumbering) return false;
+  if (!/[A-Z]/.test(withoutNumbering)) return false;
+  if (/[a-z]/.test(withoutNumbering)) return false;
+  if (withoutNumbering.length < 3) return false;
+  if (withoutNumbering.length > 140) return false;
+  return /^[A-Z0-9][A-Z0-9 \-&,()'/.:%]+$/.test(withoutNumbering);
+}
+
+function sanitizeText(text: string) {
+  return text
+    .replace(/\r/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*/g, "")
+    .trim();
+}
+
+function runsFromText(text: string) {
+  const cleaned = sanitizeText(text);
+  if (!cleaned) return [new TextRun({ text: "", size: 22 })];
+  return [new TextRun({ text: cleaned, size: 22 })];
 }
 
 function isHorizontalRule(line: string) {
@@ -43,14 +61,22 @@ function isMarkdownTable(lines: string[]) {
   return /^\s*\|?\s*[:-]+[-| :]*\|?\s*$/.test(divider);
 }
 
+function isPipeTable(lines: string[]) {
+  if (lines.length < 2) return false;
+  const firstTwoHavePipes = (lines[0] || "").includes("|") && (lines[1] || "").includes("|");
+  if (!firstTwoHavePipes) return false;
+  return lines.every((l) => (l || "").includes("|"));
+}
+
 function splitTableRow(row: string) {
   const trimmed = row.trim().replace(/^\|/, "").replace(/\|$/, "");
   return trimmed.split("|").map((c) => c.trim());
 }
 
 function buildTable(lines: string[]) {
+  const hasDivider = isMarkdownTable(lines);
   const headerCells = splitTableRow(lines[0] || "");
-  const bodyRows = lines.slice(2).map(splitTableRow);
+  const bodyRows = hasDivider ? lines.slice(2).map(splitTableRow) : lines.slice(1).map(splitTableRow);
   const maxColumns = Math.max(
     headerCells.length,
     ...bodyRows.map((r) => r.length),
@@ -68,9 +94,10 @@ function buildTable(lines: string[]) {
       (cell) =>
         new TableCell({
           width: { size: 100 / maxColumns, type: WidthType.PERCENTAGE },
+          shading: { type: ShadingType.CLEAR, fill: "F8FAFC", color: "auto" },
           children: [
             new Paragraph({
-              children: [new TextRun({ text: cell.replace(/^#{1,6}\s+/, ""), bold: true })],
+              children: [new TextRun({ text: sanitizeText(cell), bold: true, size: 22 })],
             }),
           ],
         })
@@ -80,15 +107,20 @@ function buildTable(lines: string[]) {
   const rows = [
     headerRow,
     ...bodyRows.map(
-      (row) =>
+      (row, rowIndex) =>
         new TableRow({
           children: normalizeRow(row).map(
             (cell) =>
               new TableCell({
                 width: { size: 100 / maxColumns, type: WidthType.PERCENTAGE },
+                shading: {
+                  type: ShadingType.CLEAR,
+                  fill: rowIndex % 2 === 0 ? "FFFFFF" : "F8FAFC",
+                  color: "auto",
+                },
                 children: [
                   new Paragraph({
-                    children: runsFromMarkdown(cell.replace(/^#{1,6}\s+/, "")),
+                    children: runsFromText(cell),
                   }),
                 ],
               })
@@ -99,23 +131,31 @@ function buildTable(lines: string[]) {
 
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 4, color: "E5E7EB" },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: "E5E7EB" },
+      left: { style: BorderStyle.SINGLE, size: 4, color: "E5E7EB" },
+      right: { style: BorderStyle.SINGLE, size: 4, color: "E5E7EB" },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: "E5E7EB" },
+      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: "E5E7EB" },
+    },
     rows,
   });
 }
 
 function paragraphFromLine(line: string) {
   const trimmed = line.trim();
+  const cleaned = sanitizeText(trimmed);
 
-  const hashHeading = trimmed.match(/^(#{2,6})\s+(.*)$/);
-  if (hashHeading) {
+  if (isAllCapsHeading(cleaned)) {
     return new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 240, after: 120 },
-      children: [new TextRun({ text: hashHeading[2].trim(), bold: true })],
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 300, after: 120 },
+      children: [new TextRun({ text: cleaned, bold: true })],
     });
   }
 
-  const numberedHeading = trimmed.match(/^\d+\.\s+(.*)$/);
+  const numberedHeading = cleaned.match(/^\d+\.\s+(.*)$/);
   if (numberedHeading && numberedHeading[1]) {
     return new Paragraph({
       heading: HeadingLevel.HEADING_2,
@@ -126,7 +166,7 @@ function paragraphFromLine(line: string) {
 
   return new Paragraph({
     spacing: { after: 120 },
-    children: runsFromMarkdown(trimmed.replace(/^#{1,6}\s+/, "")),
+    children: runsFromText(cleaned),
   });
 }
 
@@ -135,19 +175,20 @@ function toBlocks(text: string) {
   const lines = normalized.split("\n");
 
   const blocks: Array<Paragraph | Table> = [];
-  let buffer: string[] = [];
 
-  const flush = () => {
-    const chunk = buffer.map((l) => l.trimEnd()).filter((l) => l.trim() !== "");
-    buffer = [];
-    if (chunk.length === 0) return;
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i] ?? "";
+    const trimmed = raw.trimEnd();
+    const cleaned = trimmed.trim();
 
-    if (isMarkdownTable(chunk)) {
-      blocks.push(buildTable(chunk));
-      return;
+    if (!cleaned) {
+      blocks.push(new Paragraph({ spacing: { after: 120 } }));
+      i += 1;
+      continue;
     }
 
-    if (chunk.length === 1 && isHorizontalRule(chunk[0] || "")) {
+    if (isHorizontalRule(cleaned)) {
       blocks.push(
         new Paragraph({
           spacing: { before: 180, after: 180 },
@@ -161,22 +202,37 @@ function toBlocks(text: string) {
           },
         })
       );
-      return;
-    }
-
-    const merged = chunk.join(" ").trim();
-    if (!merged) return;
-    blocks.push(paragraphFromLine(merged));
-  };
-
-  for (const line of lines) {
-    if (line.trim() === "") {
-      flush();
+      i += 1;
       continue;
     }
-    buffer.push(line);
+
+    if (cleaned.includes("|")) {
+      const tableLines: string[] = [];
+      while (i < lines.length) {
+        const candidate = (lines[i] ?? "").trim();
+        if (!candidate || !candidate.includes("|")) break;
+        tableLines.push(candidate);
+        i += 1;
+      }
+
+      const normalizedTableLines = tableLines
+        .filter((l) => l.trim() !== "")
+        .map((l) => l.trimEnd());
+
+      if (normalizedTableLines.length >= 2 && (isMarkdownTable(normalizedTableLines) || isPipeTable(normalizedTableLines))) {
+        blocks.push(buildTable(normalizedTableLines));
+        continue;
+      }
+
+      for (const l of normalizedTableLines) {
+        blocks.push(paragraphFromLine(l));
+      }
+      continue;
+    }
+
+    blocks.push(paragraphFromLine(cleaned));
+    i += 1;
   }
-  flush();
 
   return blocks;
 }
@@ -194,17 +250,18 @@ export async function buildReportDocx(
   meta?: {
     preparedBy?: string;
     preparedAt?: Date;
+    clientName?: string;
   }
 ) {
-  const normalizedText = reportText.replace(/\r/g, "").trim();
-  const sections = normalizedText
-    .split(/(?=^SECTION\s+\d+\s*[-—:])/im)
-    .map((section) => section.trim())
-    .filter(Boolean);
+  const normalizedText = sanitizeText(reportText);
+  const hasSectionHeadings = /^SECTION\s+\d+\s*[-—:]/im.test(normalizedText);
 
-  const content =
-    sections.length > 0
-      ? sections.flatMap((section) => {
+  const content = hasSectionHeadings
+    ? normalizedText
+        .split(/(?=^SECTION\s+\d+\s*[-—:])/im)
+        .map((section) => section.trim())
+        .filter(Boolean)
+        .flatMap((section) => {
           const [headerLine, ...bodyLines] = section.split("\n");
           const body = bodyLines.join("\n").trim();
 
@@ -213,7 +270,7 @@ export async function buildReportDocx(
             ...(body ? toBlocks(body) : [new Paragraph({ text: "[NO CONTENT PROVIDED]", spacing: { after: 120 } })]),
           ];
         })
-      : toBlocks(normalizedText);
+    : toBlocks(normalizedText);
 
   // Prepare header children
   const headerChildren: any[] = [];
@@ -281,6 +338,7 @@ export async function buildReportDocx(
 
   const preparedAt = meta?.preparedAt ?? new Date();
   const preparedBy = meta?.preparedBy;
+  const clientName = meta?.clientName;
   const preparedOn = preparedAt.toLocaleDateString("en-GB", {
     year: "numeric",
     month: "long",
@@ -290,6 +348,24 @@ export async function buildReportDocx(
   const doc = new Document({
     sections: [
       {
+        headers: {
+          default: new Header({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({
+                    text: "DRAFT",
+                    bold: true,
+                    color: "D9D9D9",
+                    size: 144,
+                  }),
+                ],
+                spacing: { after: 0 },
+              }),
+            ],
+          }),
+        },
         children: [
           ...headerChildren,
           new Paragraph({
@@ -303,6 +379,15 @@ export async function buildReportDocx(
             ],
             spacing: { before: 480, after: 240 },
           }),
+          ...(clientName
+            ? [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: `Client: ${clientName}`, italics: true, color: "666666" })],
+                  spacing: { after: 120 },
+                }),
+              ]
+            : []),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [new TextRun({ text: `Prepared on: ${preparedOn}`, italics: true, color: "666666" })],
@@ -321,6 +406,7 @@ export async function buildReportDocx(
                   spacing: { after: 240 },
                 }),
               ]),
+          new Paragraph({ children: [new PageBreak()] }),
           ...content,
           ...(whiteLabel?.footer_message 
             ? [

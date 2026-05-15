@@ -65,10 +65,10 @@ export async function GET(request: Request) {
 
     const reportData = data as any;
     const reportText = reportData[textField] as string;
-    const buffer = await buildReportDocx(reportText, title, whiteLabel, { preparedBy, preparedAt: new Date() });
-
     const clientName = reportData.client_name as string;
+    const buffer = await buildReportDocx(reportText, title, whiteLabel, { preparedBy, preparedAt: new Date(), clientName });
     const filename = `${clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${type}-report.docx`;
+
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

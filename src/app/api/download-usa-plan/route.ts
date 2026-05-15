@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     const preparedBy =
       (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
 
-    const buffer = await buildReportDocx(data.plan_text, "USA Financial Plan", whiteLabel, { preparedBy, preparedAt: new Date() });
+    const buffer = await buildReportDocx(data.plan_text, "USA Financial Plan", whiteLabel, { preparedBy, preparedAt: new Date(), clientName: data.client_name });
 
     const filename = `${data.client_name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-usa-financial-plan.docx`;
 

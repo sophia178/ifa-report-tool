@@ -92,13 +92,20 @@ function renderSoaText(text: string) {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "520px" }}>
             <tbody>
               {rows.map((row, rIndex) => (
-                <tr key={rIndex} style={{ backgroundColor: rIndex === 0 ? "#F8FAFC" : "white" }}>
+                <tr
+                  key={rIndex}
+                  style={{
+                    backgroundColor: rIndex === 0 ? "#F8FAFC" : rIndex % 2 === 0 ? "white" : "#F8FAFC",
+                  }}
+                >
                   {Array.from({ length: maxCols }).map((_, cIndex) => (
                     <td
                       key={cIndex}
                       style={{
-                        borderTop: rIndex === 0 ? "none" : "1px solid #E5E7EB",
-                        borderRight: cIndex === maxCols - 1 ? "none" : "1px solid #E5E7EB",
+                        borderTop: rIndex === 0 ? "1px solid #E5E7EB" : "1px solid #E5E7EB",
+                        borderLeft: cIndex === 0 ? "1px solid #E5E7EB" : "none",
+                        borderRight: cIndex === maxCols - 1 ? "1px solid #E5E7EB" : "1px solid #E5E7EB",
+                        borderBottom: "1px solid #E5E7EB",
                         padding: "10px 12px",
                         verticalAlign: "top",
                         color: "#374151",
@@ -124,12 +131,11 @@ function renderSoaText(text: string) {
         <div
           key={`h-${i}`}
           style={{
-            marginTop: blocks.length === 0 ? 0 : "18px",
+            marginTop: blocks.length === 0 ? 0 : "24px",
             marginBottom: "10px",
-            fontSize: "16px",
-            fontWeight: "900",
+            fontSize: "18px",
+            fontWeight: "700",
             color: "#0A1628",
-            letterSpacing: "0.2px",
           }}
         >
           {trimmed}
@@ -156,6 +162,9 @@ export default function SOAAustraliaPage() {
   const [clientEmail, setClientEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [meetingDate, setMeetingDate] = useState(today);
+  const [superFundName, setSuperFundName] = useState("");
+  const [currentSuperBalance, setCurrentSuperBalance] = useState("");
+  const [employerSuperContributionPercent, setEmployerSuperContributionPercent] = useState("");
   const [meetingNotes, setMeetingNotes] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [soaText, setSoaText] = useState<string | null>(null);
@@ -258,6 +267,9 @@ export default function SOAAustraliaPage() {
           clientEmail,
           dateOfBirth,
           meetingDate,
+          superFundName,
+          currentSuperBalance,
+          employerSuperContributionPercent,
           meetingNotes,
         }),
       });
@@ -359,6 +371,21 @@ export default function SOAAustraliaPage() {
                   <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Meeting Date</label>
                   <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} required />
                 </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Superannuation Fund Name</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} value={superFundName} onChange={(e) => setSuperFundName(e.target.value)} placeholder="e.g. AustralianSuper" />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Current Super Balance (AUD)</label>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid #E5E7EB", borderRadius: "8px", overflow: "hidden" }}>
+                    <div style={{ padding: "12px 12px", backgroundColor: "#F8FAFC", color: "#0A1628", fontWeight: "700", borderRight: "1px solid #E5E7EB" }}>$</div>
+                    <input style={{ border: "none", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.parentElement && (e.currentTarget.parentElement.style.borderColor = "#C9A84C")} onBlur={(e) => e.currentTarget.parentElement && (e.currentTarget.parentElement.style.borderColor = "#E5E7EB")} type="number" inputMode="decimal" value={currentSuperBalance} onChange={(e) => setCurrentSuperBalance(e.target.value)} placeholder="250000" />
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px", display: "block" }}>Employer Super Contribution %</label>
+                  <input style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px 16px", fontSize: "15px", outline: "none", width: "100%" }} onFocus={(e) => e.currentTarget.style.borderColor = "#C9A84C"} onBlur={(e) => e.currentTarget.style.borderColor = "#E5E7EB"} type="number" inputMode="decimal" value={employerSuperContributionPercent} onChange={(e) => setEmployerSuperContributionPercent(e.target.value)} placeholder="e.g. 11.5" />
+                </div>
               </div>
             </div>
 
@@ -429,7 +456,7 @@ export default function SOAAustraliaPage() {
                 {isDownloading ? "Downloading..." : "Download Word"}
               </button>
             </div>
-            <div style={{ padding: "24px", backgroundColor: "#F8FAFC", borderRadius: "12px" }}>
+            <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px", backgroundColor: "white", border: "1px solid #E5E7EB", borderRadius: "12px" }}>
               {renderSoaText(soaText)}
             </div>
           </div>
