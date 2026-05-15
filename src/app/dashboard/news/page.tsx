@@ -34,6 +34,8 @@ export default function NewsPage() {
   const fetchNews = useCallback(async (j: Jurisdiction) => {
     setIsLoading(true);
     setError(null);
+    setBriefings([]);
+    setLastUpdated(null);
     try {
       const res = await fetch(`/api/news?jurisdiction=${encodeURIComponent(j)}`);
 

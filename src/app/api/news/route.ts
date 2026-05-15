@@ -5,7 +5,7 @@ import { checkSubscription } from "@/lib/subscription";
 
 export const maxDuration = 300;
 
-type Jurisdiction = "uk" | "aus" | "usa" | "global";
+type Jurisdiction = "uk" | "aus" | "usa";
 
 function normalizeJurisdiction(value: unknown): Jurisdiction {
   const v = typeof value === "string" ? value.trim().toLowerCase() : "uk";
@@ -14,29 +14,28 @@ function normalizeJurisdiction(value: unknown): Jurisdiction {
 }
 
 function getKeywords(jurisdiction: Jurisdiction) {
-  return jurisdiction === "uk"
-    ? ["FCA", "Bank of England", "UK regulation", "UK pensions", "UK markets"]
-    : jurisdiction === "aus"
-      ? ["ASIC", "RBA", "ASX", "Superannuation", "AFSL regulation"]
-      : jurisdiction === "usa"
-        ? ["SEC", "FINRA", "Federal Reserve", "CFP Board", "401k news"]
-        : ["FCA", "Bank of England", "UK regulation", "UK pensions", "UK markets"];
+  if (jurisdiction === "aus") return ["ASIC", "RBA", "ASX", "Superannuation", "AFSL"];
+  if (jurisdiction === "usa") return ["SEC", "Federal Reserve", "S&P 500", "401k", "FINRA"];
+  return ["FCA", "Bank of England", "FTSE", "UK pensions", "Consumer Duty"];
 }
 
-function getFocus(jurisdiction: Jurisdiction) {
-  return jurisdiction === "uk"
-    ? "Generate 4 news items focused on FCA, Bank of England, UK financial regulation, UK pension news, and UK investment news."
-    : jurisdiction === "aus"
-      ? "Generate 4 news items focused on ASIC, RBA, Australian superannuation, AFSL regulation, and ASX news."
-      : jurisdiction === "usa"
-        ? "Generate 4 news items focused on SEC, Federal Reserve, CFP Board, 401k news, US financial regulation, and FINRA updates."
-        : "Generate 4 news items focused on FCA, Bank of England, UK financial regulation, UK pension news, and UK investment news.";
-}
-
-function getCacheKey(jurisdiction: Jurisdiction) {
-  if (jurisdiction === "aus") return "news_briefing_aus";
-  if (jurisdiction === "usa") return "news_briefing_usa";
-  return "news_briefing_uk";
+function getJurisdictionPrompt(jurisdiction: Jurisdiction) {
+  if (jurisdiction === "aus") {
+    return [
+      "Australia-only adviser news briefing.",
+      "Focus on: ASIC regulation, RBA decisions, ASX markets, superannuation industry news, AFSL updates, Australian financial planning, retirement income strategy.",
+    ].join("\n");
+  }
+  if (jurisdiction === "usa") {
+    return [
+      "USA-only adviser news briefing.",
+      "Focus on: SEC regulation, Federal Reserve, S&P 500, 401k and IRA news, CFP Board updates, FINRA, US financial planning developments, Social Security updates.",
+    ].join("\n");
+  }
+  return [
+    "UK-only adviser news briefing.",
+    "Focus on: FCA regulation, Bank of England, FTSE markets, UK pension news, Consumer Duty, UK financial planning developments.",
+  ].join("\n");
 }
 
 function looksLikeMissingColumn(err: unknown) {
@@ -45,14 +44,7 @@ function looksLikeMissingColumn(err: unknown) {
 }
 
 function getFallbackNews(jurisdiction: Jurisdiction) {
-  const prefix =
-    jurisdiction === "uk"
-      ? "UK"
-      : jurisdiction === "aus"
-        ? "Australia"
-        : jurisdiction === "usa"
-          ? "USA"
-          : "Global";
+  const prefix = jurisdiction === "uk" ? "UK" : jurisdiction === "aus" ? "Australia" : "USA";
 
   return [
     {
@@ -87,17 +79,20 @@ function getFallbackNews(jurisdiction: Jurisdiction) {
 }
 
 async function generateNews(jurisdiction: Jurisdiction) {
-  const focus = getFocus(jurisdiction);
-  const prompt = `You are a financial news editor.
-${focus}
+  const jurisdictionPrompt = getJurisdictionPrompt(jurisdiction);
+  const prompt = `You are a financial news editor writing for professional financial advisers.
 
-Return a JSON array of exactly 4 objects, where each object has:
-    - topic: The news topic
-    - developments: Key news developments
-    - implications: Implications for financial advisers
-    - adviserAdvice: Specific advice for client conversations
-    - riskFlags: Any risks to flag
-    
+${jurisdictionPrompt}
+
+Generate exactly 4 items. Each item must be specific to this jurisdiction (do not mention or summarize other regions).
+
+Return a JSON array of exactly 4 objects, each with:
+- topic
+- developments
+- implications
+- adviserAdvice
+- riskFlags
+
 Return ONLY the raw JSON array. Do not use markdown code fences.`;
 
   const rawResult = await callClaude(prompt);
@@ -128,7 +123,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const jurisdiction = normalizeJurisdiction(body?.jurisdiction);
-    const cacheKey = getCacheKey(jurisdiction);
+    const cacheKey = `news_briefing_${jurisdiction}`;
     const keywords = getKeywords(jurisdiction);
     let briefingJson: any;
     try {
@@ -184,7 +179,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ result: briefingJson, lastUpdated: data?.created_at || new Date().toISOString(), cached: false });
   } catch (error) {
     console.error("API route error (POST /api/news):", error);
-    return NextResponse.json({ result: getFallbackNews("global"), lastUpdated: new Date().toISOString(), cached: false, fallback: true });
+    return NextResponse.json({ result: getFallbackNews("uk"), lastUpdated: new Date().toISOString(), cached: false, fallback: true });
   }
 }
 
@@ -197,16 +192,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const jurisdiction = normalizeJurisdiction(searchParams.get("jurisdiction"));
-    const cacheKey = getCacheKey(jurisdiction);
-
     const isSubscribed = await checkSubscription(user.id);
     if (!isSubscribed) {
       return NextResponse.json({ error: "Subscription required" }, { status: 403 });
     }
 
     const sixHoursMs = 6 * 60 * 60 * 1000;
+
+    const { searchParams } = new URL(request.url);
+    const jurisdiction = normalizeJurisdiction(searchParams.get("jurisdiction") || "uk");
+    const cacheKey = `news_briefing_${jurisdiction}`;
 
     const attemptByKey = await supabase
       .from("news_briefings")
@@ -217,29 +212,18 @@ export async function GET(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    const attemptFiltered = await supabase
-      .from("news_briefings")
-      .select("id, created_at, briefing_json, jurisdiction")
-      .eq("user_id", user.id)
-      .eq("jurisdiction", jurisdiction)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const attemptByJurisdiction = looksLikeMissingColumn(attemptByKey.error)
+      ? await supabase
+          .from("news_briefings")
+          .select("id, created_at, briefing_json, jurisdiction")
+          .eq("user_id", user.id)
+          .eq("jurisdiction", jurisdiction)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : null;
 
-    const attemptFallback = await supabase
-      .from("news_briefings")
-      .select("id, created_at, briefing_json")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const latest =
-      !attemptByKey.error && attemptByKey.data
-        ? attemptByKey.data
-        : attemptFiltered.error
-          ? attemptFallback.data
-          : (attemptFiltered.data || attemptFallback.data);
+    const latest = attemptByKey.data || attemptByJurisdiction?.data || null;
     const createdAt = latest?.created_at ? new Date(latest.created_at) : null;
     const isFresh = createdAt ? Date.now() - createdAt.getTime() < sixHoursMs : false;
 
@@ -296,6 +280,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ result: briefingJson, lastUpdated: data.created_at, cached: false });
   } catch (error) {
     console.error("API route error (GET /api/news):", error);
-    return NextResponse.json({ result: getFallbackNews("global"), lastUpdated: new Date().toISOString(), cached: false, fallback: true });
+    return NextResponse.json({ result: getFallbackNews("uk"), lastUpdated: new Date().toISOString(), cached: false, fallback: true });
   }
 }

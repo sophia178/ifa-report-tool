@@ -57,7 +57,11 @@ export default function TemplatesPage() {
   }, [fetchTemplates]);
 
   async function saveTemplate() {
-    if (!name || !content) return;
+    if (name.trim() === "") {
+      setSaveError("Please enter a template name");
+      return;
+    }
+    if (content.trim() === "") return;
     setSaving(true);
     setSaveError(null);
     const { data: { user } } = await supabase.auth.getUser();
@@ -104,8 +108,11 @@ export default function TemplatesPage() {
         <h2 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "16px", color: "#0A1628" }}>New Template</h2>
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Template name"
+          onChange={(e) => {
+            setName(e.target.value);
+            if (saveError) setSaveError(null);
+          }}
+          placeholder="Enter template name"
           style={{ width: "100%", padding: "10px", border: "1px solid #e5e7eb", borderRadius: "8px", marginBottom: "12px", fontSize: "14px" }}
         />
         <select
@@ -126,8 +133,17 @@ export default function TemplatesPage() {
         />
         <button
           onClick={saveTemplate}
-          disabled={saving}
-          style={{ backgroundColor: "#C9A84C", color: "#0A1628", border: "none", padding: "10px 24px", borderRadius: "8px", fontWeight: "600", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
+          disabled={saving || name.trim() === "" || content.trim() === ""}
+          style={{
+            backgroundColor: "#C9A84C",
+            color: "#0A1628",
+            border: "none",
+            padding: "10px 24px",
+            borderRadius: "8px",
+            fontWeight: "600",
+            cursor: saving || name.trim() === "" || content.trim() === "" ? "not-allowed" : "pointer",
+            opacity: saving || name.trim() === "" || content.trim() === "" ? 0.7 : 1,
+          }}
         >
           {saving ? "Saving..." : "Save Template"}
         </button>

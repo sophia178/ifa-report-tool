@@ -5,7 +5,7 @@ import { checkSubscription, getUserPlan } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
-type Jurisdiction = "uk" | "aus" | "usa" | "global";
+type Jurisdiction = "uk" | "aus" | "usa";
 
 function normalizeJurisdiction(value: unknown): Jurisdiction {
   const v = typeof value === "string" ? value.trim().toLowerCase() : "uk";
@@ -14,9 +14,7 @@ function normalizeJurisdiction(value: unknown): Jurisdiction {
 }
 
 function getCacheKey(jurisdiction: Jurisdiction) {
-  if (jurisdiction === "aus") return "daily_briefing_aus";
-  if (jurisdiction === "usa") return "daily_briefing_usa";
-  return "daily_briefing_uk";
+  return `daily_briefing_${jurisdiction}`;
 }
 
 function looksLikeMissingColumn(err: unknown) {
@@ -111,6 +109,39 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const jurisdiction = normalizeJurisdiction(body?.jurisdiction);
     const cacheKey = getCacheKey(jurisdiction);
+
+    const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+    const attemptByKey = await supabase
+      .from("market_briefings")
+      .select("id, created_at, briefing_text, cache_key")
+      .eq("user_id", user.id)
+      .eq("cache_key", cacheKey as any)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const attemptByJurisdiction = looksLikeMissingColumn(attemptByKey.error)
+      ? await supabase
+          .from("market_briefings")
+          .select("id, created_at, briefing_text, jurisdiction")
+          .eq("user_id", user.id)
+          .eq("jurisdiction", jurisdiction)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : null;
+
+    const cached = attemptByKey.data || attemptByJurisdiction?.data || null;
+    const cachedAt = cached?.created_at ? new Date(cached.created_at) : null;
+    const cachedIsFresh = cachedAt ? Date.now() - cachedAt.getTime() < twentyFourHoursMs : false;
+    if (cached?.briefing_text && cachedIsFresh) {
+      return NextResponse.json({
+        result: cached.briefing_text,
+        id: cached.id,
+        lastUpdated: cached.created_at || new Date().toISOString(),
+        cached: true,
+      });
+    }
 
     const plan = (await getUserPlan(user.id)) || "starter";
     if (plan === "starter") {
@@ -236,31 +267,20 @@ export async function GET(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    const attemptFiltered = await supabase
-      .from("market_briefings")
-      .select("id, created_at, briefing_text, jurisdiction")
-      .eq("user_id", user.id)
-      .eq("jurisdiction", jurisdiction)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const attemptByJurisdiction = looksLikeMissingColumn(attemptByKey.error)
+      ? await supabase
+          .from("market_briefings")
+          .select("id, created_at, briefing_text, jurisdiction")
+          .eq("user_id", user.id)
+          .eq("jurisdiction", jurisdiction)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : null;
 
-    const attemptFallback = await supabase
-      .from("market_briefings")
-      .select("id, created_at, briefing_text")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const latest =
-      !attemptByKey.error && attemptByKey.data
-        ? attemptByKey.data
-        : attemptFiltered.error
-          ? attemptFallback.data
-          : (attemptFiltered.data || attemptFallback.data);
+    const latest = attemptByKey.data || attemptByJurisdiction?.data || null;
     const createdAt = latest?.created_at ? new Date(latest.created_at) : null;
-    const isStale = createdAt ? Date.now() - createdAt.getTime() > twentyFourHoursMs : false;
+    const isStale = createdAt ? Date.now() - createdAt.getTime() > twentyFourHoursMs : true;
 
     return NextResponse.json({
       result: latest?.briefing_text ?? null,
