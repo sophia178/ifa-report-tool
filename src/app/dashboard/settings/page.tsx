@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useGeoPricing } from "@/hooks/useGeoPricing";
 import { ArrowLeft, User, Shield, Lock, Trash2, Save, Upload, Loader2, ExternalLink, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const { prices } = useGeoPricing();
   const [isSaving, setIsSaving] = useState(false);
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const [userId, setUserId] = useState<string | undefined>();
@@ -171,9 +173,9 @@ export default function SettingsPage() {
 
   const getPlanPrice = () => {
     switch (plan) {
-      case "Pro": return "£99/month";
-      case "Plus": return "£49/month";
-      default: return "£19/month";
+      case "Pro": return `${prices.symbol}${prices.pro}/month`;
+      case "Plus": return `${prices.symbol}${prices.plus}/month`;
+      default: return `${prices.symbol}${prices.starter}/month`;
     }
   };
 

@@ -3,7 +3,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import Link from "next/link";
 import { useState } from "react";
-import type { Currency } from "@/lib/geo-pricing";
+import { getPriceDisplay, type Currency } from "@/lib/geo-pricing";
 
 type PricingCtaProps = {
   isLoggedIn: boolean;
@@ -16,12 +16,14 @@ type PricingCtaProps = {
   style?: React.CSSProperties;
 };
 
+const DEFAULT_DISPLAY = getPriceDisplay("GBP");
+
 export function PricingCta({
   isLoggedIn,
   isSubscribed,
   currentPlan,
   tierPlan,
-  price = "£19",
+  price = `${DEFAULT_DISPLAY.symbol}${DEFAULT_DISPLAY.starter}`,
   currency = "GBP",
   priceDisplay,
   style,

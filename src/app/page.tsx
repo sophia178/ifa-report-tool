@@ -3,25 +3,15 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useGeoPricing } from "@/hooks/useGeoPricing";
 
 export default function Home() {
   const [startHref, setStartHref] = useState("/signup");
-  const [fromPrice, setFromPrice] = useState("£19");
+  const { prices } = useGeoPricing();
 
   useEffect(() => {
     const supabase = createClient();
     (async () => {
-      try {
-        const res = await fetch("/api/geo");
-        const geo = await res.json().catch(() => ({}));
-        if (res.ok && geo?.prices && typeof geo.prices === "object") {
-          const symbol = typeof geo.prices.symbol === "string" ? geo.prices.symbol : "£";
-          const starter = typeof geo.prices.starter === "string" ? geo.prices.starter : "19";
-          setFromPrice(`${symbol}${starter}`);
-        }
-      } catch {
-      }
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setStartHref("/signup");
@@ -104,13 +94,13 @@ export default function Home() {
       <section style={{ backgroundColor: "#F8FAFC", padding: "80px 48px", textAlign: "center" }}>
         <h2 style={{ fontSize: "36px", fontWeight: "800", color: "#0A1628", marginBottom: "16px" }}>Simple, transparent pricing.</h2>
         <p style={{ fontSize: "18px", color: "#64748B", textAlign: "center", marginBottom: "64px" }}>
-          Start today from {fromPrice}/month. Scale as you grow.
+          Start today from {prices.symbol}{prices.starter}/month. Scale as you grow.
         </p>
         <div style={{ display: "flex", gap: "24px", maxWidth: "900px", margin: "0 auto", justifyContent: "center" }}>
           {[
-            { name: "Starter", price: "£19", desc: "Perfect for sole practitioners.", featured: false },
-            { name: "Plus", price: "£49", desc: "For growing advisory firms.", featured: true },
-            { name: "Pro", price: "£99", desc: "Full terminal for large teams.", featured: false }
+            { name: "Starter", price: `${prices.symbol}${prices.starter}`, desc: "Perfect for sole practitioners.", featured: false },
+            { name: "Plus", price: `${prices.symbol}${prices.plus}`, desc: "For growing advisory firms.", featured: true },
+            { name: "Pro", price: `${prices.symbol}${prices.pro}`, desc: "Full terminal for large teams.", featured: false }
           ].map((tier, i) => (
             <div key={i} style={{ backgroundColor: "#FFFFFF", borderRadius: "16px", padding: "40px", flex: 1, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: tier.featured ? "2px solid #C9A84C" : "1px solid transparent", display: "flex", flexDirection: "column", textAlign: "left" }}>
               <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#6B7280", marginBottom: "8px", textTransform: "uppercase" }}>{tier.name}</h3>
