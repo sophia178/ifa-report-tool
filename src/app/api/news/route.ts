@@ -96,8 +96,19 @@ Return a JSON array of exactly 4 objects, each with:
 Return ONLY the raw JSON array. Do not use markdown code fences.`;
 
   const rawResult = await callClaude(prompt);
-  const cleanJson = rawResult.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-  return JSON.parse(cleanJson);
+  const text = rawResult
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+
+  const firstBracket = Math.min(
+    text.indexOf("[") === -1 ? Infinity : text.indexOf("["),
+    text.indexOf("{") === -1 ? Infinity : text.indexOf("{")
+  );
+  const cleanText = firstBracket < Infinity ? text.slice(firstBracket) : text;
+
+  return JSON.parse(cleanText);
 }
 
 export async function POST(request: Request) {
