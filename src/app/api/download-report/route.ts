@@ -8,15 +8,15 @@ type DownloadBody = {
   reportText?: string;
 };
 
-function normalizeMarkdownForDocx(text: string) {
+function stripMarkdown(text: string): string {
   return text
     .replace(/\r/g, "")
-    .replace(/^(#{1,6})\s+/gm, (_m, hashes: string) => `__MD_H${hashes.length}__ `)
+    .replace(/^#{1,6}\s*/gm, "")
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
     .replace(/^---+$/gm, "")
     .replace(/^[*-]\s+/gm, "")
-    .replace(/^>\s+/gm, "")
+    .replace(/^>\s*/gm, "")
     .trim();
 }
 
@@ -81,7 +81,9 @@ export async function GET(request: Request) {
       (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
 
     const reportData = data as any;
-    const reportText = normalizeMarkdownForDocx(String(reportData[textField] || ""));
+    const rawText = String(reportData[textField] || "");
+    const reportText = stripMarkdown(rawText);
+    console.log("[download-report] stripMarkdown GET", { before: rawText.length, after: reportText.length });
     const clientName = reportData.client_name as string;
     const buffer = await buildReportDocx(reportText, title, whiteLabel, { preparedBy, preparedAt: new Date(), clientName });
 
@@ -111,7 +113,9 @@ export async function POST(request: Request) {
     }
 
     const payload = (await request.json().catch(() => ({}))) as DownloadBody;
-    const reportText = typeof payload.reportText === "string" ? normalizeMarkdownForDocx(payload.reportText) : "";
+    const rawText = typeof payload.reportText === "string" ? payload.reportText : "";
+    const reportText = stripMarkdown(rawText);
+    console.log("[download-report] stripMarkdown POST", { before: rawText.length, after: reportText.length });
     const clientName = typeof payload.clientName === "string" ? payload.clientName.trim() : "";
 
     if (!reportText.trim() || !clientName) {

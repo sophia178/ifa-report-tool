@@ -51,6 +51,8 @@ export async function POST(request: Request) {
           : "";
     const clientName = typeof payload.clientName === "string" ? payload.clientName.trim() : "";
 
+    console.log("[download-usa-plan] content length", planText.length);
+
     if (!planText.trim() || !clientName) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }

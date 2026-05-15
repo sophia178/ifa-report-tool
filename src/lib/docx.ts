@@ -18,12 +18,12 @@ import {
 
 function stripMarkdown(text: string): string {
   return text
-    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^#{1,6}\s*/gm, "")
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
     .replace(/^---+$/gm, "")
     .replace(/^[*-]\s+/gm, "")
-    .replace(/^>\s+/gm, "")
+    .replace(/^>\s*/gm, "")
     .trim();
 }
 
@@ -53,7 +53,15 @@ function sanitizeText(text: string) {
 function runsFromText(text: string) {
   const cleaned = sanitizeText(text);
   if (!cleaned) return [new TextRun({ text: "", size: 22 })];
-  return [new TextRun({ text: cleaned, size: 22 })];
+  const chunkSize = 2000;
+  if (cleaned.length <= chunkSize) {
+    return [new TextRun({ text: cleaned, size: 22 })];
+  }
+  const runs: TextRun[] = [];
+  for (let i = 0; i < cleaned.length; i += chunkSize) {
+    runs.push(new TextRun({ text: cleaned.slice(i, i + chunkSize), size: 22 }));
+  }
+  return runs;
 }
 
 function isHorizontalRule(line: string) {
