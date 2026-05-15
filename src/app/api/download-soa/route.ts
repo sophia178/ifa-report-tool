@@ -64,14 +64,12 @@ export async function GET(request: Request) {
       clientName: data.client_name,
     });
 
-    const filename = `${sanitizeClientFilename(data.client_name)}_Report.docx`;
-
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="Report.docx"`,
       },
     });
   } catch (error) {
@@ -120,14 +118,12 @@ export async function POST(request: Request) {
       clientName,
     });
 
-    const filename = `${sanitizeClientFilename(clientName)}_Report.docx`;
-
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="Report.docx"`,
       },
     });
   } catch (error) {

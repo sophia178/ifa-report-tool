@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { buildReportDocx } from "@/lib/docx";
 import { createClient } from "@/lib/supabase/server";
 
+type DownloadBody = {
+  clientName?: string;
+  reportText?: string;
+};
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -81,5 +86,59 @@ export async function GET(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error.";
     return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = (await request.json().catch(() => ({}))) as DownloadBody;
+    const reportText = typeof payload.reportText === "string" ? payload.reportText : "";
+    const clientName = typeof payload.clientName === "string" ? payload.clientName.trim() : "";
+
+    if (!reportText.trim() || !clientName) {
+      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    }
+
+    const { data: whiteLabel } = await supabase
+      .from("white_label_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const preparedBy =
+      (profile?.display_name && String(profile.display_name).trim()) || "Your Financial Adviser";
+
+    const buffer = await buildReportDocx(reportText, "FCA SUITABILITY REPORT", whiteLabel, {
+      preparedBy,
+      preparedAt: new Date(),
+      clientName,
+    });
+
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="Report.docx"`,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected error.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

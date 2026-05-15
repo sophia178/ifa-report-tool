@@ -232,7 +232,7 @@ export default function USAPlanPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${clientName}_Report.docx`;
+      a.download = `${clientName}_USA_Plan.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -307,6 +307,7 @@ export default function USAPlanPage() {
         if (insert.error) {
           console.error("Failed to save Plan:", insert.error);
         } else if (insert.data) {
+          console.log("USA plan saved successfully");
           setReportId(insert.data.id);
           setShowSavedToast(true);
           setTimeout(() => setShowSavedToast(false), 2500);

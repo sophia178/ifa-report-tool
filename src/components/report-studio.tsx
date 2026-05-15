@@ -174,6 +174,7 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [latestReport, setLatestReport] = useState<string | null>(reports[0]?.content ?? null);
   const [latestReportId, setLatestReportId] = useState<string | null>(reports[0]?.id ?? null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     async function fetchTemplates() {
@@ -288,6 +289,38 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
         setLatestReport(result);
       }
 
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && result) {
+        const insert = await supabase
+          .from("reports")
+          .insert({
+            user_id: user.id,
+            client_name: clientName,
+            client_email: clientEmail,
+            content: result,
+            report_text: result,
+            created_at: new Date().toISOString(),
+          } as any)
+          .select()
+          .maybeSingle();
+
+        if (insert.error) {
+          console.error("Failed to save report:", insert.error);
+        } else if (insert.data?.id) {
+          setLatestReportId(insert.data.id);
+        } else {
+          const latest = await supabase
+            .from("reports")
+            .select("id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (latest.data?.id) setLatestReportId(latest.data.id);
+        }
+      }
+
       setStatus("Report generated successfully.");
       router.refresh();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -296,6 +329,37 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
       setStatus("");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleDownloadLatest() {
+    if (!latestReport || !clientName) return;
+    setIsDownloading(true);
+    try {
+      const response = await fetch("/api/download-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportText: latestReport, clientName }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Download failed");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Report.docx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      setError("Failed to download report");
+    } finally {
+      setIsDownloading(false);
     }
   }
 
@@ -529,11 +593,15 @@ export function ReportStudio({ reports, adviserName }: ReportStudioProps) {
         </div>
       )}
 
-      {latestReport && (latestReportId) && (
+      {latestReport && (
         <div style={{ marginTop: "48px", backgroundColor: "white", borderRadius: "24px", padding: "48px", border: "1px solid #E5E7EB" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
             <h3 style={{ fontSize: "20px", fontWeight: "800", color: "#0A1628" }}>Generated Report</h3>
-            <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#F4F6F9", borderRadius: "8px", border: "none", fontWeight: "700", color: "#0A1628", cursor: "pointer" }}>
+            <button
+              onClick={handleDownloadLatest}
+              disabled={isDownloading}
+              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", backgroundColor: "#F4F6F9", borderRadius: "8px", border: "none", fontWeight: "700", color: "#0A1628", cursor: isDownloading ? "not-allowed" : "pointer", opacity: isDownloading ? 0.7 : 1 }}
+            >
               <Download size={18} /> Download Word
             </button>
           </div>

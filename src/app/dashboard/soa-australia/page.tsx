@@ -240,7 +240,7 @@ export default function SOAAustraliaPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${clientName}_Report.docx`;
+      a.download = `${clientName}_SOA.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -314,6 +314,7 @@ export default function SOAAustraliaPage() {
         if (insert.error) {
           console.error("Failed to save SOA:", insert.error);
         } else if (insert.data) {
+          console.log("SOA saved successfully");
           setReportId(insert.data.id);
           setShowSavedToast(true);
           setTimeout(() => setShowSavedToast(false), 2500);
