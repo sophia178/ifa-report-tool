@@ -32,26 +32,26 @@ export function getPriceDisplay(currency: Currency) {
   if (currency === "USD") {
     return {
       symbol: "$",
-      starter: "24",
-      plus: "59",
-      pro: "119",
+      starter: "69",
+      plus: "149",
+      pro: "299",
       locale: "en-US",
     };
   }
   if (currency === "AUD") {
     return {
       symbol: "A$",
-      starter: "29",
-      plus: "69",
-      pro: "139",
+      starter: "99",
+      plus: "199",
+      pro: "399",
       locale: "en-AU",
     };
   }
   return {
     symbol: "£",
-    starter: "19",
-    plus: "49",
-    pro: "99",
+    starter: "49",
+    plus: "99",
+    pro: "199",
     locale: "en-GB",
   };
 }
